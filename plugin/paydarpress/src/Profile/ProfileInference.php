@@ -30,10 +30,7 @@ final class ProfileInference {
 
 	private const CITIES = array( 'تهران', 'کرج', 'مشهد', 'اصفهان', 'شیراز', 'تبریز', 'قم', 'اهواز', 'کرمانشاه', 'ارومیه', 'رشت', 'زاهدان', 'کرمان', 'همدان', 'یزد', 'اردبیل', 'بندرعباس', 'اراک', 'زنجان', 'قزوین', 'سنندج', 'خرم‌آباد', 'گرگان', 'ساری', 'بجنورد', 'بوشهر', 'بیرجند', 'ایلام', 'شهرکرد', 'سمنان', 'یاسوج', 'کاشان', 'شهریار', 'اسلامشهر', 'ورامین', 'پاکدشت', 'شهر ری', 'قرچک', 'نظرآباد', 'هشتگرد', 'فردیس', 'گوهردشت', 'عظیمیه', 'مهرشهر', 'پردیس', 'دماوند' );
 
-	private const LEGAL_WORDS    = array( 'وکیل', 'وکالت', 'حقوقی', 'دادگاه', 'طلاق', 'دعاوی', 'مهریه', 'lawyer', 'legal' );
 	private const MEDICAL_WORDS  = array( 'پزشک', 'دکتر', 'کلینیک', 'درمان', 'دندان', 'بیمارستان', 'داروخانه', 'سلامت', 'پوست', 'زیبایی' );
-	private const LANGUAGE_WORDS = array( 'آموزش زبان', 'انگلیسی', 'آیلتس', 'تافل', 'english', 'ielts' );
-	private const SERVICE_WORDS  = array( 'تامین‌کننده', 'تأمین‌کننده', 'دایرکتوری', 'فهرست شرکت', 'شهرک صنعتی', 'تصفیه', 'نصب', 'تعمیر' );
 
 	/**
 	 * Runs detection and inference and stores the result.
@@ -69,24 +66,20 @@ final class ProfileInference {
 		);
 
 		$haystack = PersianNormalizer::normalize( implode( ' ', array_merge( array( get_bloginfo( 'name' ), get_bloginfo( 'description' ) ), self::category_names() ) ) );
-		$industry = self::industry( $haystack, (bool) $detected['woocommerce'] );
-
-		$goals = array(
-			'legal'                 => 'رزرو مشاوره و تماس با دفتر',
-			'product-manufacturing' => 'فروش محصول و ثبت سفارش',
-			'service-directory'     => 'تماس با تأمین‌کنندگان و ثبت آگهی',
-			'language-learning'     => 'ثبت‌نام در تعیین سطح و کلاس',
-		);
+		$industry = Industries::detect( $haystack, (bool) $detected['woocommerce'] );
+		$profile  = Industries::all()[ $industry ];
 
 		$key_pages = self::key_pages();
 
 		$inferred = array(
 			'industry_module'      => $industry,
-			'fact_sensitivity'     => ( 'legal' === $industry || self::contains_any( $haystack, self::MEDICAL_WORDS ) ) ? 'YMYL' : 'normal',
+			'fact_sensitivity'     => ( $profile['ymyl'] || self::contains_any( $haystack, self::MEDICAL_WORDS ) ) ? 'YMYL' : 'normal',
 			'geographic_scope'     => implode( '، ', self::cities( $haystack ) ),
-			'primary_content_goal' => $goals[ $industry ] ?? '',
+			'primary_content_goal' => $profile['goal'],
 			'business_offer'       => html_entity_decode( get_bloginfo( 'description' ), ENT_QUOTES, 'UTF-8' ),
-			'knowledge_level'      => 'mixed',
+			'knowledge_level'      => $profile['knowledge'],
+			'industry_rules'       => $profile['rules'],
+			'primary_keyword_patterns' => $profile['patterns'],
 			'key_pages'            => $key_pages,
 			'cta_options'          => self::cta_options( $key_pages ),
 			'categories_scope'     => self::categories(),
@@ -110,29 +103,6 @@ final class ProfileInference {
 		}
 
 		return 'ویرایشگر بلوکی (گوتنبرگ)';
-	}
-
-	/**
-	 * Industry module by keywords.
-	 *
-	 * @param string $haystack    Normalized site name, tagline and category names.
-	 * @param bool   $woocommerce Whether WooCommerce is active.
-	 */
-	private static function industry( string $haystack, bool $woocommerce ): string {
-		if ( self::contains_any( $haystack, self::LEGAL_WORDS ) ) {
-			return 'legal';
-		}
-		if ( self::contains_any( $haystack, self::LANGUAGE_WORDS ) ) {
-			return 'language-learning';
-		}
-		if ( $woocommerce ) {
-			return 'product-manufacturing';
-		}
-		if ( self::contains_any( $haystack, self::SERVICE_WORDS ) ) {
-			return 'service-directory';
-		}
-
-		return 'custom';
 	}
 
 	/**

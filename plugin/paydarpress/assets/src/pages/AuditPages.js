@@ -4,6 +4,8 @@ import Page from '../components/Page';
 import EmptyState from '../components/EmptyState';
 import FindingsList from '../components/FindingsList';
 import FindingCard from '../components/FindingCard';
+import AiButton from '../components/AiButton';
+import { refreshCommand, termCommand } from '../lib/aiCommands';
 import { get, post, errorMessage } from '../lib/api';
 import { num, date, ago } from '../lib/format';
 
@@ -204,6 +206,7 @@ export function RefreshPage() {
 								<tr key={ item.id }>
 									<td>
 										<a className="pp-link" href={ item.edit_url }>{ item.title }</a>
+										<div className="pp-row-ai"><AiButton command={ refreshCommand( item.title, item.url, item.reasons ) } /></div>
 									</td>
 									<td>
 										<div className="pp-score">
@@ -245,7 +248,7 @@ export function RefreshPage() {
 export function TaxonomiesPage() {
 	const { data, error, loading } = useLoad( '/taxonomies' );
 
-	const table = ( items, emptyText ) =>
+	const table = ( items, emptyText, kind ) =>
 		items.length ? (
 			<div className="pp-card pp-card--flush">
 				<table className="pp-table">
@@ -263,6 +266,9 @@ export function TaxonomiesPage() {
 							<tr key={ t.id }>
 								<td>
 									<a className="pp-link" href={ t.edit_url }>{ t.name }</a>
+									{ t.findings.some( ( f ) => [ 'WEAK_CATEGORY', 'EMPTY_CATEGORY', 'THIN_TAG', 'EMPTY_TAG', 'INDEXED_THIN_ARCHIVE' ].includes( f.code ) ) && (
+										<div className="pp-row-ai"><AiButton command={ termCommand( t.name, kind ) } /></div>
+									) }
 								</td>
 								<td className="pp-num">{ num( t.count ) }</td>
 								<td className="pp-num">{ t.description > 0 ? `${ num( t.description ) } نویسه` : <span className="pp-missing">ندارد</span> }</td>
@@ -286,9 +292,9 @@ export function TaxonomiesPage() {
 			{ data && (
 				<>
 					<h2 className="pp-section-title">دسته‌بندی‌ها ({ num( data.categories.length ) })</h2>
-					{ table( data.categories, 'دسته‌بندی‌ای وجود ندارد.' ) }
+					{ table( data.categories, 'دسته‌بندی‌ای وجود ندارد.', 'category' ) }
 					<h2 className="pp-section-title">برچسب‌ها ({ num( data.tags.length ) })</h2>
-					{ table( data.tags, 'برچسبی وجود ندارد.' ) }
+					{ table( data.tags, 'برچسبی وجود ندارد.', 'tag' ) }
 				</>
 			) }
 		</Page>

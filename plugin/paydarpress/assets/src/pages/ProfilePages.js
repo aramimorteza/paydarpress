@@ -30,7 +30,37 @@ function useProfile() {
 		get( '/profile' ).then( apply ).catch( ( e ) => setError( errorMessage( e ) ) );
 	}, [] );
 
+	const [ filled, setFilled ] = useState( [] );
+
 	const change = ( name, value ) => {
+		if ( 'industry_module' === name && data && data.industries && data.industries[ value ] ) {
+			// Fill empty fields (or fields still holding the previous industry's suggestion)
+			// with the new industry's defaults; the user can edit them.
+			const next = data.industries[ value ];
+			const prev = data.industries[ values.industry_module ] || {};
+			const defaults = ( ind ) => ( {
+				primary_content_goal: ind.goal,
+				fact_sensitivity: undefined === ind.ymyl ? undefined : ( ind.ymyl ? 'YMYL' : 'normal' ),
+				knowledge_level: ind.knowledge,
+				industry_rules: ind.rules,
+				primary_keyword_patterns: ind.patterns,
+			} );
+			const nextDefaults = defaults( next );
+			const prevDefaults = defaults( prev );
+			const patch = { [ name ]: value };
+			const changed = [];
+			Object.keys( nextDefaults ).forEach( ( key ) => {
+				const current = values[ key ];
+				if ( nextDefaults[ key ] && ( ! current || current === prevDefaults[ key ] ) && current !== nextDefaults[ key ] ) {
+					patch[ key ] = nextDefaults[ key ];
+					changed.push( data.defs[ key ] ? data.defs[ key ].label : key );
+				}
+			} );
+			setValues( ( p ) => ( { ...p, ...patch } ) );
+			setDirty( ( p ) => ( { ...p, ...Object.fromEntries( Object.keys( patch ).map( ( k ) => [ k, true ] ) ) } ) );
+			setFilled( changed );
+			return;
+		}
 		setValues( ( prev ) => ( { ...prev, [ name ]: value } ) );
 		setDirty( ( prev ) => ( { ...prev, [ name ]: true } ) );
 	};
@@ -66,7 +96,7 @@ function useProfile() {
 			.finally( () => setSaving( false ) );
 	};
 
-	return { data, values, dirty, error, saving, change, save, infer };
+	return { data, values, dirty, error, saving, change, save, infer, filled };
 }
 
 /**
@@ -150,7 +180,7 @@ export function WizardPage() {
 				<div className="pp-form">
 					{ current.fields.map( ( name ) =>
 						data.defs[ name ] ? (
-							<ProfileField key={ name } name={ name } def={ data.defs[ name ] } value={ values[ name ] } field={ data.fields[ name ] } choices={ data.choices } onChange={ profile.change } />
+							<ProfileField key={ name } name={ name } def={ data.defs[ name ] } value={ values[ name ] } field={ data.fields[ name ] } choices={ data.choices } onChange={ profile.change } industry={ ( data.industries || {} )[ values.industry_module || data.default_industry ] } note={ 'industry_module' === name && profile.filled.length ? `بر اساس این حوزه پیشنهاد شد (قابل ویرایش): ${ profile.filled.join( '، ' ) }` : '' } />
 						) : null
 					) }
 				</div>
@@ -211,7 +241,7 @@ export function ProfilePage() {
 						{ Object.keys( data.defs )
 							.filter( ( name ) => data.defs[ name ].group === group )
 							.map( ( name ) => (
-								<ProfileField key={ name } name={ name } def={ data.defs[ name ] } value={ values[ name ] } field={ data.fields[ name ] } choices={ data.choices } onChange={ profile.change } />
+								<ProfileField key={ name } name={ name } def={ data.defs[ name ] } value={ values[ name ] } field={ data.fields[ name ] } choices={ data.choices } onChange={ profile.change } industry={ ( data.industries || {} )[ values.industry_module || data.default_industry ] } note={ 'industry_module' === name && profile.filled.length ? `بر اساس این حوزه پیشنهاد شد (قابل ویرایش): ${ profile.filled.join( '، ' ) }` : '' } />
 							) ) }
 					</div>
 				</section>

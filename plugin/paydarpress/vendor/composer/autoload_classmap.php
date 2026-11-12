@@ -42,6 +42,7 @@ return array(
     'PaydarWP\\PaydarPress\\Links\\UrlNormalizer' => $baseDir . '/src/Links/UrlNormalizer.php',
     'PaydarWP\\PaydarPress\\Plugin' => $baseDir . '/src/Plugin.php',
     'PaydarWP\\PaydarPress\\Profile\\Fields' => $baseDir . '/src/Profile/Fields.php',
+    'PaydarWP\\PaydarPress\\Profile\\Industries' => $baseDir . '/src/Profile/Industries.php',
     'PaydarWP\\PaydarPress\\Profile\\ProfileInference' => $baseDir . '/src/Profile/ProfileInference.php',
     'PaydarWP\\PaydarPress\\Profile\\ProfileRepository' => $baseDir . '/src/Profile/ProfileRepository.php',
     'PaydarWP\\PaydarPress\\Queue\\Queue' => $baseDir . '/src/Queue/Queue.php',

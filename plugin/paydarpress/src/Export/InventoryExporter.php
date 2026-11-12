@@ -340,7 +340,9 @@ final class InventoryExporter {
 
 		$out['missing_fields']        = $completion['missing'];
 		$out['completion_percent']    = $completion['percent'];
-		$out['industry_module_label'] = Fields::INDUSTRY_MODULES[ $profile['fields']['industry_module']['value'] ] ?? '';
+		$industry                     = \PaydarWP\PaydarPress\Profile\Industries::all()[ $profile['fields']['industry_module']['value'] ] ?? null;
+		$out['industry_module_label'] = $industry['label'] ?? '';
+		$out['industry_ymyl']         = (bool) ( $industry['ymyl'] ?? false );
 
 		return $out;
 	}

@@ -19,14 +19,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Fields {
 
-	public const INDUSTRY_MODULES = array(
-		'legal'                 => 'حقوقی و وکالت',
-		'product-manufacturing' => 'تولید و فروش محصول',
-		'service-directory'     => 'خدمات و دایرکتوری',
-		'language-learning'     => 'آموزش زبان',
-		'custom'                => 'سایر (سفارشی)',
-	);
-
 	public const KNOWLEDGE_LEVELS = array(
 		'beginner' => 'مبتدی',
 		'mixed'    => 'متنوع',
@@ -47,36 +39,197 @@ final class Fields {
 	 */
 	public static function all(): array {
 		return array(
-			// Identity (mostly detected).
-			'site_name'                => array( 'group' => 'identity', 'label' => 'نام سایت', 'type' => 'text', 'required' => false, 'help' => 'از تنظیمات وردپرس خوانده می‌شود.' ),
-			'domain'                   => array( 'group' => 'identity', 'label' => 'دامنه', 'type' => 'text', 'required' => false, 'help' => '' ),
-			'language'                 => array( 'group' => 'identity', 'label' => 'زبان سایت', 'type' => 'text', 'required' => false, 'help' => '' ),
-			'seo_plugin'               => array( 'group' => 'identity', 'label' => 'افزونه سئو', 'type' => 'text', 'required' => false, 'help' => '' ),
-			'page_builder'             => array( 'group' => 'identity', 'label' => 'صفحه‌ساز', 'type' => 'text', 'required' => false, 'help' => '' ),
-			'woocommerce'              => array( 'group' => 'identity', 'label' => 'فروشگاه ووکامرس', 'type' => 'bool', 'required' => false, 'help' => '' ),
-			'industry_module'          => array( 'group' => 'business', 'label' => 'حوزه کسب‌وکار', 'type' => 'select', 'required' => true, 'help' => 'قوانین تولید محتوا بر اساس این حوزه تنظیم می‌شوند.', 'options' => self::INDUSTRY_MODULES ),
-			'business_offer'           => array( 'group' => 'business', 'label' => 'چه چیزی ارائه می‌دهید؟', 'type' => 'textarea', 'required' => true, 'help' => 'مثال: خدمات وکالت در دعاوی خانواده، کیفری و ملکی در کرج.' ),
-			'geographic_scope'         => array( 'group' => 'business', 'label' => 'محدوده جغرافیایی', 'type' => 'text', 'required' => true, 'help' => 'مثال: کرج، گوهردشت و عظیمیه — یا «سراسر ایران».' ),
-			'primary_content_goal'     => array( 'group' => 'business', 'label' => 'هدف اصلی محتوا', 'type' => 'text', 'required' => true, 'help' => 'مثال: رزرو مشاوره، تماس تلفنی، فروش محصول، ثبت‌نام.' ),
+			// Identity (detected from WordPress; read-only).
+			'site_name'                => self::f( 'identity', 'نام سایت', 'text', false, 'از «تنظیمات ← عمومی» وردپرس خوانده می‌شود.' ),
+			'domain'                   => self::f( 'identity', 'دامنه', 'text', false, 'آدرس سایت از تنظیمات وردپرس.' ),
+			'language'                 => self::f( 'identity', 'زبان سایت', 'text', false, 'زبان تنظیم‌شده در وردپرس؛ محتوا به همین زبان نوشته می‌شود.' ),
+			'seo_plugin'               => self::f( 'identity', 'افزونه سئو', 'text', false, 'افزونه سئوی فعال؛ کلمه کلیدی و توضیحات متا در آن ذخیره می‌شوند.' ),
+			'page_builder'             => self::f( 'identity', 'صفحه‌ساز', 'text', false, 'ویرایشگر یا صفحه‌سازی که نوشته‌ها با آن ساخته شده‌اند.' ),
+			'woocommerce'              => self::f( 'identity', 'فروشگاه ووکامرس', 'bool', false, 'اگر ووکامرس فعال باشد، محصولات هم در فهرست محتوا و لینک‌دهی حساب می‌شوند.' ),
+			// Business.
+			'industry_module'          => self::f(
+				'business',
+				'حوزه کسب‌وکار',
+				'select',
+				true,
+				'قوانین تولید محتوا (لحن، ادعاهای مجاز، حساسیت و دعوت به اقدام) بر اساس این حوزه تنظیم می‌شوند.',
+				'نزدیک‌ترین حوزه را انتخاب کنید؛ با انتخاب حوزه، هدف محتوا، حساسیت و قوانین پیشنهادی آن برای فیلدهای خالی پر می‌شود و می‌توانید تغییرشان دهید. اگر هیچ‌کدام مناسب نیست «سایر» را بزنید و قوانین را در بخش «قوانین اختصاصی حوزه» بنویسید.',
+				Industries::labels()
+			),
+			'business_offer'           => self::f(
+				'business',
+				'چه چیزی ارائه می‌دهید؟',
+				'textarea',
+				true,
+				'یک یا دو جمله درباره محصول یا خدمت اصلی شما.',
+				'بنویسید چه می‌فروشید یا چه خدمتی می‌دهید، به چه کسی و چه ویژگی متمایزی دارید. از شعار تبلیغاتی پرهیز کنید؛ هوش مصنوعی از همین جمله برای انتخاب موضوع و دعوت به اقدام استفاده می‌کند.'
+			),
+			'geographic_scope'         => self::f(
+				'business',
+				'محدوده جغرافیایی',
+				'text',
+				true,
+				'شهر، منطقه یا «سراسر ایران».',
+				'اگر خدمت حضوری است، شهر و محله‌ها را بنویسید تا مقالات برای جست‌وجوهای محلی (مثل «… در اصفهان») نوشته شوند. اگر فروش اینترنتی یا خدمت آنلاین است، بنویسید «سراسر ایران».',
+				array(),
+				'مثال: اصفهان و شاهین‌شهر — یا: سراسر ایران'
+			),
+			'primary_content_goal'     => self::f(
+				'business',
+				'هدف اصلی محتوا',
+				'text',
+				true,
+				'خواننده بعد از خواندن مقاله چه کاری انجام دهد؟',
+				'یک اقدام مشخص و قابل‌اندازه‌گیری بنویسید: خرید، تماس تلفنی، رزرو نوبت، ثبت‌نام، درخواست مشاوره. مقالات طوری نوشته می‌شوند که خواننده را به همین اقدام برسانند.'
+			),
 			// Audience.
-			'primary_audience'         => array( 'group' => 'audience', 'label' => 'مخاطب اصلی', 'type' => 'textarea', 'required' => true, 'help' => 'مثال: زنان و مردانی که درگیر طلاق یا مهریه هستند و می‌خواهند حقوقشان را بدانند.' ),
-			'audience_problems'        => array( 'group' => 'audience', 'label' => 'مسائل و سؤال‌های رایج مخاطب', 'type' => 'textarea', 'required' => false, 'help' => 'مثال: هزینه وکیل چقدر است؟ طلاق توافقی چقدر طول می‌کشد؟' ),
-			'knowledge_level'          => array( 'group' => 'audience', 'label' => 'سطح دانش مخاطب', 'type' => 'select', 'required' => false, 'help' => '', 'options' => self::KNOWLEDGE_LEVELS ),
-			'tone_of_voice'            => array( 'group' => 'audience', 'label' => 'لحن محتوا', 'type' => 'text', 'required' => true, 'help' => 'مثال: رسمی و قابل اعتماد، اما ساده و قابل فهم برای عموم.' ),
+			'primary_audience'         => self::f(
+				'audience',
+				'مخاطب اصلی',
+				'textarea',
+				true,
+				'چه کسانی مقالات را می‌خوانند و دنبال چه هستند؟',
+				'مخاطب را مثل یک آدم واقعی توصیف کنید: چه کسی است، در چه موقعیتی دنبال شما می‌گردد و چه نگرانی‌ای دارد. هرچه مشخص‌تر باشد، مقالات به نیاز واقعی نزدیک‌تر می‌شوند.'
+			),
+			'audience_problems'        => self::f(
+				'audience',
+				'مسائل و سؤال‌های رایج مخاطب',
+				'textarea',
+				false,
+				'سؤال‌هایی که مشتری‌ها معمولاً می‌پرسند.',
+				'سؤال‌هایی را بنویسید که تلفنی، در دایرکت یا حضوری زیاد می‌شنوید؛ هر سؤال یک موضوع مقاله بالقوه است. با علامت سؤال جدا کنید.'
+			),
+			'knowledge_level'          => self::f(
+				'audience',
+				'سطح دانش مخاطب',
+				'select',
+				false,
+				'عمق توضیحات و میزان اصطلاحات تخصصی را تعیین می‌کند.',
+				'«مبتدی»: توضیح ساده و بدون اصطلاح. «متنوع»: ساده شروع و در ادامه عمیق‌تر. «حرفه‌ای»: اصطلاحات تخصصی بدون توضیح پایه.',
+				self::KNOWLEDGE_LEVELS
+			),
+			'tone_of_voice'            => self::f(
+				'audience',
+				'لحن محتوا',
+				'text',
+				true,
+				'مقالات با چه لحنی نوشته شوند؟',
+				'دو یا سه صفت بنویسید و اگر لازم است بگویید چه چیزی نباشد. لحن باید با برند و مخاطب جور باشد؛ مثلاً لحن یک کتاب‌فروشی می‌تواند صمیمی باشد و لحن یک دفتر حقوقی رسمی.',
+				array(),
+				'مثال: صمیمی و پرانرژی، اما دقیق؛ بدون شوخی‌های سطحی'
+			),
 			// Structure.
-			'key_pages'                => array( 'group' => 'structure', 'label' => 'صفحات کلیدی', 'type' => 'key_pages', 'required' => true, 'help' => 'صفحاتی که مقالات باید به آن‌ها لینک بدهند (خدمات، تماس، مشاوره…).' ),
-			'cta_options'              => array( 'group' => 'structure', 'label' => 'دعوت به اقدام (CTA)', 'type' => 'cta_options', 'required' => true, 'help' => 'قدم بعدی خواننده پس از مقاله.' ),
-			'categories_scope'         => array( 'group' => 'structure', 'label' => 'محدوده موضوعی دسته‌ها', 'type' => 'categories', 'required' => true, 'help' => 'هر دسته چه موضوعاتی را پوشش می‌دهد.' ),
+			'key_pages'                => self::f(
+				'structure',
+				'صفحات کلیدی',
+				'key_pages',
+				true,
+				'صفحاتی که مقالات باید به آن‌ها لینک بدهند تا خواننده به خرید یا تماس برسد.',
+				'صفحات پول‌ساز را اضافه کنید: صفحه خدمت یا دسته محصول، صفحه تماس یا رزرو. برای هر صفحه بنویسید در چه مقالاتی لینک بگیرد و ۲ تا ۴ عبارت متنوع برای متن لینک (انکرتکست) بدهید. صفحات منو خودکار پیشنهاد شده‌اند.'
+			),
+			'cta_options'              => self::f(
+				'structure',
+				'دعوت به اقدام (CTA)',
+				'cta_options',
+				true,
+				'قدم بعدی که در انتهای مقاله به خواننده پیشنهاد می‌شود.',
+				'برای هر دعوت به اقدام، یک عنوان کوتاه (مثل «رزرو نوبت»)، آدرس صفحه مقصد و نوع مقالاتی که به آن می‌رسند را بنویسید. معمولاً ۱ تا ۳ مورد کافی است.'
+			),
+			'categories_scope'         => self::f(
+				'structure',
+				'محدوده موضوعی دسته‌ها',
+				'categories',
+				true,
+				'هر دسته چه موضوعاتی را پوشش می‌دهد.',
+				'برای هر دسته در یک جمله بنویسید چه موضوعاتی در آن قرار می‌گیرد. هوش مصنوعی با این توضیح، موضوع جدید را در دسته درست می‌گذارد و جلوی موضوعات تکراری بین دسته‌ها را می‌گیرد.'
+			),
 			// SEO.
-			'primary_keyword_patterns' => array( 'group' => 'seo', 'label' => 'الگوهای جستجوی رایج', 'type' => 'textarea', 'required' => false, 'help' => 'مثال: «هزینه [X] در کرج»، «وکیل [X] کرج»، «[X] چیست».' ),
-			'approved_tags'            => array( 'group' => 'seo', 'label' => 'برچسب‌های مجاز', 'type' => 'textarea', 'required' => false, 'help' => 'اگر خالی بماند، از دسته‌ها و برچسب‌های موجود سایت استفاده می‌شود.' ),
+			'primary_keyword_patterns' => self::f(
+				'seo',
+				'الگوهای جستجوی رایج',
+				'textarea',
+				false,
+				'شکل جمله‌هایی که مشتری‌ها در گوگل جست‌وجو می‌کنند.',
+				'به‌جای کلمه متغیر از [X] استفاده کنید. این الگوها از جست‌وجوی خودتان در گوگل، بخش «سؤالات مرتبط» و گزارش سرچ کنسول به دست می‌آیند.'
+			),
+			'approved_tags'            => self::f(
+				'seo',
+				'برچسب‌های مجاز',
+				'textarea',
+				false,
+				'برچسب‌هایی که مقالات جدید فقط از میان آن‌ها انتخاب کنند.',
+				'برچسب‌های اصلی سایت را با ویرگول جدا کنید تا برچسب‌های تکراری و پراکنده ساخته نشود. اگر خالی بماند، از برچسب‌های موجود سایت استفاده می‌شود.',
+				array(),
+				'مثال: رمان، کتاب کودک، معرفی کتاب، کتاب صوتی'
+			),
 			// Rules.
-			'fact_sensitivity'         => array( 'group' => 'rules', 'label' => 'حساسیت محتوا', 'type' => 'select', 'required' => true, 'help' => 'محتوای حقوقی، پزشکی و مالی حساس است و قوانین سخت‌گیرانه‌تری دارد.', 'options' => self::SENSITIVITY ),
-			'forbidden_topics'         => array( 'group' => 'rules', 'label' => 'موضوعات ممنوع', 'type' => 'textarea', 'required' => true, 'help' => 'مثال: خدماتی که ارائه نمی‌دهیم، تضمین نتیجه پرونده. اگر ندارید بنویسید «ندارد».' ),
-			'industry_rules'           => array( 'group' => 'rules', 'label' => 'قوانین اختصاصی حوزه', 'type' => 'textarea', 'required' => false, 'help' => 'مثال: هیچ‌وقت مبلغ دقیق دستمزد ذکر نشود.' ),
-			'brand_glossary'           => array( 'group' => 'rules', 'label' => 'واژه‌نامه برند', 'type' => 'textarea', 'required' => false, 'help' => 'اصطلاحات ترجیحی و ممنوع. مثال: «وکیل پایه یک دادگستری» به‌جای «وکیل».' ),
-			'competitors'              => array( 'group' => 'rules', 'label' => 'رقبا و سایت‌های مرجع', 'type' => 'textarea', 'required' => false, 'help' => '' ),
+			'fact_sensitivity'         => self::f(
+				'rules',
+				'حساسیت محتوا',
+				'select',
+				true,
+				'محتوای حقوقی، پزشکی و مالی حساس است و قوانین سخت‌گیرانه‌تری دارد.',
+				'«حساس» یعنی هر ادعا باید با منبع معتبر نوشته شود، نتیجه یا عدد قطعی قول داده نشود و خواننده برای تصمیم مهم به متخصص ارجاع شود. اگر خطای اطلاعاتی می‌تواند به سلامت، مال یا حقوق کسی آسیب بزند، «حساس» را انتخاب کنید.',
+				self::SENSITIVITY
+			),
+			'forbidden_topics'         => self::f(
+				'rules',
+				'موضوعات ممنوع',
+				'textarea',
+				true,
+				'چیزهایی که هرگز نباید در مقالات بیاید. اگر ندارید بنویسید «ندارد».',
+				'خدماتی که ارائه نمی‌دهید، ادعاهایی که نباید بشود (تضمین، قیمت قطعی) و موضوعاتی که به برند آسیب می‌زنند را بنویسید.'
+			),
+			'industry_rules'           => self::f(
+				'rules',
+				'قوانین اختصاصی حوزه',
+				'textarea',
+				false,
+				'قواعدی که مخصوص کسب‌وکار شماست.',
+				'با انتخاب حوزه، قوانین پیشنهادی آن اینجا قرار می‌گیرد. آن را با تجربه خودتان کامل کنید: چه اطلاعاتی زود کهنه می‌شود، چه چیزی باید همیشه ذکر شود، چه اشتباهی رایج است.'
+			),
+			'brand_glossary'           => self::f(
+				'rules',
+				'واژه‌نامه برند',
+				'textarea',
+				false,
+				'اصطلاحات ترجیحی و ممنوع در نوشتن.',
+				'هر سطر: اصطلاح درست ← اصطلاح نادرست. نام برند، نام محصولات و املای درست کلمات را اینجا یکسان کنید.',
+				array(),
+				'مثال: «نشر ققنوس» نه «انتشارات ققنوس» — «کتاب صوتی» نه «آدیوبوک»'
+			),
+			'competitors'              => self::f(
+				'rules',
+				'رقبا و سایت‌های مرجع',
+				'textarea',
+				false,
+				'سایت‌هایی که از آن‌ها الگو می‌گیرید یا با آن‌ها رقابت می‌کنید.',
+				'آدرس ۲ تا ۵ سایت را بنویسید. فقط برای شناخت سطح محتوای رقبا استفاده می‌شود؛ از آن‌ها کپی نمی‌شود و به آن‌ها لینک داده نمی‌شود.',
+				array(),
+				'مثال: example-books.ir، another-store.com'
+			),
 		);
+	}
+
+	/**
+	 * One field definition.
+	 *
+	 * @param string $group    Group.
+	 * @param string $label    Label.
+	 * @param string $type     Type.
+	 * @param bool   $required Counts toward completion.
+	 * @param string $help     One-line help under the field.
+	 * @param string $guide    How to fill the field (shown on demand).
+	 * @param array  $options  Select options.
+	 * @param string $example  Fixed example; empty = industry-specific example in the UI.
+	 */
+	private static function f( string $group, string $label, string $type, bool $required, string $help, string $guide = '', array $options = array(), string $example = '' ): array {
+		$def = compact( 'group', 'label', 'type', 'required', 'help', 'guide', 'example' );
+		if ( array() !== $options ) {
+			$def['options'] = $options;
+		}
+
+		return $def;
 	}
 
 	/**

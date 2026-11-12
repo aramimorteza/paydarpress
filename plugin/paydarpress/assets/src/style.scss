@@ -50,9 +50,14 @@
 	min-height: calc(100vh - 32px);
 }
 
-.pp-nav__list {
+/* Brand, menu and mode switch scroll together as one sticky block (the mode switch used to
+   scroll over the sticky menu). Long menus scroll inside the block on short screens. */
+.pp-nav__inner {
 	position: sticky;
 	top: 48px;
+	max-height: calc(100vh - 64px);
+	overflow-y: auto;
+	overscroll-behavior: contain;
 }
 
 .pp-nav__brand {
@@ -284,6 +289,12 @@
 		flex-basis: auto;
 		border-inline-end: 0;
 		border-block-end: 1px solid var(--pwp-border, #e2e5ea);
+	}
+
+	.pp-nav__inner {
+		position: static;
+		max-height: none;
+		overflow: visible;
 	}
 }
 
@@ -1464,4 +1475,65 @@ span.pp-check {
 	align-items: center;
 	gap: var(--pwp-space-2, 8px);
 	margin-block-start: var(--pwp-space-2, 8px);
+}
+
+/* Field help */
+
+.pp-field-help {
+	font-size: var(--pwp-text-sm, 13px);
+	color: var(--pwp-text-muted, #5b6475);
+	line-height: 1.8;
+	margin-block-start: var(--pwp-space-1, 4px);
+}
+
+.pp-field-help__toggle {
+	font-family: inherit;
+	font-size: inherit;
+	background: none;
+	border: 0;
+	padding: 0;
+	color: var(--pwp-primary, #0f6e6e);
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+.pp-field-help__guide {
+	background: var(--pwp-info-soft, #e6eefa);
+	color: var(--pwp-text, #1d2330);
+	border-radius: var(--pwp-radius-sm, 6px);
+	padding: var(--pwp-space-2, 8px) var(--pwp-space-3, 12px);
+	margin: var(--pwp-space-2, 8px) 0 0;
+}
+
+.pp-field-help__note {
+	color: var(--pwp-success, #1a7f37);
+	margin: var(--pwp-space-1, 4px) 0 0;
+}
+
+/* AI buttons */
+
+.pp-ai-button.components-button {
+	gap: 4px;
+	border-color: var(--pwp-primary, #0f6e6e);
+	color: var(--pwp-primary, #0f6e6e);
+}
+
+.pp-row-ai {
+	margin-block-start: var(--pwp-space-1, 4px);
+}
+
+.pp-ai-modal {
+	max-width: 620px;
+
+	textarea {
+		direction: rtl;
+		font-size: 13px;
+	}
+}
+
+.pp-ai-modal__phase {
+	font-size: var(--pwp-text-xs, 12px);
+	color: var(--pwp-info, #2563b8);
+	border-block-start: 1px solid var(--pwp-border, #e2e5ea);
+	padding-block-start: var(--pwp-space-2, 8px);
 }

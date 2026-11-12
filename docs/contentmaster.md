@@ -1,4 +1,4 @@
-# ContentMaster v1.6
+# ContentMaster v1.7
 ### Multi-site SEO content system: Setup, Topic Research, Article Writing, Content Refresh
 
 ---
@@ -161,7 +161,7 @@ Last Updated: [date]
 Site Name:
 Domain:
 Industry:
-Industry Module: [language-learning | legal | product-manufacturing | service-directory | custom]
+Industry Module: [ecommerce-retail | product-manufacturing | b2b-industrial | legal | medical-health | beauty-wellness | finance-insurance | real-estate | construction-home | local-services | service-directory | education | language-learning | technology-software | tourism-travel | food-restaurant | automotive | media-blog | custom]
 Business Offer:
 Geographic Scope:
 Primary Content Goal:
@@ -597,7 +597,77 @@ The active module is set by `Industry Module` in the profile. A module adds rule
 - Technical claims (filtration stages, standards, maintenance intervals) only when verified. Otherwise give general guidance and recommend a specialist.
 - Add a supplier-facing CTA only on articles where it fits naturally.
 
-### 10.5 custom (template for new industries)
+### 10.5 ecommerce-retail (online shops, e.g., bookstore, clothing, gifts)
+- Topic mix: buying guides by need, "best X for Y" lists, comparisons, how to choose, care/usage guides, gift ideas. Every list item links to a real product or category page from the inventory.
+- No prices, stock or delivery promises in the text; link to the product page instead.
+- Reviews are honest: give who the item suits and who it does not.
+
+### 10.6 b2b-industrial
+- Audience: purchasing managers and engineers. Specific, technical, but readable; units and standards exact and only when verified.
+- Topic mix: selection guides, specification explainers, maintenance and troubleshooting, standards, total cost of ownership.
+- CTA: quotation request; never invent customer names or project references.
+
+### 10.7 medical-health (YMYL)
+- Only verified medical information; no diagnosis, dosage or personal treatment advice. State warning signs that require a doctor.
+- Explain procedures, preparation, recovery and costs in terms of influencing factors. Respect patient privacy in examples.
+- CTA: appointment or consultation with the clinic's specialist.
+
+### 10.8 beauty-wellness
+- No medical or therapeutic claims; refer serious skin or hair conditions to a specialist.
+- Topic mix: service explanations, aftercare, choosing the right service for a type (skin, hair), myths.
+- CTA: booking; never use customer photos or names.
+
+### 10.9 finance-insurance (YMYL)
+- No personal investment advice, no return predictions; explain risks. Rates, tax rules and limits only with a date and source.
+- Topic mix: product explainers, comparisons, claim/application steps, glossary-style answers.
+- CTA: consultation or quote.
+
+### 10.10 real-estate
+- Local intent first: neighborhoods, amenities, access; prices only with a date and source.
+- Topic mix: area guides, buying/renting steps, contract checklists (general, refer legal specifics to a professional), investment factors.
+- CTA: property request or contact with an agent.
+
+### 10.11 construction-home (renovation, interior, building services)
+- Costs as influencing factors per square meter, never fixed quotes. Safety and building regulations stated simply and accurately; structural changes always need an engineer.
+- Topic mix: renovation steps, material comparisons, design ideas, common mistakes.
+- CTA: site visit / estimate request.
+
+### 10.12 local-services (repairs, cleaning, moving)
+- Mention the service area naturally. Troubleshooting stops at safe checks; electrical/gas work is referred to a professional.
+- Topic mix: "why does X happen", repair vs. replace, maintenance tips, what affects the cost.
+- CTA: service request or phone call.
+
+### 10.13 education (courses, institutes, exam prep)
+- Never guarantee admission, scores, jobs or income. Course details and prerequisites exact.
+- Topic mix: learning paths, how long it takes, tools, career outlook (with sources), student questions.
+- CTA: course consultation or enrollment.
+
+### 10.14 technology-software (software, web services, digital marketing)
+- Versions, prices and limits with a date. Steps exact and reproducible; explain English terms once.
+- Topic mix: tutorials, error fixes, comparisons, buying/choosing guides, case-style explanations.
+- Never promise rankings or results; no license circumvention.
+
+### 10.15 tourism-travel
+- Visa rules, prices and opening hours only with a date and source; safety notes for outdoor routes.
+- Topic mix: destination guides, itineraries, best time to visit, budgeting, local food and customs.
+- CTA: tour or accommodation booking.
+
+### 10.16 food-restaurant
+- No health or therapeutic claims for food; mention common allergens. Recipes tested and exact.
+- Topic mix: menu explainers, occasion ideas, recipes and storage, ordering guides.
+- CTA: order, reservation or product page.
+
+### 10.17 automotive
+- Part compatibility by exact model and year; safety systems (brakes, airbags) referred to a professional.
+- Topic mix: replacement intervals, symptoms and causes, genuine vs. counterfeit parts, maintenance.
+- CTA: product page for the specific model, or service booking.
+
+### 10.18 media-blog
+- Separate evergreen guides from news; cite sources; no clickbait titles that the article does not deliver.
+- Topic mix: practical guides, lists, explainers; build series that link to each other.
+- CTA: newsletter or related reading.
+
+### 10.19 custom (template for new industries)
 During setup, if no module fits, build one with the user by asking:
 1. What topics does your audience search for most?
 2. What claims must never be made?

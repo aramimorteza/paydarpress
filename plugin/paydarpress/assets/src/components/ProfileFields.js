@@ -1,4 +1,59 @@
+import { useState } from '@wordpress/element';
 import { Button, SelectControl, TextControl, TextareaControl } from '@wordpress/components';
+
+/** Field name → key of the industry example used as placeholder. */
+const EXAMPLE_KEYS = {
+	business_offer: 'offer',
+	primary_audience: 'audience',
+	audience_problems: 'problems',
+	forbidden_topics: 'forbidden',
+};
+
+/**
+ * Placeholder for a field: fixed example from the definition, the industry's example, or
+ * the industry's default value (goal, rules, patterns).
+ *
+ * @param {string} name     Field name.
+ * @param {Object} def      Definition.
+ * @param {Object} industry Industry entry (with examples).
+ */
+function example( name, def, industry ) {
+	if ( def.example ) {
+		return def.example;
+	}
+	if ( ! industry ) {
+		return '';
+	}
+	if ( EXAMPLE_KEYS[ name ] ) {
+		return `مثال: ${ industry.ex[ EXAMPLE_KEYS[ name ] ] }`;
+	}
+	const fromDefaults = { primary_content_goal: industry.goal, industry_rules: industry.rules, primary_keyword_patterns: industry.patterns }[ name ];
+	return fromDefaults ? `مثال: ${ fromDefaults }` : '';
+}
+
+/**
+ * One-line help plus an expandable "how to fill" guide.
+ *
+ * @param {Object} props
+ * @param {string} props.help  Short help.
+ * @param {string} props.guide Longer guide.
+ * @param {string} props.note  Extra note (e.g. values suggested from the industry).
+ */
+export function FieldHelp( { help, guide, note } ) {
+	const [ open, setOpen ] = useState( false );
+	return (
+		<div className="pp-field-help">
+			{ help && <span>{ help } </span> }
+			{ guide && (
+				<button type="button" className="pp-field-help__toggle" aria-expanded={ open } onClick={ () => setOpen( ! open ) }>
+					{ open ? 'بستن راهنما' : 'چطور پر کنم؟' }
+				</button>
+			) }
+			{ open && guide && <p className="pp-field-help__guide">{ guide }</p> }
+			{ note && <p className="pp-field-help__note">{ note }</p> }
+		</div>
+	);
+}
 
 const SOURCE = {
 	detected: [ 'info', 'خودکار' ],
@@ -34,8 +89,10 @@ export function SourceBadge( { field } ) {
  * @param {Object}   props.field    Stored field state.
  * @param {Object}   props.choices  Choices (pages).
  * @param {Function} props.onChange Change handler (name, value).
+ * @param {Object}   props.industry Selected (or default) industry with examples.
+ * @param {string}   props.note     Extra note under the field.
  */
-export function ProfileField( { name, def, value, field, choices, onChange } ) {
+export function ProfileField( { name, def, value, field, choices, onChange, industry, note } ) {
 	const set = ( v ) => onChange( name, v );
 	const readOnly = 'identity' === def.group;
 	const label = (
@@ -44,11 +101,15 @@ export function ProfileField( { name, def, value, field, choices, onChange } ) {
 		</span>
 	);
 
+	const help = <FieldHelp help={ def.help } guide={ def.guide } note={ note } />;
+	const placeholder = example( name, def, industry );
+
 	if ( readOnly ) {
 		return (
 			<div className="pp-field pp-field--readonly">
 				{ label }
 				<div className="pp-field__value">{ 'bool' === def.type ? ( value ? 'بله' : 'خیر' ) : value || '—' }</div>
+				{ def.help && <div className="pp-field-help"><span>{ def.help }</span></div> }
 			</div>
 		);
 	}
@@ -61,7 +122,7 @@ export function ProfileField( { name, def, value, field, choices, onChange } ) {
 						__nextHasNoMarginBottom
 						__next40pxDefaultSize
 						label={ label }
-						help={ def.help }
+						help={ help }
 						value={ value || '' }
 						options={ [ { value: '', label: 'انتخاب کنید…' }, ...Object.entries( def.options || {} ).map( ( [ v, l ] ) => ( { value: v, label: l } ) ) ] }
 						onChange={ set }
@@ -71,19 +132,19 @@ export function ProfileField( { name, def, value, field, choices, onChange } ) {
 		case 'textarea':
 			return (
 				<div className="pp-field">
-					<TextareaControl __nextHasNoMarginBottom label={ label } help={ def.help } value={ value || '' } onChange={ set } rows={ 3 } />
+					<TextareaControl __nextHasNoMarginBottom label={ label } help={ help } placeholder={ placeholder } value={ value || '' } onChange={ set } rows={ 3 } />
 				</div>
 			);
 		case 'key_pages':
-			return <KeyPagesEditor label={ label } help={ def.help } value={ value || [] } pages={ choices.pages || [] } onChange={ set } />;
+			return <KeyPagesEditor label={ label } help={ help } ex={ industry ? industry.ex : {} } value={ value || [] } pages={ choices.pages || [] } onChange={ set } />;
 		case 'cta_options':
-			return <CtaEditor label={ label } help={ def.help } value={ value || [] } onChange={ set } />;
+			return <CtaEditor label={ label } help={ help } ex={ industry ? industry.ex : {} } value={ value || [] } onChange={ set } />;
 		case 'categories':
-			return <CategoriesEditor label={ label } help={ def.help } value={ value || [] } onChange={ set } />;
+			return <CategoriesEditor label={ label } help={ help } ex={ industry ? industry.ex : {} } patterns={ industry ? industry.patterns : '' } value={ value || [] } onChange={ set } />;
 		default:
 			return (
 				<div className="pp-field">
-					<TextControl __nextHasNoMarginBottom __next40pxDefaultSize label={ label } help={ def.help } value={ value || '' } onChange={ set } />
+					<TextControl __nextHasNoMarginBottom __next40pxDefaultSize label={ label } help={ help } placeholder={ placeholder } value={ value || '' } onChange={ set } />
 				</div>
 			);
 	}
@@ -92,7 +153,7 @@ export function ProfileField( { name, def, value, field, choices, onChange } ) {
 /**
  * Key pages: list with priority, "link when" and anchors.
  */
-function KeyPagesEditor( { label, help, value, pages, onChange } ) {
+function KeyPagesEditor( { label, help, ex, value, pages, onChange } ) {
 	const update = ( index, patch ) => onChange( value.map( ( p, i ) => ( i === index ? { ...p, ...patch } : p ) ) );
 	const remove = ( index ) => onChange( value.filter( ( _, i ) => i !== index ) );
 	const available = pages.filter( ( p ) => ! value.some( ( v ) => v.id === p.id ) );
@@ -100,7 +161,7 @@ function KeyPagesEditor( { label, help, value, pages, onChange } ) {
 	return (
 		<fieldset className="pp-field pp-repeater">
 			<legend>{ label }</legend>
-			<p className="pp-help-text">{ help }</p>
+			<div className="pp-help-text">{ help }</div>
 			{ value.map( ( page, index ) => (
 				<div key={ page.id } className="pp-repeater__item">
 					<div className="pp-repeater__head">
@@ -116,8 +177,22 @@ function KeyPagesEditor( { label, help, value, pages, onChange } ) {
 						/>
 						<Button variant="tertiary" isDestructive size="small" onClick={ () => remove( index ) }>حذف</Button>
 					</div>
-					<TextControl __nextHasNoMarginBottom label="چه زمانی لینک داده شود؟" placeholder="مثال: در همه مقالات خانواده و کیفری" value={ page.link_when || '' } onChange={ ( v ) => update( index, { link_when: v } ) } />
-					<TextControl __nextHasNoMarginBottom label="انکرتکست‌های مجاز (با ویرگول جدا کنید)" placeholder="مثال: مشاوره حقوقی در کرج، مشاوره با وکیل" value={ ( page.anchors || [] ).join( '، ' ) } onChange={ ( v ) => update( index, { anchors: v.split( /[،,]/ ).map( ( a ) => a.trim() ).filter( Boolean ) } ) } />
+					<TextControl
+						__nextHasNoMarginBottom
+						label="چه زمانی لینک داده شود؟"
+						help="نوع یا دسته مقالاتی که باید به این صفحه لینک بدهند. اگر همه مقالات، بنویسید «همه مقالات»."
+						placeholder={ ex.link_when ? `مثال: ${ ex.link_when }` : '' }
+						value={ page.link_when || '' }
+						onChange={ ( v ) => update( index, { link_when: v } ) }
+					/>
+					<TextControl
+						__nextHasNoMarginBottom
+						label="متن‌های لینک (انکرتکست) — با ویرگول جدا کنید"
+						help="۲ تا ۴ عبارت ۲ تا ۶ کلمه‌ای که موضوع این صفحه را توصیف کنند. یکی شامل عبارت اصلی صفحه و بقیه متنوع؛ «اینجا کلیک کنید» ننویسید."
+						placeholder={ ex.anchors ? `مثال: ${ ex.anchors }` : '' }
+						value={ ( page.anchors || [] ).join( '، ' ) }
+						onChange={ ( v ) => update( index, { anchors: v.split( /[،,]/ ).map( ( a ) => a.trim() ).filter( Boolean ) } ) }
+					/>
 				</div>
 			) ) }
 			{ available.length > 0 && (
@@ -137,18 +212,18 @@ function KeyPagesEditor( { label, help, value, pages, onChange } ) {
 /**
  * CTA options.
  */
-function CtaEditor( { label, help, value, onChange } ) {
+function CtaEditor( { label, help, ex, value, onChange } ) {
 	const update = ( index, patch ) => onChange( value.map( ( c, i ) => ( i === index ? { ...c, ...patch } : c ) ) );
 
 	return (
 		<fieldset className="pp-field pp-repeater">
 			<legend>{ label }</legend>
-			<p className="pp-help-text">{ help }</p>
+			<div className="pp-help-text">{ help }</div>
 			{ value.map( ( cta, index ) => (
 				<div key={ index } className="pp-repeater__item pp-repeater__item--inline">
-					<TextControl __nextHasNoMarginBottom label="عنوان" value={ cta.name || '' } onChange={ ( v ) => update( index, { name: v } ) } />
-					<TextControl __nextHasNoMarginBottom label="آدرس" dir="ltr" value={ cta.url || '' } onChange={ ( v ) => update( index, { url: v } ) } />
-					<TextControl __nextHasNoMarginBottom label="چه زمانی؟" value={ cta.use_when || '' } onChange={ ( v ) => update( index, { use_when: v } ) } />
+					<TextControl __nextHasNoMarginBottom label="عنوان" help="فعل کوتاه و مشخص." placeholder={ ex.cta ? `مثال: ${ ex.cta }` : '' } value={ cta.name || '' } onChange={ ( v ) => update( index, { name: v } ) } />
+					<TextControl __nextHasNoMarginBottom label="آدرس" help="آدرس کامل صفحه مقصد در همین سایت." placeholder="https://" dir="ltr" value={ cta.url || '' } onChange={ ( v ) => update( index, { url: v } ) } />
+					<TextControl __nextHasNoMarginBottom label="چه زمانی؟" help="در انتهای کدام مقالات پیشنهاد شود." placeholder={ ex.cta_when ? `مثال: ${ ex.cta_when }` : '' } value={ cta.use_when || '' } onChange={ ( v ) => update( index, { use_when: v } ) } />
 					<Button variant="tertiary" isDestructive size="small" onClick={ () => onChange( value.filter( ( _, i ) => i !== index ) ) }>حذف</Button>
 				</div>
 			) ) }
@@ -162,13 +237,13 @@ function CtaEditor( { label, help, value, onChange } ) {
 /**
  * Category scopes.
  */
-function CategoriesEditor( { label, help, value, onChange } ) {
+function CategoriesEditor( { label, help, ex, patterns, value, onChange } ) {
 	const update = ( index, patch ) => onChange( value.map( ( c, i ) => ( i === index ? { ...c, ...patch } : c ) ) );
 
 	return (
 		<fieldset className="pp-field pp-repeater">
 			<legend>{ label }</legend>
-			<p className="pp-help-text">{ help }</p>
+			<div className="pp-help-text">{ help }</div>
 			{ 0 === value.length && <p className="pp-muted">دسته‌بندی دارای مطلب پیدا نشد. پس از اسکن، دسته‌ها اینجا نمایش داده می‌شوند.</p> }
 			{ value.map( ( cat, index ) => (
 				<div key={ cat.id } className="pp-repeater__item">
@@ -176,8 +251,23 @@ function CategoriesEditor( { label, help, value, onChange } ) {
 						<strong>{ cat.name }</strong>
 						{ undefined !== cat.count && <span className="pp-muted">{ Number( cat.count ).toLocaleString( 'fa-IR' ) } مطلب</span> }
 					</div>
-					<TextareaControl __nextHasNoMarginBottom label="این دسته چه موضوعاتی را پوشش می‌دهد؟" placeholder="مثال: طلاق توافقی و یک‌طرفه، مهریه، نفقه، حضانت و ملاقات فرزند" rows={ 2 } value={ cat.scope || '' } onChange={ ( v ) => update( index, { scope: v } ) } />
-					<TextControl __nextHasNoMarginBottom label="الگوهای جستجوی رایج (اختیاری)" placeholder="مثال: هزینه [X] در کرج، [X] چیست" value={ cat.search_patterns || '' } onChange={ ( v ) => update( index, { search_patterns: v } ) } />
+					<TextareaControl
+						__nextHasNoMarginBottom
+						label="این دسته چه موضوعاتی را پوشش می‌دهد؟"
+						help="زیرموضوع‌های اصلی را با ویرگول بنویسید؛ موضوعاتی که به دسته دیگری تعلق دارند را اینجا نیاورید."
+						placeholder={ ex.scope ? `مثال: ${ ex.scope }` : '' }
+						rows={ 2 }
+						value={ cat.scope || '' }
+						onChange={ ( v ) => update( index, { scope: v } ) }
+					/>
+					<TextControl
+						__nextHasNoMarginBottom
+						label="الگوهای جستجوی رایج (اختیاری)"
+						help="شکل جست‌وجوهای این دسته در گوگل؛ به‌جای کلمه متغیر [X] بنویسید."
+						placeholder={ patterns ? `مثال: ${ patterns }` : '' }
+						value={ cat.search_patterns || '' }
+						onChange={ ( v ) => update( index, { search_patterns: v } ) }
+					/>
 				</div>
 			) ) }
 		</fieldset>

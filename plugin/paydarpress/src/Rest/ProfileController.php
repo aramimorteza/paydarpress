@@ -284,6 +284,8 @@ final class ProfileController {
 			'updated_at' => $profile['updated_at'],
 			'completion' => ProfileRepository::completion( $profile ),
 			'defs'       => Fields::all(),
+			'industries' => \PaydarWP\PaydarPress\Profile\Industries::for_ui(),
+			'default_industry' => \PaydarWP\PaydarPress\Profile\Industries::DEFAULT_EXAMPLE,
 			'groups'     => Fields::groups(),
 			'choices'    => array(
 				'pages' => array_map(

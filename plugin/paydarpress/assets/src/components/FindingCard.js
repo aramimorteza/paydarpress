@@ -1,4 +1,6 @@
 import { useState } from '@wordpress/element';
+import AiButton from './AiButton';
+import { commandForFinding } from '../lib/aiCommands';
 import { Button } from '@wordpress/components';
 import { post, errorMessage } from '../lib/api';
 
@@ -124,6 +126,7 @@ export default function FindingCard( { finding, onChange, children } ) {
 							بازگرداندن به فهرست باز
 						</Button>
 					) }
+					<AiButton command={ commandForFinding( finding ) } />
 					{ error && <span className="pp-missing">{ error }</span> }
 				</footer>
 			) }

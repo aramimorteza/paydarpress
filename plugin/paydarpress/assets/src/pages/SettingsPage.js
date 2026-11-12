@@ -31,7 +31,7 @@ const TABS = [
 			{ path: 'audit.stale_months', type: 'number', label: 'قدیمی شدن مطلب پس از', suffix: 'ماه', help: 'مطالبی که در این مدت ویرایش نشده‌اند، در پیشنهاد بازنویسی امتیاز بیشتری می‌گیرند.' },
 			{ path: 'audit.weak_inbound_min', type: 'number', advanced: true, label: 'حداقل لینک ورودی صفحات کلیدی', suffix: 'لینک', help: 'صفحات کلیدی پروفایل که کمتر از این تعداد لینک داخلی دریافت کنند، گزارش می‌شوند.' },
 			{ path: 'audit.weak_category_min', type: 'number', advanced: true, label: 'حداقل نوشته در هر دسته', suffix: 'نوشته', help: 'دسته‌های با نوشته کمتر «دسته ضعیف» شناخته می‌شوند.' },
-			{ path: 'audit.tag_overuse_max', type: 'number', advanced: true, label: 'حداکثر برچسب برای هر نوشته', suffix: 'برچسب' },
+			{ path: 'audit.tag_overuse_max', type: 'number', advanced: true, label: 'حداکثر برچسب برای هر نوشته', suffix: 'برچسب', help: 'نوشته‌هایی با برچسب بیشتر از این عدد گزارش می‌شوند؛ برچسب زیاد صفحات آرشیو ضعیف و تکراری می‌سازد.' },
 			{ path: 'audit.inline_images_min_words', type: 'number', advanced: true, label: 'نیاز به تصویر داخل متن از', suffix: 'کلمه', help: 'مطالب بلندتر از این عدد بدون تصویر داخل متن گزارش می‌شوند.' },
 			{ path: 'audit.gsc_min_impressions', type: 'number', advanced: true, label: 'حداقل نمایش برای فرصت سرچ کنسول', suffix: 'نمایش', help: 'صفحات با نمایش کمتر از این عدد در «نزدیک صفحه اول» و «رتبه خوب، کلیک کم» گزارش نمی‌شوند.' },
 			{ path: 'audit.orphan_exclude_ids', type: 'ids', advanced: true, label: 'شناسه صفحاتی که یتیم حساب نشوند', help: 'شناسه نوشته یا برگه را با ویرگول جدا کنید؛ مثلاً صفحات فرود تبلیغاتی که عمداً لینک داخلی ندارند.' },
@@ -42,11 +42,11 @@ const TABS = [
 		label: 'عملکرد و صف',
 		fields: [
 			{ path: 'performance.shared_hosting', type: 'toggle', label: 'حالت هاست اشتراکی', help: 'اسکن در بسته‌های کوچک‌تر (۱۵ مطلب در هر مرحله) و آرام‌تر انجام می‌شود. برای هاست‌های ارزان یا شلوغ پیشنهاد می‌شود.' },
-			{ path: 'performance.batch_size', type: 'number', advanced: true, label: 'تعداد مطلب در هر مرحله اسکن', suffix: 'مطلب', disabledBy: 'performance.shared_hosting' },
-			{ path: 'performance.batch_time_limit', type: 'number', advanced: true, label: 'حداکثر زمان هر مرحله', suffix: 'ثانیه', disabledBy: 'performance.shared_hosting' },
+			{ path: 'performance.batch_size', type: 'number', advanced: true, label: 'تعداد مطلب در هر مرحله اسکن', suffix: 'مطلب', disabledBy: 'performance.shared_hosting', help: 'عدد کمتر یعنی فشار کمتر روی سرور و اسکن طولانی‌تر. برای سرورهای قوی ۵۰ تا ۱۰۰ مناسب است.' },
+			{ path: 'performance.batch_time_limit', type: 'number', advanced: true, label: 'حداکثر زمان هر مرحله', suffix: 'ثانیه', disabledBy: 'performance.shared_hosting', help: 'باید کمتر از محدودیت زمان اجرای PHP هاست باشد (معمولاً ۳۰ ثانیه).' },
 			{ path: 'performance.quiet_hours_only', type: 'toggle', advanced: true, label: 'کارهای روزانه فقط در ساعات خلوت', help: 'پاک‌سازی روزانه (گزارش‌های قدیمی و فایل‌های خروجی منقضی) در ساعت شروع بازه اجرا می‌شود. اسکن‌هایی که خودتان شروع می‌کنید همیشه فوری اجرا می‌شوند.' },
-			{ path: 'performance.quiet_hours_start', type: 'hour', advanced: true, label: 'شروع ساعات خلوت', showIf: 'performance.quiet_hours_only' },
-			{ path: 'performance.quiet_hours_end', type: 'hour', advanced: true, label: 'پایان ساعات خلوت', showIf: 'performance.quiet_hours_only' },
+			{ path: 'performance.quiet_hours_start', type: 'hour', advanced: true, label: 'شروع ساعات خلوت', showIf: 'performance.quiet_hours_only', help: 'به وقت سایت (تنظیمات ← عمومی). ساعتی را انتخاب کنید که بازدید سایت کمترین است.' },
+			{ path: 'performance.quiet_hours_end', type: 'hour', advanced: true, label: 'پایان ساعات خلوت', showIf: 'performance.quiet_hours_only', help: 'کارهای روزانه بعد از این ساعت شروع نمی‌شوند.' },
 		],
 	},
 	{
@@ -54,7 +54,7 @@ const TABS = [
 		label: 'پیشرفته',
 		proOnly: true,
 		fields: [
-			{ path: 'retention.activity_days', type: 'number', label: 'نگهداری گزارش فعالیت', suffix: 'روز' },
+			{ path: 'retention.activity_days', type: 'number', label: 'نگهداری گزارش فعالیت', suffix: 'روز', help: 'گزارش‌های قدیمی‌تر از این مدت هر روز پاک می‌شوند تا پایگاه داده بزرگ نشود.' },
 			{ path: 'uninstall.delete_data', type: 'toggle', danger: true, label: 'حذف همه داده‌ها هنگام پاک کردن افزونه', help: 'اگر روشن باشد، با حذف افزونه از صفحه افزونه‌ها، جدول‌ها، پروفایل سایت، تنظیمات و خروجی‌ها برای همیشه پاک می‌شوند. غیرفعال کردن افزونه چیزی را پاک نمی‌کند.' },
 		],
 	},
@@ -233,7 +233,7 @@ function SettingField( { field, value, defaultValue, limit, disabled, onChange }
 	if ( 'hour' === field.type ) {
 		return (
 			<div className="pp-setting">
-				<SelectControl __nextHasNoMarginBottom __next40pxDefaultSize label={ field.label } value={ String( value ) } options={ HOURS } onChange={ ( v ) => onChange( parseInt( v, 10 ) ) } />
+				<SelectControl __nextHasNoMarginBottom __next40pxDefaultSize label={ field.label } help={ field.help } value={ String( value ) } options={ HOURS } onChange={ ( v ) => onChange( parseInt( v, 10 ) ) } />
 			</div>
 		);
 	}
