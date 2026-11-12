@@ -11,7 +11,10 @@ namespace PaydarWP\PaydarPress;
 
 use PaydarWP\PaydarPress\Admin\AdminPage;
 use PaydarWP\PaydarPress\Database\Installer;
+use PaydarWP\PaydarPress\Rest\InventoryController;
+use PaydarWP\PaydarPress\Rest\ScanController;
 use PaydarWP\PaydarPress\Rest\UserPrefsController;
+use PaydarWP\PaydarPress\Scanner\ScanManager;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -53,7 +56,12 @@ final class Plugin {
 		// Runs pending migrations after updates (activation hook does not run on plugin updates).
 		Installer::maybe_upgrade();
 
+		$scans = new ScanManager();
+		$scans->register();
+
 		( new UserPrefsController() )->register();
+		( new ScanController( $scans ) )->register();
+		( new InventoryController() )->register();
 
 		if ( is_admin() ) {
 			( new AdminPage() )->register();

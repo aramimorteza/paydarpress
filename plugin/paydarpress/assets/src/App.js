@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Welcome from './pages/Welcome';
 import Placeholder from './pages/Placeholder';
+import Inventory from './pages/Inventory';
 import { ROUTES } from './routes';
 
 const HELP_KEYS = {
@@ -49,6 +50,8 @@ export default function App() {
 		page = <Dashboard />;
 	} else if ( '/welcome' === path ) {
 		page = <Welcome />;
+	} else if ( '/inventory' === path ) {
+		page = <Inventory />;
 	} else {
 		const route = ROUTES.find( ( item ) => item.path === path );
 		page = <Placeholder key={ path } title={ route ? route.label : '' } helpKey={ HELP_KEYS[ path ] } />;

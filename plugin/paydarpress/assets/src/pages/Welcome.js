@@ -1,5 +1,6 @@
-import { Button } from '@wordpress/components';
 import Page from '../components/Page';
+import ScanPanel from '../components/ScanPanel';
+import useScan from '../lib/useScan';
 
 const STEPS = [
 	{ title: 'اسکن سایت', text: 'شناسایی نوشته‌ها، برگه‌ها، دسته‌ها، لینک‌ها و تصاویر — در پس‌زمینه و بدون کند کردن سایت.' },
@@ -12,7 +13,7 @@ const STEPS = [
  * First-run welcome screen (architecture section 12.4).
  */
 export default function Welcome() {
-	const canManage = !! ( window.paydarpress && window.paydarpress.caps && window.paydarpress.caps.manage );
+	const scan = useScan();
 
 	return (
 		<Page title="به پایدارپرس خوش آمدید" helpKey="welcome">
@@ -27,15 +28,9 @@ export default function Welcome() {
 					</li>
 				) ) }
 			</ol>
-			<div className="pp-welcome__actions">
-				<Button variant="primary" disabled={ ! canManage } __next40pxDefaultSize>
-					شروع اسکن
-				</Button>
-				<p className="pp-muted">
-					{ canManage
-						? 'اسکن سایت در مرحله بعدی توسعه فعال می‌شود.'
-						: 'برای شروع اسکن به دسترسی مدیر نیاز است.' }
-				</p>
+			<div className="pp-card">
+				<h2 className="pp-card__title">قدم اول: اسکن سایت</h2>
+				<ScanPanel state={ scan } />
 			</div>
 		</Page>
 	);
