@@ -89,4 +89,23 @@ final class RankMathAdapter extends AbstractAdapter {
 
 		return in_array( 'noindex', $robots, true );
 	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @param int   $post_id Post ID.
+	 * @param array $seo     SEO fields.
+	 */
+	public function write_post( int $post_id, array $seo ): bool {
+		return $this->write_meta(
+			$post_id,
+			array(
+				'title'            => 'rank_math_title',
+				'meta_description' => 'rank_math_description',
+				'focus_keyword'    => 'rank_math_focus_keyword',
+				'primary_term_id'  => 'rank_math_primary_category',
+			),
+			$seo
+		);
+	}
 }

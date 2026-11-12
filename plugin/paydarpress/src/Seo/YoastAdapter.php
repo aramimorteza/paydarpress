@@ -86,4 +86,23 @@ final class YoastAdapter extends AbstractAdapter {
 
 		return is_array( $titles ) && ! empty( $titles[ 'noindex-tax-' . $term->taxonomy ] );
 	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @param int   $post_id Post ID.
+	 * @param array $seo     SEO fields.
+	 */
+	public function write_post( int $post_id, array $seo ): bool {
+		return $this->write_meta(
+			$post_id,
+			array(
+				'title'            => '_yoast_wpseo_title',
+				'meta_description' => '_yoast_wpseo_metadesc',
+				'focus_keyword'    => '_yoast_wpseo_focuskw',
+				'primary_term_id'  => '_yoast_wpseo_primary_category',
+			),
+			$seo
+		);
+	}
 }

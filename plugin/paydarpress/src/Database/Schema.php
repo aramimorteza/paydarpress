@@ -21,9 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Schema {
 
-	public const VERSION = '1.2.0';
+	public const VERSION = '1.3.0';
 
-	public const TABLES = array( 'inventory', 'links', 'audit_findings', 'scans', 'activity', 'imports', 'gsc' );
+	public const TABLES = array( 'inventory', 'links', 'audit_findings', 'scans', 'activity', 'imports', 'gsc', 'topics', 'link_suggestions' );
 
 	/**
 	 * Full table name for a short name, e.g. `inventory` → `wp_paydarpress_inventory`.
@@ -55,6 +55,8 @@ final class Schema {
 		$activity       = self::table( 'activity' );
 		$imports        = self::table( 'imports' );
 		$gsc            = self::table( 'gsc' );
+		$topics         = self::table( 'topics' );
+		$suggestions    = self::table( 'link_suggestions' );
 
 		return array(
 			"CREATE TABLE {$inventory} (
@@ -188,6 +190,40 @@ final class Schema {
   KEY kind_object (kind,object_id),
   KEY item_hash (item_hash),
   KEY kind_impressions (kind,impressions)
+) {$charset};",
+
+			"CREATE TABLE {$topics} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  title varchar(255) NOT NULL,
+  title_norm varchar(255) NOT NULL DEFAULT '',
+  category_id bigint(20) unsigned DEFAULT NULL,
+  focus_keyword varchar(255) DEFAULT NULL,
+  intent varchar(30) NOT NULL DEFAULT '',
+  notes text DEFAULT NULL,
+  status varchar(20) NOT NULL DEFAULT 'new',
+  post_id bigint(20) unsigned DEFAULT NULL,
+  import_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  created_at datetime NOT NULL,
+  updated_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  KEY status (status),
+  KEY title_norm (title_norm(191))
+) {$charset};",
+
+			"CREATE TABLE {$suggestions} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  source_id bigint(20) unsigned NOT NULL,
+  target_id bigint(20) unsigned NOT NULL,
+  anchor varchar(255) NOT NULL DEFAULT '',
+  sentence text DEFAULT NULL,
+  origin varchar(20) NOT NULL DEFAULT 'contentmaster',
+  status varchar(20) NOT NULL DEFAULT 'pending',
+  import_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  created_at datetime NOT NULL,
+  updated_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  KEY status (status),
+  KEY source_target (source_id,target_id)
 ) {$charset};",
 		);
 	}

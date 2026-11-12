@@ -1,0 +1,318 @@
+<?php
+/**
+ * Parses and normalises a `paydarpress-import/1` file from ContentMaster. WordPress-independent.
+ *
+ * Only known keys survive; strings are trimmed and length-limited; HTML is kept as a string
+ * here and sanitised by WordPress when the draft is created.
+ *
+ * @package PaydarPress
+ */
+
+declare(strict_types=1);
+
+namespace PaydarWP\PaydarPress\Import;
+
+use PaydarWP\PaydarPress\Text\PersianNormalizer;
+use RuntimeException;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Import file parser.
+ */
+final class ImportParser {
+
+	public const SCHEMA          = 'paydarpress-import/1';
+	public const MAX_BYTES       = 5 * 1024 * 1024;
+	public const MAX_TOPICS      = 200;
+	public const MAX_ARTICLES    = 20;
+	public const MAX_SUGGESTIONS = 500;
+	public const MAX_HTML_BYTES  = 500 * 1024;
+
+	private const INTENTS = array( 'informational', 'educational', 'how-to', 'commercial', 'support', 'transactional' );
+
+	/**
+	 * Parses pasted text or file content.
+	 *
+	 * @param string $text Raw text (JSON, possibly inside a Markdown code block or with chat text around it).
+	 * @return array{meta: array, topics: array, articles: array, link_suggestions: array, notices: string[]}
+	 * @throws RuntimeException When no valid import object is found.
+	 */
+	public static function parse( string $text ): array {
+		if ( strlen( $text ) > self::MAX_BYTES ) {
+			throw new RuntimeException( 'حجم متن بیش از ۵ مگابایت است. مقالات را در چند نوبت وارد کنید.' );
+		}
+
+		$data = self::decode( $text );
+
+		if ( ( $data['schema'] ?? '' ) !== self::SCHEMA ) {
+			if ( isset( $data['export_meta'] ) ) {
+				throw new RuntimeException( 'این فایل خروجی خود پایدارپرس است، نه خروجی ContentMaster. در ContentMaster فرمان «خروجی پایدارپرس» را بزنید و متن حاصل را اینجا بچسبانید.' );
+			}
+			throw new RuntimeException( 'قالب متن شناخته نشد. در ContentMaster فرمان «خروجی پایدارپرس» را بزنید و کل بلوک کد را بچسبانید.' );
+		}
+
+		$notices  = array();
+		$topics   = self::items( $data['topics'] ?? array(), self::MAX_TOPICS, 'topics', $notices );
+		$articles = self::items( $data['articles'] ?? array(), self::MAX_ARTICLES, 'articles', $notices );
+		$links    = self::items( $data['link_suggestions'] ?? array(), self::MAX_SUGGESTIONS, 'link_suggestions', $notices );
+
+		$out = array(
+			'meta'             => array(
+				'generator' => self::str( $data['generator'] ?? '', 60 ),
+				'site'      => self::str( $data['site'] ?? '', 190 ),
+			),
+			'topics'           => array_values( array_filter( array_map( array( self::class, 'topic' ), $topics ) ) ),
+			'articles'         => array(),
+			'link_suggestions' => array_values( array_filter( array_map( array( self::class, 'suggestion' ), $links ) ) ),
+			'notices'          => $notices,
+		);
+
+		foreach ( $articles as $raw ) {
+			$article = self::article( $raw );
+			if ( null === $article ) {
+				continue;
+			}
+			if ( strlen( $article['html'] ) > self::MAX_HTML_BYTES ) {
+				$out['notices'][] = 'html_too_large:' . $article['title'];
+				continue;
+			}
+			$out['articles'][] = $article;
+		}
+
+		if ( array() === $out['topics'] && array() === $out['articles'] && array() === $out['link_suggestions'] ) {
+			throw new RuntimeException( 'متن معتبر است اما موضوع، مقاله یا پیشنهاد لینکی در آن نیست.' );
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Whether two titles are the same or nearly the same topic: equal normalised keys, or
+	 * a word overlap (Jaccard) of at least 0.75 when both have three or more words.
+	 *
+	 * @param string $a Title.
+	 * @param string $b Title.
+	 */
+	public static function similar_titles( string $a, string $b ): bool {
+		return self::similar_keys( PersianNormalizer::for_key( $a ), PersianNormalizer::for_key( $b ) );
+	}
+
+	/**
+	 * Same as similar_titles() for keys already normalised with PersianNormalizer::for_key().
+	 *
+	 * @param string $ka Key.
+	 * @param string $kb Key.
+	 */
+	public static function similar_keys( string $ka, string $kb ): bool {
+		if ( '' === $ka || '' === $kb ) {
+			return false;
+		}
+		if ( str_replace( ' ', '', $ka ) === str_replace( ' ', '', $kb ) ) {
+			return true;
+		}
+
+		$wa = array_unique( explode( ' ', $ka ) );
+		$wb = array_unique( explode( ' ', $kb ) );
+		if ( count( $wa ) < 3 || count( $wb ) < 3 ) {
+			return false;
+		}
+
+		$common = count( array_intersect( $wa, $wb ) );
+		$union  = count( array_unique( array_merge( $wa, $wb ) ) );
+
+		return $union > 0 && $common / $union >= 0.75;
+	}
+
+	/**
+	 * Finds and decodes the first JSON object in the text.
+	 *
+	 * @param string $text Raw text.
+	 * @return array
+	 * @throws RuntimeException On invalid JSON.
+	 */
+	private static function decode( string $text ): array {
+		$text = trim( $text );
+		if ( str_starts_with( $text, "\xEF\xBB\xBF" ) ) {
+			$text = substr( $text, 3 );
+		}
+
+		// Inside a Markdown code block?
+		if ( preg_match( '/```(?:json)?\s*(\{.*\})\s*```/su', $text, $m ) ) {
+			$text = $m[1];
+		} else {
+			$start = strpos( $text, '{' );
+			$end   = strrpos( $text, '}' );
+			if ( false === $start || false === $end || $end <= $start ) {
+				throw new RuntimeException( 'متنی با قالب JSON پیدا نشد. کل بلوک کد خروجی ContentMaster را کپی کنید.' );
+			}
+			$text = substr( $text, $start, $end - $start + 1 );
+		}
+
+		$data = json_decode( $text, true, 64 );
+		if ( ! is_array( $data ) ) {
+			throw new RuntimeException( 'متن JSON ناقص یا خراب است (' . json_last_error_msg() . '). احتمالاً بخشی از متن هنگام کپی جا مانده؛ دوباره کل بلوک کد را کپی کنید یا در ContentMaster هر مقاله را جداگانه خروجی بگیرید.' );
+		}
+
+		return $data;
+	}
+
+	/**
+	 * List items with a count limit.
+	 *
+	 * @param mixed  $list    Raw list.
+	 * @param int    $max     Limit.
+	 * @param string $name    Section name for notices.
+	 * @param array  $notices Notices (by reference).
+	 */
+	private static function items( $list, int $max, string $name, array &$notices ): array {
+		if ( ! is_array( $list ) ) {
+			return array();
+		}
+		$list = array_values( array_filter( $list, 'is_array' ) );
+		if ( count( $list ) > $max ) {
+			$notices[] = 'limit:' . $name . ':' . $max;
+			$list      = array_slice( $list, 0, $max );
+		}
+
+		return $list;
+	}
+
+	/**
+	 * One topic.
+	 *
+	 * @param array $raw Raw.
+	 */
+	private static function topic( array $raw ): ?array {
+		$title = self::str( $raw['title'] ?? '', 255 );
+		if ( '' === $title ) {
+			return null;
+		}
+		$intent = strtolower( self::str( $raw['intent'] ?? '', 30 ) );
+
+		return array(
+			'title'         => $title,
+			'category'      => self::str( $raw['category'] ?? '', 200 ),
+			'category_id'   => self::int( $raw['category_id'] ?? null ),
+			'focus_keyword' => self::str( $raw['focus_keyword'] ?? '', 255 ),
+			'intent'        => in_array( $intent, self::INTENTS, true ) ? $intent : '',
+			'notes'         => self::str( $raw['notes'] ?? '', 1000 ),
+		);
+	}
+
+	/**
+	 * One article.
+	 *
+	 * @param array $raw Raw.
+	 */
+	private static function article( array $raw ): ?array {
+		$title = self::str( $raw['title'] ?? '', 255 );
+		$html  = is_string( $raw['html'] ?? null ) ? trim( $raw['html'] ) : '';
+		if ( '' === $title || '' === $html ) {
+			return null;
+		}
+
+		$seo   = is_array( $raw['seo'] ?? null ) ? $raw['seo'] : array();
+		$image = is_array( $raw['featured_image'] ?? null ) ? $raw['featured_image'] : array();
+		$faq   = array();
+		foreach ( array_slice( is_array( $raw['faq'] ?? null ) ? $raw['faq'] : array(), 0, 30 ) as $item ) {
+			if ( is_array( $item ) ) {
+				$q = self::str( $item['q'] ?? $item['question'] ?? '', 500 );
+				$a = self::str( $item['a'] ?? $item['answer'] ?? '', 3000 );
+				if ( '' !== $q && '' !== $a ) {
+					$faq[] = array(
+						'q' => $q,
+						'a' => $a,
+					);
+				}
+			}
+		}
+		$reverse = array();
+		foreach ( array_slice( is_array( $raw['reverse_links'] ?? null ) ? $raw['reverse_links'] : array(), 0, 20 ) as $item ) {
+			if ( is_array( $item ) && '' !== self::str( $item['source_url'] ?? '', 2000 ) ) {
+				$reverse[] = array(
+					'source_url' => self::str( $item['source_url'], 2000 ),
+					'anchor'     => self::str( $item['anchor'] ?? '', 255 ),
+					'sentence'   => self::str( $item['sentence'] ?? '', 1000 ),
+				);
+			}
+		}
+		$tags = array();
+		foreach ( array_slice( is_array( $raw['tags'] ?? null ) ? $raw['tags'] : array(), 0, 15 ) as $tag ) {
+			$tag = self::str( is_scalar( $tag ) ? (string) $tag : '', 100 );
+			if ( '' !== $tag ) {
+				$tags[] = $tag;
+			}
+		}
+
+		// Strip a leading <h1> repeating the title (WordPress shows the title itself).
+		$html = (string) preg_replace( '#^\s*<h1[^>]*>.*?</h1>\s*#isu', '', $html );
+
+		return array(
+			'title'         => $title,
+			'slug'          => self::str( $raw['slug'] ?? '', 190 ),
+			'html'          => $html,
+			'category'      => self::str( $raw['category'] ?? '', 200 ),
+			'category_id'   => self::int( $raw['category_id'] ?? null ),
+			'tags'          => array_values( array_unique( $tags ) ),
+			'seo'           => array(
+				'title'            => self::str( $seo['title'] ?? '', 255 ),
+				'meta_description' => self::str( $seo['meta_description'] ?? $seo['description'] ?? '', 500 ),
+				'focus_keyword'    => self::str( $seo['focus_keyword'] ?? $seo['keyword'] ?? '', 255 ),
+			),
+			'excerpt'       => self::str( $raw['excerpt'] ?? '', 1000 ),
+			'author'        => self::str( $raw['author'] ?? '', 100 ),
+			'image_prompt'  => self::str( $image['prompt'] ?? '', 3000 ),
+			'image_alt'     => self::str( $image['alt'] ?? '', 255 ),
+			'faq'           => $faq,
+			'reverse_links' => $reverse,
+		);
+	}
+
+	/**
+	 * One link suggestion.
+	 *
+	 * @param array $raw Raw.
+	 */
+	private static function suggestion( array $raw ): ?array {
+		$source = self::str( $raw['source_url'] ?? '', 2000 );
+		$target = self::str( $raw['target_url'] ?? '', 2000 );
+		$anchor = self::str( $raw['anchor'] ?? '', 255 );
+		if ( '' === $source || '' === $target || '' === $anchor ) {
+			return null;
+		}
+
+		return array(
+			'source_url' => $source,
+			'target_url' => $target,
+			'anchor'     => $anchor,
+			'sentence'   => self::str( $raw['sentence'] ?? '', 1000 ),
+		);
+	}
+
+	/**
+	 * Plain single-line string, tags removed, length-limited.
+	 *
+	 * @param mixed $value Value.
+	 * @param int   $max   Maximum characters.
+	 */
+	private static function str( $value, int $max ): string {
+		if ( ! is_scalar( $value ) ) {
+			return '';
+		}
+		$value = trim( (string) preg_replace( '/\s+/u', ' ', strip_tags( (string) $value ) ) );
+
+		return mb_substr( $value, 0, $max );
+	}
+
+	/**
+	 * Positive integer or null.
+	 *
+	 * @param mixed $value Value.
+	 */
+	private static function int( $value ): ?int {
+		return is_numeric( $value ) && (int) $value > 0 ? (int) $value : null;
+	}
+}

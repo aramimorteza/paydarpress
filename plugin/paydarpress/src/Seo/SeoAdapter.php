@@ -39,4 +39,13 @@ interface SeoAdapter {
 	 * @param WP_Term $term Term.
 	 */
 	public function term_noindex( WP_Term $term ): bool;
+
+	/**
+	 * Writes SEO fields of a post into the SEO plugin's own storage.
+	 *
+	 * @param int   $post_id Post ID.
+	 * @param array $seo     title, meta_description, focus_keyword, primary_term_id (any may be missing).
+	 * @return bool Whether the active SEO plugin stored the data.
+	 */
+	public function write_post( int $post_id, array $seo ): bool;
 }

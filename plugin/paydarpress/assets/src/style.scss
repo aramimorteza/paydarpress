@@ -1266,3 +1266,99 @@
 	color: var(--pwp-text-muted, #5b6475);
 }
 
+
+/* ContentMaster import and topics */
+
+.pp-paste textarea {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-size: 12px;
+	direction: ltr;
+	text-align: left;
+}
+
+.pp-import-item {
+	padding-block: var(--pwp-space-3, 12px);
+	border-block-end: 1px solid var(--pwp-border, #e2e5ea);
+
+	&:last-of-type {
+		border-block-end: 0;
+	}
+
+	&.is-duplicate .components-checkbox-control__label {
+		color: var(--pwp-text-muted, #5b6475);
+	}
+
+	.components-checkbox-control__label {
+		font-weight: 700;
+	}
+}
+
+.pp-import-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--pwp-space-1, 4px) var(--pwp-space-3, 12px);
+	margin: var(--pwp-space-1, 4px) 0 0;
+	padding-inline-start: 28px;
+	font-size: var(--pwp-text-xs, 12px);
+	color: var(--pwp-text-muted, #5b6475);
+}
+
+.pp-import-excerpt {
+	padding-inline-start: 28px;
+	margin: var(--pwp-space-2, 8px) 0 0;
+	font-size: var(--pwp-text-sm, 13px);
+}
+
+.pp-checks {
+	margin: var(--pwp-space-2, 8px) 0 0;
+	padding-inline-start: 28px;
+	list-style: none;
+}
+
+.pp-check {
+	display: block;
+	font-size: var(--pwp-text-sm, 13px);
+	padding-inline-start: 18px;
+	position: relative;
+	margin-block-end: 2px;
+
+	&::before {
+		content: "";
+		position: absolute;
+		inset-inline-start: 2px;
+		top: 0.55em;
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--pwp-text-muted, #5b6475);
+	}
+}
+
+span.pp-check {
+	display: inline-block;
+	margin-inline-start: 28px;
+	margin-block-start: var(--pwp-space-1, 4px);
+}
+
+.pp-check--ok::before { background: var(--pwp-success, #1a7f37); }
+.pp-check--duplicate { color: var(--pwp-danger, #c0392b); }
+.pp-check--duplicate::before, .pp-check--error::before { background: var(--pwp-danger, #c0392b); }
+.pp-check--error { color: var(--pwp-danger, #c0392b); font-weight: 700; }
+.pp-check--warning::before { background: var(--pwp-warning, #9a6700); }
+.pp-check--info::before { background: var(--pwp-info, #2563b8); }
+
+.pp-actions {
+	white-space: nowrap;
+
+	.components-button {
+		margin-inline-end: var(--pwp-space-1, 4px);
+	}
+}
+
+.pp-table tr.is-muted td {
+	opacity: 0.6;
+}
+
+.pp-topic-accepted { background: var(--pwp-info-soft, #e6eefa); color: var(--pwp-info, #2563b8); border-color: transparent; }
+.pp-topic-written { background: var(--pwp-success-soft, #e3f4e8); color: var(--pwp-success, #1a7f37); border-color: transparent; }
+.pp-topic-rejected { color: var(--pwp-text-muted, #5b6475); }

@@ -17,6 +17,8 @@ use PaydarWP\PaydarPress\Rest\AuditController;
 use PaydarWP\PaydarPress\Rest\ProfileController;
 use PaydarWP\PaydarPress\Rest\SettingsController;
 use PaydarWP\PaydarPress\Rest\GscController;
+use PaydarWP\PaydarPress\Rest\ContentMasterController;
+use PaydarWP\PaydarPress\Admin\PostMetaBox;
 use PaydarWP\PaydarPress\Rest\InventoryController;
 use PaydarWP\PaydarPress\Rest\ScanController;
 use PaydarWP\PaydarPress\Rest\UserPrefsController;
@@ -76,6 +78,7 @@ final class Plugin {
 				( new ProfileController( $scans ) )->routes();
 				( new SettingsController() )->routes();
 				( new GscController() )->routes();
+				( new ContentMasterController() )->routes();
 			}
 		);
 
@@ -86,6 +89,7 @@ final class Plugin {
 			( new AdminPage() )->register();
 			add_action( 'admin_post_' . ProfileController::DOWNLOAD_ACTION, static fn() => ( new ProfileController( $scans ) )->download() );
 			( new DashboardWidget() )->register();
+			( new PostMetaBox() )->register();
 		}
 
 		add_filter( 'paydarwp_hub_products', array( $this, 'register_hub_product' ) );

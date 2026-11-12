@@ -149,6 +149,11 @@ final class Installer {
 			delete_option( $option );
 		}
 
+		// Post meta written by ContentMaster imports (the drafts themselves are the user's content and stay).
+		foreach ( array( '_paydarpress_import_id', '_paydarpress_image_prompt', '_paydarpress_image_alt', '_paydarpress_faq', '_paydarpress_seo' ) as $meta_key ) {
+			delete_post_meta_by_key( $meta_key );
+		}
+
 		delete_metadata( 'user', 0, 'paydarpress_dismissed_help', '', true );
 		delete_metadata( 'user', 0, 'paydarpress_ui_mode', '', true );
 

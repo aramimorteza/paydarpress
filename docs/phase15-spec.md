@@ -129,12 +129,86 @@ ContentMaster v1.5: در «بروزرسانی» از این داده استفا�
 
 ---
 
-## M8. ورود از ContentMaster (خلاصه؛ جزئیات پیش از شروع M8)
+## M8. ورود از ContentMaster
 
-- ContentMaster یک فرمان «خروجی پایدارپرس» می‌گیرد که JSON با `schema: paydarpress-import/1` تولید می‌کند: `topics[]`، `articles[]` (عنوان، اسلاگ، HTML، دسته، برچسب، کلمه کلیدی، متا، Alt، FAQ)، `link_suggestions[]`.
-- موضوعات در صندوق «موضوعات پیشنهادی» (جدول `topics`) با وضعیت جدید/پذیرفته/ردشده.
-- مقالات فقط به‌صورت **پیش‌نویس**، HTML با `wp_kses_post`، فقط فیلدهای سئوی افزونه فعال (Yoast/Rank Math/AIOSEO).
-- پیش از ایجاد: پیش‌نمایش و هشدار تکرار (عنوان/کلمه کلیدی مشابه موجود).
+### 1. قالب فایل `paydarpress-import/1`
+
+ContentMaster با فرمان «خروجی پایدارپرس» یک بلوک JSON تولید می‌کند که کاربر آن را در صفحه «ورود از ContentMaster» می‌چسباند (یا به‌صورت فایل `.json` آپلود می‌کند).
+
+```json
+{
+  "schema": "paydarpress-import/1",
+  "generator": "ContentMaster 1.6",
+  "site": "vakilkaraj.net",
+  "topics": [
+    { "title": "…", "category": "خانواده", "focus_keyword": "…", "intent": "informational", "notes": "…" }
+  ],
+  "articles": [
+    {
+      "title": "…", "slug": "mahrieh-calculation", "html": "<p>…</p><h2>…</h2>…",
+      "category": "خانواده", "tags": ["مهریه"],
+      "seo": { "title": "…", "meta_description": "…", "focus_keyword": "…" },
+      "excerpt": "…", "author": "نام نمایشی نویسنده",
+      "featured_image": { "prompt": "Create a premium …", "alt": "…" },
+      "faq": [ { "q": "…", "a": "…" } ],
+      "reverse_links": [ { "source_url": "https://…", "anchor": "…", "sentence": "…" } ]
+    }
+  ],
+  "link_suggestions": [ { "source_url": "https://…", "target_url": "https://…", "anchor": "…", "sentence": "…" } ]
+}
+```
+
+- همه بخش‌ها اختیاری‌اند، اما دست‌کم یکی از `topics`، `articles` یا `link_suggestions` لازم است.
+- دسته با نام یا شناسه (`category_id`) پذیرفته می‌شود؛ دسته جدید ساخته نمی‌شود.
+- `site` با دامنه سایت مقایسه می‌شود؛ اختلاف دامنه هشدار می‌دهد (فایل سایت دیگری است).
+- متن داخل بلوک کد Markdown (` ```json `) هم پذیرفته می‌شود؛ پایدارپرس اولین شیء JSON را پیدا می‌کند.
+
+### 2. مراحل ورود
+
+1. **پیش‌نمایش** (هیچ چیزی ساخته نمی‌شود): اعتبارسنجی، و برای هر مورد:
+   - موضوع: تکرار عنوان یا کلمه کلیدی با محتوای موجود، موضوعات قبلی و موارد دیگر همین فایل؛ دسته شناخته‌نشده
+   - مقاله: همان بررسی‌ها + اسلاگ تکراری، لینک‌های داخلی به آدرس ناموجود (حذف می‌شوند و متن لنگر می‌ماند)، تعداد کلمات، نویسنده‌ای که کاربر سایت نیست، برچسب‌های جدید
+   - پیشنهاد لینک: مبدأ یا مقصد ناموجود
+2. کاربر موارد را انتخاب می‌کند (به‌طور پیش‌فرض موارد بدون تکرار انتخاب شده‌اند).
+3. **ثبت**: موضوعات در «موضوعات پیشنهادی»، مقالات به‌صورت پیش‌نویس، پیشنهادهای لینک در صف M9.
+
+پیش‌نمایش برای هر کاربر یک ساعت در Transient نگهداری می‌شود و ثبت فقط با توکن همان پیش‌نمایش انجام می‌شود.
+
+### 3. ساخت پیش‌نویس
+
+- `post_status = draft` همیشه، صرف‌نظر از محتوای فایل.
+- HTML با `wp_kses_post`؛ `<h1>`، اسکریپت، استایل و iframe حذف می‌شوند.
+- نویسنده: کاربر سایت با همان نام نمایشی که دسترسی `edit_posts` دارد؛ در غیر این صورت کاربر فعلی (و هشدار).
+- سئو فقط در فیلدهای افزونه سئوی فعال: Yoast (`_yoast_wpseo_title`، `_yoast_wpseo_metadesc`، `_yoast_wpseo_focuskw`، دسته اصلی)، Rank Math (`rank_math_title`، `rank_math_description`، `rank_math_focus_keyword`، دسته اصلی)، AIOSEO (جدول `aioseo_posts`). بدون افزونه سئو: در متای پایدارپرس نگهداری و در جعبه پایدارپرس نمایش داده می‌شود.
+- متاهای پایدارپرس (فقط همین کلیدها): `_paydarpress_import_id`، `_paydarpress_image_prompt`، `_paydarpress_image_alt`، `_paydarpress_faq`، `_paydarpress_seo` (بدون افزونه سئو).
+- جعبه «پایدارپرس» در صفحه ویرایش نوشته: پرامپت و Alt تصویر شاخص (با دکمه کپی)، FAQ، منبع ورود.
+- اگر عنوان مقاله با یک موضوع پیشنهادی یکی باشد، وضعیت آن موضوع «نوشته شد» و به پیش‌نویس متصل می‌شود.
+
+### 4. داده
+
+`{prefix}paydarpress_topics`: `id, title, title_norm, category_id, focus_keyword, intent, notes, status (new|accepted|rejected|written), post_id, import_id, created_at, updated_at`
+
+`{prefix}paydarpress_link_suggestions`: `id, source_id, target_id, anchor, sentence, origin (contentmaster|paydarpress), status (pending|approved|rejected|applied|failed), import_id, created_at, updated_at` — رابط کاربری در M9.
+
+نسخه Schema: 1.3.0.
+
+### 5. محدودیت‌ها
+
+حداکثر ۵ مگابایت، ۲۰۰ موضوع، ۲۰ مقاله و ۵۰۰ پیشنهاد لینک در هر فایل؛ HTML هر مقاله حداکثر ۵۰۰ کیلوبایت. فقط کاربر با `paydarpress_manage` (و `edit_posts` برای ساخت پیش‌نویس).
+
+### 6. رابط کاربری
+
+- گروه جدید منو «تولید محتوا»: «موضوعات پیشنهادی» و «ورود از ContentMaster».
+- موضوعات: تب وضعیت‌ها، پذیرفتن/رد، «کپی فرمان» (`مقاله: [عنوان]` برای ContentMaster)، لینک پیش‌نویس.
+- ورود: چسباندن یا آپلود، پیش‌نمایش با هشدارها، انتخاب، ثبت، نتیجه با لینک ویرایش پیش‌نویس‌ها.
+
+### 7. معیار پذیرش M8
+
+1. خروجی ContentMaster بدون ویرایش (با یا بدون بلوک کد) وارد شود.
+2. هیچ نوشته‌ای جز پیش‌نویس ساخته نشود؛ هیچ متای خارج از فهرست بالا نوشته نشود.
+3. موضوع یا مقاله تکراری پیش از ثبت نشان داده شود.
+4. لینک داخلی به آدرس ناموجود وارد نوشته نشود.
+5. سئو در Yoast و Rank Math و AIOSEO درست ذخیره و توسط اسکنر خوانده شود.
 
 ## M9. صف تأیید لینک داخلی (خلاصه)
 

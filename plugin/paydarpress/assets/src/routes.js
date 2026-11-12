@@ -23,6 +23,13 @@ export const NAV = [
 		],
 	},
 	{
+		group: 'تولید محتوا',
+		items: [
+			{ path: '/topics', label: 'موضوعات پیشنهادی', icon: 'lightbulb' },
+			{ path: '/cm-import', label: 'ورود از ContentMaster', icon: 'upload' },
+		],
+	},
+	{
 		group: 'ورود و خروجی',
 		items: [
 			{ path: '/gsc', label: 'سرچ کنسول', icon: 'chart-line' },

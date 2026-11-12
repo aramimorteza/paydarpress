@@ -164,6 +164,23 @@ final class InventoryExporter {
 			$data['search_console'] = $this->search_console_section();
 		}
 
+		// Topics already imported from ContentMaster, so new topic lists do not repeat them.
+		$topics = array_values(
+			array_filter(
+				\PaydarWP\PaydarPress\Import\TopicRepository::all_titles(),
+				static fn( $t ) => 'written' !== $t['status']
+			)
+		);
+		if ( array() !== $topics ) {
+			$data['suggested_topics'] = array_map(
+				static fn( $t ) => $compact ? array( $t['title'], $t['status'] ) : array(
+					'title'  => $t['title'],
+					'status' => $t['status'],
+				),
+				array_slice( $topics, 0, 300 )
+			);
+		}
+
 		return $data;
 	}
 

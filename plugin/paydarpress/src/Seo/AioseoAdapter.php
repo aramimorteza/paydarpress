@@ -61,4 +61,50 @@ final class AioseoAdapter extends AbstractAdapter {
 
 		return $data;
 	}
+
+	/**
+	 * {@inheritDoc} AIOSEO keeps post SEO in its own table.
+	 *
+	 * @param int   $post_id Post ID.
+	 * @param array $seo     SEO fields.
+	 */
+	public function write_post( int $post_id, array $seo ): bool {
+		global $wpdb;
+
+		$table = $wpdb->prefix . 'aioseo_posts';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) ) {
+			return false;
+		}
+
+		$now  = current_time( 'mysql' );
+		$data = array( 'updated' => $now );
+		if ( ! empty( $seo['title'] ) ) {
+			$data['title'] = sanitize_text_field( (string) $seo['title'] );
+		}
+		if ( ! empty( $seo['meta_description'] ) ) {
+			$data['description'] = sanitize_text_field( (string) $seo['meta_description'] );
+		}
+		if ( ! empty( $seo['focus_keyword'] ) ) {
+			$data['keyphrases'] = (string) wp_json_encode(
+				array(
+					'focus'      => array(
+						'keyphrase' => sanitize_text_field( (string) $seo['focus_keyword'] ),
+						'score'     => 0,
+						'analysis'  => new \stdClass(),
+					),
+					'additional' => array(),
+				),
+				JSON_UNESCAPED_UNICODE
+			);
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE post_id = %d", $post_id ) );
+		if ( $exists ) {
+			return false !== $wpdb->update( $table, $data, array( 'post_id' => $post_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		}
+
+		return false !== $wpdb->insert( $table, $data + array( 'post_id' => $post_id, 'created' => $now ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+	}
 }

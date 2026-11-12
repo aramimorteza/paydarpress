@@ -1,0 +1,76 @@
+{
+  "schema": "paydarpress-import/1",
+  "generator": "ContentMaster 1.6",
+  "site": "vakilkaraj.net",
+  "topics": [
+    {
+      "title": "مهریه به نرخ روز چگونه محاسبه می‌شود؟",
+      "category": "دعاوی خانواده",
+      "focus_keyword": "محاسبه مهریه به نرخ روز",
+      "intent": "how-to",
+      "notes": "پیشنهاد از داده سرچ کنسول"
+    },
+    {
+      "title": "فرآیند طلاق توافقی چگونه است",
+      "category": "دعاوی خانواده",
+      "focus_keyword": "طلاق توافقی",
+      "intent": "informational"
+    },
+    {
+      "title": "شرایط حضانت فرزند بعد از طلاق",
+      "category": "خانواده",
+      "focus_keyword": "حضانت فرزند بعد از طلاق",
+      "intent": "informational"
+    },
+    {
+      "title": "اجرت المثل ایام زوجیت به زبان ساده",
+      "category": "دعاوی خانواده",
+      "focus_keyword": "اجرت المثل ایام زوجیت",
+      "intent": "educational"
+    }
+  ],
+  "articles": [
+    {
+      "title": "مهریه به نرخ روز چگونه محاسبه می‌شود؟",
+      "slug": "mahrieh-nerkh-rooz",
+      "html": "<p>مهریه وجه نقد بر اساس شاخص تورم بانک مرکزی محاسبه می‌شود. برای اطلاع از <a href=\"https://vakilkaraj.net/consensual-divorce/\">فرآیند طلاق توافقی</a> و <a href=\"https://vakilkaraj.net/legal-consultation/\">مشاوره حقوقی</a> ادامه دهید.</p><h2>فرمول محاسبه</h2><p>شاخص سال پرداخت تقسیم بر شاخص سال عقد ضرب در مبلغ مهریه. <a href=\"https://www.cbi.ir/\">بانک مرکزی</a></p>",
+      "category": "دعاوی خانواده",
+      "tags": [
+        "مهریه",
+        "شاخص تورم"
+      ],
+      "seo": {
+        "title": "محاسبه مهریه به نرخ روز | وکیل کرج",
+        "meta_description": "فرمول محاسبه مهریه به نرخ روز با شاخص بانک مرکزی به زبان ساده.",
+        "focus_keyword": "محاسبه مهریه به نرخ روز"
+      },
+      "excerpt": "فرمول ساده محاسبه مهریه به نرخ روز.",
+      "author": "admin",
+      "featured_image": {
+        "prompt": "Create a premium conceptual storytelling illustration in 16:9 horizontal format...",
+        "alt": "محاسبه مهریه به نرخ روز با شاخص تورم"
+      },
+      "faq": [
+        {
+          "q": "مهریه سکه هم به نرخ روز محاسبه می‌شود؟",
+          "a": "خیر؛ مهریه سکه به تعداد سکه پرداخت می‌شود."
+        }
+      ],
+      "reverse_links": [
+        {
+          "source_url": "https://vakilkaraj.net/lawsuit-price/",
+          "anchor": "محاسبه مهریه به نرخ روز",
+          "sentence": "برای مهریه، محاسبه مهریه به نرخ روز را ببینید."
+        }
+      ]
+    }
+  ],
+  "link_suggestions": [
+    {
+      "source_url": "https://vakilkaraj.net/consensual-divorce/",
+      "target_url": "https://vakilkaraj.net/lawsuit-price/",
+      "anchor": "هزینه دعاوی",
+      "sentence": "..."
+    }
+  ]
+}

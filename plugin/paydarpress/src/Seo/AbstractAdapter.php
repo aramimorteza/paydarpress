@@ -70,4 +70,31 @@ abstract class AbstractAdapter implements SeoAdapter {
 	public function term_noindex( WP_Term $term ): bool {
 		return false;
 	}
+
+	/**
+	 * Default: the active SEO plugin is not supported for writing.
+	 *
+	 * @param int   $post_id Post ID.
+	 * @param array $seo     SEO fields.
+	 */
+	public function write_post( int $post_id, array $seo ): bool {
+		return false;
+	}
+
+	/**
+	 * Writes post meta for the non-empty values of a field map.
+	 *
+	 * @param int                  $post_id Post ID.
+	 * @param array<string,string> $map     SEO field => meta key.
+	 * @param array                $seo     SEO fields.
+	 */
+	protected function write_meta( int $post_id, array $map, array $seo ): bool {
+		foreach ( $map as $field => $meta_key ) {
+			if ( isset( $seo[ $field ] ) && '' !== (string) $seo[ $field ] ) {
+				update_post_meta( $post_id, $meta_key, 'primary_term_id' === $field ? (int) $seo[ $field ] : sanitize_text_field( (string) $seo[ $field ] ) );
+			}
+		}
+
+		return true;
+	}
 }
