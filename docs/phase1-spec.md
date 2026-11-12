@@ -37,10 +37,10 @@
 | موضوع | تصمیم |
 |---|---|
 | PHP | حداقل 8.0 (بدون ویژگی‌های 8.1 به بعد مانند enum و readonly property) |
-| WordPress | حداقل 6.4 |
+| WordPress | حداقل 6.5 (Action Scheduler 3.9 به آن نیاز دارد؛ نسخه 6.4 دیگر به‌روزرسانی امنیتی فعال ندارد) |
 | Namespace | `PaydarWP\PaydarPress` (Hub: `PaydarWP\Hub`) |
 | Autoload | PSR-4 از طریق Composer؛ پوشه `vendor/` در بسته نهایی قرار می‌گیرد |
-| صف | `woocommerce/action-scheduler` درون بسته (بدون نیاز به WooCommerce) |
+| صف | Action Scheduler 3.9.3 درون بسته در `lib/action-scheduler` (بدون نیاز به WooCommerce؛ از مخزن رسمی GitHub) |
 | REST | `paydarpress/v1` |
 | رابط کاربری | React با `@wordpress/scripts`، `@wordpress/components`، `@wordpress/api-fetch` |
 | ذخیره پروفایل | Option با `autoload = no` (دلیل در بخش 14) |
