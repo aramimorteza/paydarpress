@@ -354,6 +354,8 @@ final class AuditController {
 		return new WP_REST_Response(
 			array(
 				'items'       => $items,
+				'settling'    => (int) ( ( get_option( AuditEngine::OPTION_STATS, array() )['settling'] ?? 0 ) ),
+				'grace_days'  => (int) \PaydarWP\PaydarPress\Core\Settings::get( 'policy.grace_days', 45 ),
 				'total'       => $total,
 				'page'        => $page,
 				'total_pages' => (int) ceil( $total / max( 1, $per_page ) ),

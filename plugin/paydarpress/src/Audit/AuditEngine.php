@@ -28,6 +28,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class AuditEngine {
 
+	/** @var int Published within the grace period and still without inbound links. */
+	private $settling = 0;
+
 	public const OPTION_STATS = 'paydarpress_stats';
 
 	/** Crawlers whose blocking hides the site from search (training-only bots are excluded). */
@@ -67,6 +70,7 @@ final class AuditEngine {
 		$rows = $this->content_rows();
 
 		$this->content_rules( $rows );
+		update_option( 'paydarpress_settling', (int) $this->settling, false );
 		$this->link_rules();
 		$this->taxonomy_rules();
 		$this->author_rules();
@@ -196,6 +200,9 @@ final class AuditEngine {
 		$weak_min    = (int) ( $this->settings['weak_inbound_min'] ?? 3 );
 		$inline_min  = (int) ( $this->settings['inline_images_min_words'] ?? 800 );
 		$by_keyword  = array();
+		// New content gets time to receive links (content policy) before it counts as orphan.
+		$grace_until = time() - max( 0, (int) \PaydarWP\PaydarPress\Core\Settings::get( 'policy.grace_days', 45 ) ) * DAY_IN_SECONDS;
+		$this->settling = 0;
 
 		foreach ( $rows as $row ) {
 			if ( 'publish' !== $row['status'] ) {
@@ -210,8 +217,14 @@ final class AuditEngine {
 			$menu      = (int) $row['menu_in'];
 			$words     = (int) $row['word_count'];
 
+			$published = ! empty( $row['published_at'] ) ? (int) strtotime( $row['published_at'] . ' UTC' ) : 0;
+			$settling  = $published > $grace_until;
+			if ( $settling && 0 === $in && $indexable && ! $is_system ) {
+				++$this->settling;
+			}
+
 			// Links.
-			if ( $indexable && ! $is_system ) {
+			if ( $indexable && ! $is_system && ! $settling ) {
 				if ( 'post' === $type && 0 === $in ) {
 					$this->add( 'ORPHAN_POST', 'content', $id, $menu > 0 ? array( 'menu_in' => $menu ) : null );
 				} elseif ( 'page' === $type && 0 === $in && 0 === $menu ) {
@@ -730,10 +743,13 @@ final class AuditEngine {
 		$table = Schema::table( 'inventory' );
 		$stale = (int) ( $this->settings['stale_months'] ?? 18 );
 		$cases = array();
+		// Content policy: recently edited content is not proposed for another rewrite yet.
+		$cooldown = time() - max( 0, (int) \PaydarWP\PaydarPress\Core\Settings::get( 'policy.edit_cooldown_days', 30 ) ) * DAY_IN_SECONDS;
 
 		foreach ( $rows as $row ) {
-			$id    = (int) $row['object_id'];
-			$score = ( 'publish' === $row['status'] && 'post' === $row['object_type'] )
+			$id     = (int) $row['object_id'];
+			$recent = ! empty( $row['modified_at'] ) && (int) strtotime( $row['modified_at'] . ' UTC' ) > $cooldown;
+			$score  = ( 'publish' === $row['status'] && 'post' === $row['object_type'] && ! $recent )
 				? self::refresh_score( $row, explode( ' ', trim( $this->codes_by_content[ $id ] ?? '' ) ), $stale )
 				: 0;
 
@@ -807,6 +823,7 @@ final class AuditEngine {
 			'by_code'      => $by_code,
 			'orphans'      => (int) ( ( $by_code['ORPHAN_POST'] ?? 0 ) + ( $by_code['ORPHAN_PAGE'] ?? 0 ) + ( $by_code['ORPHAN_PRODUCT'] ?? 0 ) ),
 			'refresh'      => $refresh,
+			'settling'     => (int) get_option( 'paydarpress_settling', 0 ),
 		);
 
 		update_option( self::OPTION_STATS, $stats, false );

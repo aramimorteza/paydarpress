@@ -87,8 +87,12 @@ final class Plugin {
 				( new ContentMasterController() )->routes();
 				( new LinksController( $links ) )->routes();
 				( new AiController() )->routes();
+				( new \PaydarWP\PaydarPress\Policy\ReviewGate() )->register();
 			}
 		);
+
+		// FAQ structured data for imported articles (single views only; reads cached post meta).
+		( new \PaydarWP\PaydarPress\Content\Faq() )->register();
 
 		// Key pages from the profile feed the WEAK_INBOUND audit rule.
 		add_filter( 'paydarpress/key_page_ids', static fn() => ProfileRepository::key_page_ids() );
@@ -99,6 +103,8 @@ final class Plugin {
 			( new DashboardWidget() )->register();
 			( new PostMetaBox() )->register();
 			( new \PaydarWP\PaydarPress\Import\Rewrites() )->register();
+			( new \PaydarWP\PaydarPress\Policy\ReviewGate() )->register();
+			add_action( 'admin_notices', array( \PaydarWP\PaydarPress\Policy\ReviewGate::class, 'admin_notice' ) );
 		}
 
 		add_filter( 'paydarwp_hub_products', array( $this, 'register_hub_product' ) );

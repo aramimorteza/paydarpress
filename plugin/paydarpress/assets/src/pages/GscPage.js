@@ -113,7 +113,7 @@ function HowTo( { compact } ) {
 			{ ! compact && <h2 className="pp-card__title">گرفتن خروجی از سرچ کنسول (۲ دقیقه)</h2> }
 			<ol className="pp-howto">
 				<li>در <bdi dir="ltr">search.google.com/search-console</bdi> سایت را انتخاب کنید و به گزارش «عملکرد» (Performance) بروید.</li>
-				<li>بازه زمانی را «۳ ماه گذشته» بگذارید. برای دیدن افت کلیک، در همان پنجره تب «مقایسه» را بزنید و «۳ ماه گذشته با دوره قبل» را انتخاب کنید.</li>
+				<li>بازه زمانی را <strong>«۳ ماه گذشته»</strong> (پیشنهادی) یا «۲۸ روز گذشته» بگذارید؛ بازه‌های دیگر نتیجه دقیقی نمی‌دهند. برای دیدن افت کلیک، در همان پنجره تب «مقایسه» را بزنید و همان بازه را «با دوره قبل» مقایسه کنید.</li>
 				<li>دکمه «خروجی» (Export) بالای صفحه را بزنید و «دانلود CSV» را انتخاب کنید. یک فایل zip دانلود می‌شود.</li>
 				<li>همان فایل zip را بدون باز کردن، اینجا آپلود کنید.</li>
 			</ol>
@@ -219,6 +219,13 @@ function Summary( { data, summary } ) {
 		}
 		return null;
 	} ).filter( Boolean );
+	// PaydarPress' rules are calibrated for a 3-month export (recommended) or a 28/30-day export.
+	if ( period.start && period.end ) {
+		const days = Math.round( ( new Date( period.end ) - new Date( period.start ) ) / 86400000 ) + 1;
+		if ( ! ( ( days >= 26 && days <= 32 ) || ( days >= 84 && days <= 95 ) ) ) {
+			warnings.push( `بازه این خروجی ${ num( days ) } روز است. گزارش‌های پایدارپرس برای خروجی «۳ ماه گذشته» (پیشنهادی) یا «۲۸ روز گذشته» تنظیم شده‌اند؛ با بازه دیگر، آستانه‌های نمایش و افت کلیک دقیق نیستند. خروجی را با یکی از این دو بازه دوباره بگیرید.` );
+		}
+	}
 	if ( summary.pages_capped ) {
 		warnings.push( 'سرچ کنسول فقط ۱٬۰۰۰ صفحه اول را در خروجی می‌دهد؛ صفحات کم‌بازدیدتر در داده نیستند و «دیده‌نشده در گوگل» بررسی نشد.' );
 	}

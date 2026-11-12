@@ -93,6 +93,12 @@ export default function AiButton( { command, small = true, variant = 'secondary'
 			{ open && (
 				<Modal title={ command.summary } onRequestClose={ () => setOpen( false ) } className="pp-modal pp-ai-modal" size="medium">
 					{ error && <Notice status="error" onRemove={ () => setError( '' ) }>{ error }</Notice> }
+					{ data && data.policy && data.policy.over && (
+						<Notice status="warning" isDismissible={ false }>
+							سهمیه مقاله جدید این ماه پر شده است ({ num( data.policy.published ) } از { num( data.policy.budget ) }).
+							{ data.policy.refresh_waiting > 0 && <> { num( data.policy.refresh_waiting ) } مقاله قدیمی منتظر بازنویسی است؛ <a href="#/refresh" onClick={ () => setOpen( false ) }>بازنویسی</a> معمولاً ارزش بیشتری دارد.</> }
+						</Notice>
+					) }
 
 					{ command.prompt && (
 						<section className="pp-ai-modal__block">

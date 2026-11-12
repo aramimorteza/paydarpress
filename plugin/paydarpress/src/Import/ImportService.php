@@ -251,7 +251,9 @@ final class ImportService {
 
 				foreach ( $article['reverse_links'] as $link ) {
 					if ( null !== $link['source_id'] ) {
-						LinkSuggestionRepository::insert( (int) $link['source_id'], empty( $article['rewrite_id'] ) ? $post_id : (int) $article['rewrite_id'], $link['anchor'], $link['sentence'], 'contentmaster', $import_id );
+						// A new article is born with its inbound links: they are approved with the
+						// article and inserted when it is published (content policy).
+						LinkSuggestionRepository::insert( (int) $link['source_id'], empty( $article['rewrite_id'] ) ? $post_id : (int) $article['rewrite_id'], $link['anchor'], $link['sentence'], 'contentmaster', $import_id, empty( $article['rewrite_id'] ) ? 'approved' : 'pending' );
 						++$result['link_suggestions'];
 					}
 				}
@@ -517,6 +519,11 @@ final class ImportService {
 		$html = (string) preg_replace( '#<(script|style|iframe|noscript|object|embed|form)\b[^>]*>.*?</\1\s*>#isu', '', $html );
 
 		$type    = empty( $article['rewrite_id'] ) ? 'post' : (string) $article['rewrite_type'];
+		$content = wp_kses_post( $html );
+		// FAQ goes into the article itself (accordion blocks), unless the HTML has its own section.
+		if ( $article['faq'] && 'product' !== $type && ! \PaydarWP\PaydarPress\Content\Faq::has_section( $content ) ) {
+			$content .= \PaydarWP\PaydarPress\Content\Faq::blocks( $article['faq'] );
+		}
 		$post_id = wp_insert_post(
 			array(
 				'post_type'     => $type,
@@ -524,7 +531,7 @@ final class ImportService {
 				'post_title'    => $article['title'],
 				// A rewrite keeps the original's address; the draft gets none of its own.
 				'post_name'     => empty( $article['rewrite_id'] ) ? sanitize_title( $article['slug'] ) : '',
-				'post_content'  => wp_kses_post( $html ),
+				'post_content'  => $content,
 				'post_excerpt'  => sanitize_textarea_field( $article['excerpt'] ),
 				'post_author'   => $article['author_id'] ?? get_current_user_id(),
 				'post_category' => null === $article['category_id'] || 'post' !== $type ? array() : array( (int) $article['category_id'] ),

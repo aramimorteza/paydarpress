@@ -171,6 +171,7 @@ final class AiController {
 				'command'  => $p['command'],
 				'chars'    => $p['chars'],
 				'ai_ready' => current_user_can( Capabilities::MANAGE ) && null !== Credentials::connection(),
+				'policy'   => in_array( $p['task'], array( 'topics', 'article' ), true ) ? PromptBuilder::policy() : null,
 			)
 		);
 	}

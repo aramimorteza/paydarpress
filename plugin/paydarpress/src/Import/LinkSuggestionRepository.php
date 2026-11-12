@@ -29,8 +29,10 @@ final class LinkSuggestionRepository {
 	 * @param string $sentence  Sentence where the link fits.
 	 * @param string $origin    contentmaster|paydarpress.
 	 * @param int    $import_id Import.
+	 * @param string $status    pending, or approved for links that come with a new article
+	 *                          (inserted automatically when the article is published).
 	 */
-	public static function insert( int $source_id, int $target_id, string $anchor, string $sentence, string $origin, int $import_id ): int {
+	public static function insert( int $source_id, int $target_id, string $anchor, string $sentence, string $origin, int $import_id, string $status = 'pending' ): int {
 		global $wpdb;
 
 		if ( $source_id <= 0 || $target_id <= 0 || $source_id === $target_id ) {
@@ -39,7 +41,7 @@ final class LinkSuggestionRepository {
 
 		$table = Schema::table( 'link_suggestions' );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE source_id = %d AND target_id = %d AND status = 'pending'", $source_id, $target_id ) );
+		$exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE source_id = %d AND target_id = %d AND status IN ('pending','approved')", $source_id, $target_id ) );
 		if ( $exists ) {
 			return (int) $exists;
 		}
@@ -53,7 +55,7 @@ final class LinkSuggestionRepository {
 				'anchor'     => mb_substr( $anchor, 0, 255 ),
 				'sentence'   => $sentence,
 				'origin'     => $origin,
-				'status'     => 'pending',
+				'status'     => 'approved' === $status ? 'approved' : 'pending',
 				'import_id'  => $import_id,
 				'created_at' => $now,
 				'updated_at' => $now,

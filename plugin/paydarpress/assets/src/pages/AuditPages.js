@@ -103,6 +103,11 @@ export function OrphansPage() {
 				</div>
 			) }
 			{ data && data.total > 0 && <p className="pp-muted">{ num( data.total ) } محتوای یتیم. برای هر مورد، از یکی از نوشته‌های پیشنهادی به آن لینک بدهید.</p> }
+			{ data && data.settling > 0 && (
+				<p className="pp-muted pp-settling">
+					{ num( data.settling ) } مطلب تازه (کمتر از { num( data.grace_days ) } روز از انتشار) هنوز لینک ورودی ندارد اما یتیم حساب نشده است؛ در مهلت جاافتادن هستند. لینک‌های مطلب تازه باید همراه خودش ساخته شوند (هنگام ورود از هوش مصنوعی خودکار انجام می‌شود).
+				</p>
+			) }
 			{ data && data.total > 0 && canManage && (
 				<section className="pp-card pp-card--section pp-gen">
 					<div>

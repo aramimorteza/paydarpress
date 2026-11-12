@@ -49,6 +49,15 @@ final class ContentMasterController {
 			'default' => array(),
 		);
 
+		register_rest_route(
+			self::NAMESPACE,
+			'/posts/(?P<id>\\d+)/reviewed',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'reviewed' ),
+				'permission_callback' => static fn( $request ) => current_user_can( 'edit_post', (int) $request['id'] ),
+			)
+		);
 		register_rest_route( self::NAMESPACE, '/cm/preview', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'preview' ), 'permission_callback' => $manage ) );
 		register_rest_route(
 			self::NAMESPACE,
@@ -208,6 +217,16 @@ final class ContentMasterController {
 	public function delete_topic( WP_REST_Request $request ): WP_REST_Response {
 		TopicRepository::delete( (int) $request['id'] );
 
+		return new WP_REST_Response( array( 'ok' => true ) );
+	}
+
+	/**
+	 * Confirms that a person reviewed an AI-written draft.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 */
+	public function reviewed( WP_REST_Request $request ): WP_REST_Response {
+		\PaydarWP\PaydarPress\Policy\ReviewGate::confirm( (int) $request['id'] );
 		return new WP_REST_Response( array( 'ok' => true ) );
 	}
 }

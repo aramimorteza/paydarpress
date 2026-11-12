@@ -148,6 +148,7 @@ final class Installer {
 			'paydarpress_crawlers',
 			'paydarpress_scan_cursor',
 			'paydarpress_ai',
+			'paydarpress_settling',
 		);
 
 		foreach ( $options as $option ) {

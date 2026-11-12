@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace PaydarWP\PaydarPress\Links;
 
 use PaydarWP\PaydarPress\Core\Activity;
+use PaydarWP\PaydarPress\Core\Settings;
 use PaydarWP\PaydarPress\Database\Schema;
 use PaydarWP\PaydarPress\Queue\Queue;
 use PaydarWP\PaydarPress\Text\PersianNormalizer;
@@ -123,8 +124,22 @@ final class LinkQueue {
 			}
 		}
 
+		// Content policy: limits on how often and how densely old articles receive new links.
+		$budget = $this->budget_block( $source, 'paydarpress' === $row['origin'] );
+		if ( null !== $budget ) {
+			return $this->set( $id, 'failed', $budget );
+		}
+
 		$url    = esc_url( (string) get_permalink( $target->ID ) );
 		$result = LinkInserter::insert( (string) $source->post_content, (string) $row['anchor'], $url );
+		if ( null === $result ) {
+			// The suggested anchor is not in the text (assistants often propose wording):
+			// fall back to a phrase of the target's title or keyword that the source does contain.
+			$alt = $this->find_anchor( $source->ID, $target->ID );
+			if ( null !== $alt ) {
+				$result = LinkInserter::insert( (string) $source->post_content, $alt, $url );
+			}
+		}
 		if ( null === $result ) {
 			return $this->set( $id, 'failed', 'متن «' . $row['anchor'] . '» در متن نوشته مبدأ پیدا نشد (یا فقط داخل عنوان، لینک یا کد آمده است). متن لنگر را به عبارتی که در نوشته هست تغییر دهید.' );
 		}
@@ -271,7 +286,7 @@ final class LinkQueue {
 					break;
 				}
 				$source = get_post( (int) $candidate['id'] );
-				if ( ! $source || 'builder' === get_post_meta( $source->ID, '_elementor_edit_mode', true ) ) {
+				if ( ! $source || 'builder' === get_post_meta( $source->ID, '_elementor_edit_mode', true ) || null !== $this->budget_block( $source, false ) ) {
 					continue;
 				}
 				if ( $this->count_where( 'source_id = %d AND target_id = %d', array( $source->ID, $target_id ) ) > 0 ) {
@@ -524,6 +539,58 @@ final class LinkQueue {
 	 * @param string $where Prepared-style condition.
 	 * @param array  $args  Arguments.
 	 */
+	/**
+	 * Why the policy forbids adding a link to this source now, or null.
+	 *
+	 * @param WP_Post $source       Source post.
+	 * @param bool    $repair       Orphan-repair link (counts against the weekly site limit);
+	 *                              links that come with a new article do not.
+	 */
+	public function budget_block( WP_Post $source, bool $repair = true ): ?string {
+		$per_post = max( 1, (int) Settings::get( 'policy.links_per_post_month', 1 ) );
+		$recent   = $this->count_where( "source_id = %d AND status = 'applied' AND applied_at >= %s", array( $source->ID, gmdate( 'Y-m-d H:i:s', time() - 30 * DAY_IN_SECONDS ) ) );
+		if ( $recent >= $per_post ) {
+			return sprintf( 'سیاست محتوا: «%s» در ۳۰ روز گذشته %s لینک تازه گرفته است (سقف %s در ماه). تغییر پشت‌سرهم یک مقاله قدیمی ارزش آن را پایین می‌آورد؛ این لینک را بعداً درج کنید یا از مقاله دیگری لینک بدهید.', $this->title( $source->ID ), PersianNormalizer::fa_number( $recent ), PersianNormalizer::fa_number( $per_post ) );
+		}
+
+		if ( $repair ) {
+			$week = max( 1, (int) Settings::get( 'policy.links_per_week', 15 ) );
+			$done = $this->count_where( "status = 'applied' AND origin = 'paydarpress' AND applied_at >= %s", array( gmdate( 'Y-m-d H:i:s', time() - 7 * DAY_IN_SECONDS ) ) );
+			if ( $done >= $week ) {
+				return sprintf( 'سیاست محتوا: سقف هفتگی %s لینک ترمیمی پر شده است. هفته بعد دوباره «درج» بزنید.', PersianNormalizer::fa_number( $week ) );
+			}
+		}
+
+		$html  = (string) $source->post_content;
+		$words = PersianNormalizer::word_count( trim( (string) preg_replace( '/\s+/u', ' ', wp_strip_all_tags( $html ) ) ) );
+		$max   = max( 3, intdiv( $words, max( 50, (int) Settings::get( 'policy.words_per_link', 150 ) ) ) );
+		$links = $this->internal_link_count( $html );
+		if ( $links >= $max ) {
+			return sprintf( 'سیاست محتوا: «%s» با %s کلمه از قبل %s لینک داخلی دارد (حداکثر %s). لینک بیشتر خواندن را سخت می‌کند؛ از مقاله دیگری لینک بدهید.', $this->title( $source->ID ), PersianNormalizer::fa_number( $words ), PersianNormalizer::fa_number( $links ), PersianNormalizer::fa_number( $max ) );
+		}
+		return null;
+	}
+
+	/**
+	 * Number of links to this site in an HTML fragment.
+	 *
+	 * @param string $html HTML.
+	 */
+	private function internal_link_count( string $html ): int {
+		if ( ! preg_match_all( '#<a\b[^>]*\bhref\s*=\s*(["\'])(.*?)\1#isu', $html, $m ) ) {
+			return 0;
+		}
+		$urls = new UrlNormalizer( home_url( '/' ) );
+		$n    = 0;
+		foreach ( $m[2] as $href ) {
+			$abs = $urls->absolute( html_entity_decode( (string) $href, ENT_QUOTES, 'UTF-8' ), home_url( '/' ) );
+			if ( null !== $abs && $urls->is_internal( $abs ) && ! $urls->is_asset( $abs ) ) {
+				++$n;
+			}
+		}
+		return $n;
+	}
+
 	private function count_where( string $where, array $args ): int {
 		global $wpdb;
 

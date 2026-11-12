@@ -71,6 +71,39 @@ final class PromptBuilder {
 	}
 
 	/**
+	 * Content policy state for new content this month.
+	 *
+	 * @return array{published: int, budget: int, refresh_waiting: int, over: bool}
+	 */
+	public static function policy(): array {
+		global $wpdb;
+		$start  = wp_date( 'Y-m-01 00:00:00' );
+		$budget = (int) \PaydarWP\PaydarPress\Core\Settings::get( 'policy.new_per_month', 8 );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$published = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'post' AND post_status IN ('publish','future') AND post_date >= %s", $start ) );
+		$stats     = get_option( 'paydarpress_stats', array() );
+		return array(
+			'published'       => $published,
+			'budget'          => $budget,
+			'refresh_waiting' => (int) ( is_array( $stats ) ? ( $stats['refresh'] ?? 0 ) : 0 ),
+			'over'            => $budget > 0 && $published >= $budget,
+		);
+	}
+
+	/**
+	 * Policy lines for prompts that create new content.
+	 */
+	private static function policy_text(): string {
+		$p = self::policy();
+		return "## CONTENT POLICY
+- New articles published this month: {$p['published']} of a budget of {$p['budget']}."
+			. "
+- Existing articles waiting for a refresh: {$p['refresh_waiting']}. Quality over volume: never propose a new article whose intent an existing article could cover after a refresh; say so in `notes` instead."
+			. ( $p['over'] ? "
+- The monthly budget is used up: only propose what is clearly missing, and mention in `notes` that the owner may prefer refreshing existing content." : '' );
+	}
+
+	/**
 	 * New topic ideas.
 	 *
 	 * @param array $args category_id, query, about (title of a page to support), count.
@@ -97,6 +130,7 @@ final class PromptBuilder {
 			'output'      => self::output( 'topics' ),
 			'with_topics' => true,
 			'with_gsc'    => true,
+			'with_policy' => true,
 		);
 	}
 
@@ -161,6 +195,7 @@ final class PromptBuilder {
 			'rules'       => self::rules_article(),
 			'output'      => self::output( 'article' ),
 			'with_gsc'    => true,
+			'with_policy' => true,
 			'object_id'   => $link_to ? $link_to->ID : null,
 		);
 	}
@@ -354,7 +389,7 @@ final class PromptBuilder {
 				'- Anchor text: descriptive, 2–6 words, varied. For key pages use their allowed anchors; keep exact-match anchors (anchor = the page\'s main keyword) rare, and never use exact-match for a page marked over_cap. Never use another article\'s focus keyword as the anchor to a different page. Never «اینجا کلیک کنید».',
 				'- Conclusion: natural, with ONE call to action from CTA OPTIONS framed as the helpful next step.',
 				'- HTML: clean WordPress HTML only: <h2>, <h3>, <p>, <ul>, <ol>, <table> when useful, <a href>, <strong> sparingly. No <h1>, CSS, scripts or Markdown. Optional boxes: <div class="tip-box">, <div class="note-box">, <div class="mistake-box">, <div class="example-box">.',
-				'- If the article has a FAQ section, put the same questions/answers in `faq`.',
+				'- FAQ: 3–6 real follow-up questions go ONLY in `faq` (short, direct answers, plain text). Do NOT write a FAQ section inside `html`; the plugin adds it at the end of the article as an accordion with structured data.',
 				'- SEO: title ≤ 60 characters, meta description ≤ 155 characters, short English slug based on intent, tags from the approved tags when given.',
 				'- reverse_links: 2–3 EXISTING CONTENT items that should link to this new article, with an anchor and the sentence where it fits.',
 				'- featured_image.prompt in English (photographic or illustrative scene, no text in the image); alt in the site language.',
@@ -434,6 +469,9 @@ final class PromptBuilder {
 			$parts[] = "## CTA OPTIONS\n{$cta}";
 		}
 		$parts[] = "## CATEGORIES\n" . self::categories_text();
+		if ( ! empty( $spec['with_policy'] ) ) {
+			$parts[] = self::policy_text();
+		}
 
 		if ( empty( $spec['no_related'] ) ) {
 			$related = self::related_text( (string) ( $spec['subject'] ?? '' ), (int) ( $spec['category_id'] ?? 0 ), (array) ( $spec['exclude'] ?? array() ) );

@@ -84,6 +84,9 @@ final class Rewrites {
 		if ( ! current_user_can( 'edit_post', $draft->ID ) || ! current_user_can( 'edit_post', $original->ID ) ) {
 			throw new RuntimeException( 'اجازه ویرایش این نوشته‌ها را ندارید.' );
 		}
+		if ( \PaydarWP\PaydarPress\Policy\ReviewGate::needs_review( $draft->ID ) ) {
+			throw new RuntimeException( \PaydarWP\PaydarPress\Policy\ReviewGate::message() );
+		}
 		if ( ! function_exists( 'wp_check_post_lock' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/post.php';
 		}

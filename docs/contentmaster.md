@@ -1,4 +1,4 @@
-# ContentMaster v1.9
+# ContentMaster v1.10
 ### Multi-site SEO content system: Setup, Topic Research, Article Writing, Content Refresh
 
 ---
@@ -309,7 +309,7 @@ The PaydarPress plugin exports the site as JSON (schema `1.x`, profile `contentm
 ### 6.5 Output for PaydarPress (`خروجی پایدارپرس`)
 
 Produce **one** JSON code block and nothing else except one line before it: «این متن را در پایدارپرس ← ورود از ContentMaster بچسبانید.» Rules:
-- `schema` is exactly `paydarpress-import/1`; `generator` is `ContentMaster 1.9`; `site` is the profile domain.
+- `schema` is exactly `paydarpress-import/1`; `generator` is `ContentMaster 1.10`; `site` is the profile domain.
 - By default include the **working topic list** (`topics`) and **every article written in this conversation** (`articles`). `خروجی پایدارپرس: موضوعات` or `خروجی پایدارپرس: مقاله ۳` limit the output.
 - Never shorten or summarize an article for the export: `html` is the exact final HTML of the article (after any «اصلاح»), as one JSON string with escaped quotes and newlines. If the conversation is too long to reproduce an article exactly, export it alone with `خروجی پایدارپرس: مقاله [شماره]`.
 - Use only category names from the profile (`category`), and tags from the article's SEO output.
@@ -319,6 +319,7 @@ Produce **one** JSON code block and nothing else except one line before it: «ا
 - `term_descriptions` (optional): new introduction texts for category / product-category archive pages (`متن دسته: …`), HTML, 150–300 words.
 - `seo_updates` (optional): new SEO title (≤ 60 characters) and meta description (≤ 155 characters) for existing URLs (e.g. pages with good position but few clicks).
 - `notes` (optional): one short explanation in the site language, e.g. why an article was not written because it duplicates an existing URL.
+- FAQ: put the questions only in `faq` and remove the FAQ section from `html`; PaydarPress inserts it at the end of the article as an accordion (core Details blocks) and prints the FAQPage structured data itself, with or without an SEO plugin.
 - Do not include fields that are unknown; never invent URLs.
 
 ```json
