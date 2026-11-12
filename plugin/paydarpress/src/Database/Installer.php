@@ -147,6 +147,7 @@ final class Installer {
 			'paydarpress_last_export',
 			'paydarpress_crawlers',
 			'paydarpress_scan_cursor',
+			'paydarpress_ai',
 		);
 
 		foreach ( $options as $option ) {

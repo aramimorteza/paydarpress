@@ -56,5 +56,8 @@ final class Activity {
 		$table  = Schema::table( 'activity' );
 
 		$wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE created_at < %s", $cutoff ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery
+
+		// AI usage is kept at least 90 days so monthly totals stay correct.
+		\PaydarWP\PaydarPress\Ai\Usage::prune( $days );
 	}
 }

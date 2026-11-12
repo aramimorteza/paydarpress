@@ -1756,3 +1756,107 @@ button.pp-chip {
 	flex-wrap: wrap;
 	gap: 4px;
 }
+
+/* Navigation sub-sections (automatic / manual) */
+
+.pp-nav__section {
+	font-size: 11px;
+	color: var(--pwp-text-muted, #5b6475);
+	padding: var(--pwp-space-2, 8px) var(--pwp-space-6, 32px) 2px var(--pwp-space-5, 24px);
+	opacity: 0.85;
+}
+
+/* AI connection, usage and automatic hub */
+
+.pp-ai-conn__model {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--pwp-space-2, 8px);
+
+	.components-base-control {
+		flex: 1 1 auto;
+	}
+
+	> .components-button {
+		margin-block-start: 24px;
+	}
+}
+
+.pp-actions-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--pwp-space-2, 8px);
+	margin-block-start: var(--pwp-space-4, 16px);
+}
+
+.pp-ai-usage {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: var(--pwp-space-4, 16px);
+	margin-block-end: var(--pwp-space-4, 16px);
+}
+
+.pp-ai-usage__head {
+	display: flex;
+	justify-content: space-between;
+	margin-block-end: 4px;
+}
+
+.pp-ai-usage__err {
+	max-width: 280px;
+	font-size: 11px;
+}
+
+.pp-progress {
+	height: 8px;
+	background: var(--pwp-border, #e2e5ea);
+	border-radius: 4px;
+	overflow: hidden;
+
+	span {
+		display: block;
+		height: 100%;
+		background: var(--pwp-primary, #0f6e6e);
+	}
+
+	&.is-warn span {
+		background: var(--pwp-warning, #b26a00);
+	}
+}
+
+.pp-auto-status {
+	border-inline-start: 3px solid var(--pwp-warning, #b26a00);
+
+	&.is-ready {
+		border-inline-start-color: var(--pwp-success, #1e7e34);
+	}
+
+	.button {
+		margin-inline-start: 8px;
+	}
+}
+
+.pp-auto-tasks {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+	gap: var(--pwp-space-3, 12px);
+}
+
+.pp-auto-task {
+	display: flex;
+	gap: var(--pwp-space-3, 12px);
+	padding: var(--pwp-space-3, 12px);
+	border: 1px solid var(--pwp-border, #e2e5ea);
+	border-radius: var(--pwp-radius-sm, 6px);
+
+	p {
+		margin: 4px 0;
+	}
+}
+
+.pp-auto-task__icon {
+	font-size: 24px;
+	line-height: 1;
+}
+.pp-table--compact td, .pp-table--compact th { padding: 6px 8px; font-size: 13px; }

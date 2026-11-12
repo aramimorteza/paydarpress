@@ -96,7 +96,16 @@ export default function Sidebar( { current } ) {
 									{ ! open && total > 0 && <span className="pp-nav__dot" aria-label={ `${ num( total ) } مورد در انتظار` } /> }
 									<Dashicon icon={ open ? 'arrow-up-alt2' : 'arrow-down-alt2' } className="pp-nav__chevron" />
 								</button>
-								{ open && <ul id={ `pp-nav-${ entry.id }` }>{ entry.items.map( link ) }</ul> }
+								{ open && (
+									<ul id={ `pp-nav-${ entry.id }` }>
+										{ entry.items.map( ( item, i ) => [
+											item.section && item.section !== ( entry.items[ i - 1 ] || {} ).section && (
+												<li key={ `s-${ item.section }` } className="pp-nav__section" aria-hidden="true">{ item.section }</li>
+											),
+											link( item ),
+										] ) }
+									</ul>
+								) }
 							</li>
 						);
 					} ) }

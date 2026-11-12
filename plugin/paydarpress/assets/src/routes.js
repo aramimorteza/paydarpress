@@ -45,12 +45,13 @@ export const NAV = [
 	},
 	{
 		id: 'create',
-		group: 'تولید محتوا با ContentMaster',
-		hint: 'خروجی بگیرید، در ContentMaster بنویسید و نتیجه را وارد کنید.',
+		group: 'تولید محتوا',
+		hint: 'خودکار: افزونه با کلید API خودش می‌نویسد. دستی: در ContentMaster می‌نویسید و نتیجه را وارد می‌کنید. هر دو پیش‌نویس می‌سازند.',
 		items: [
-			{ path: '/export', label: 'خروجی سایت (JSON)', icon: 'download' },
-			{ path: '/cm-import', label: 'ورود مقالات نوشته‌شده', icon: 'upload' },
 			{ path: '/topics', label: 'موضوعات پیشنهادی', icon: 'lightbulb', badge: 'topics', badgeTitle: 'موضوع جدید' },
+			{ path: '/auto', label: 'تولید خودکار', icon: 'superhero-alt', section: 'خودکار با API' },
+			{ path: '/export', label: 'خروجی سایت (JSON)', icon: 'download', section: 'دستی با ContentMaster' },
+			{ path: '/cm-import', label: 'ورود مقالات نوشته‌شده', icon: 'upload', section: 'دستی با ContentMaster' },
 		],
 	},
 ];

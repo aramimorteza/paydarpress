@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from '@wordpress/element';
 import { Button, Notice, SelectControl, Spinner, TextControl, ToggleControl } from '@wordpress/components';
 import Page from '../components/Page';
 import EmptyState from '../components/EmptyState';
+import { AiConnection, AiUsage } from '../components/AiConnection';
 import { get, post, errorMessage } from '../lib/api';
 import { num, ago, date } from '../lib/format';
 import { setMode, useMode } from '../lib/uiMode';
@@ -35,6 +36,16 @@ const TABS = [
 			{ path: 'audit.inline_images_min_words', type: 'number', advanced: true, label: 'نیاز به تصویر داخل متن از', suffix: 'کلمه', help: 'مطالب بلندتر از این عدد بدون تصویر داخل متن گزارش می‌شوند.' },
 			{ path: 'audit.gsc_min_impressions', type: 'number', advanced: true, label: 'حداقل نمایش برای فرصت سرچ کنسول', suffix: 'نمایش', help: 'صفحات با نمایش کمتر از این عدد در «نزدیک صفحه اول» و «رتبه خوب، کلیک کم» گزارش نمی‌شوند.' },
 			{ path: 'audit.orphan_exclude_ids', type: 'ids', advanced: true, label: 'شناسه صفحاتی که یتیم حساب نشوند', help: 'شناسه نوشته یا برگه را با ویرگول جدا کنید؛ مثلاً صفحات فرود تبلیغاتی که عمداً لینک داخلی ندارند.' },
+		],
+	},
+	{
+		key: 'ai',
+		label: 'هوش مصنوعی',
+		intro: 'سقف ماهانه از هزینه ناخواسته جلوگیری می‌کند. وقتی سقف پر شود، تولید خودکار تا ماه بعد متوقف می‌شود و حالت دستی همچنان کار می‌کند. عدد ۰ یعنی خاموش.',
+		fields: [
+			{ path: 'ai.monthly_articles', type: 'number', label: 'سقف مقاله در ماه', suffix: 'مقاله', help: 'نوشتن مقاله جدید و بازنویسی کامل مقاله قدیمی، هر کدام یک مقاله حساب می‌شود.' },
+			{ path: 'ai.monthly_requests', type: 'number', label: 'سقف همه درخواست‌ها در ماه', suffix: 'درخواست', help: 'شامل پیشنهاد موضوع، متا، متن لینک، متن دسته‌بندی و متن جایگزین تصویر هم می‌شود.' },
+			{ path: 'ai.max_output_tokens', type: 'number', advanced: true, label: 'حداکثر طول پاسخ', suffix: 'توکن', help: 'برای مقاله ۱۵۰۰ تا ۲۵۰۰ کلمه‌ای فارسی حدود ۶۰۰۰ تا ۹۰۰۰ توکن لازم است. برخی مدل‌ها سقف کمتری دارند.' },
 		],
 	},
 	{
@@ -85,6 +96,7 @@ export default function SettingsPage() {
 	const [ values, setValues ] = useState( null );
 	const [ saving, setSaving ] = useState( false );
 	const [ notice, setNotice ] = useState( null );
+	const [ aiState, setAiState ] = useState( null );
 
 	useEffect( () => {
 		if ( canManage ) {
@@ -130,6 +142,9 @@ export default function SettingsPage() {
 				setData( d );
 				setValues( d.settings );
 				setNotice( { status: 'success', text: 'تنظیمات ذخیره شد.' } );
+				if ( 'ai' === current.key ) {
+					get( '/ai' ).then( setAiState ).catch( () => {} );
+				}
 			} )
 			.catch( ( e ) => setNotice( { status: 'error', text: errorMessage( e ) } ) )
 			.finally( () => setSaving( false ) );
@@ -162,6 +177,8 @@ export default function SettingsPage() {
 			</div>
 
 			{ ! values && <Spinner /> }
+
+			{ 'ai' === current.key && <AiConnection onChange={ setAiState } /> }
 
 			{ values && current.fields.length > 0 && (
 				<section className="pp-card pp-card--section">
@@ -202,6 +219,7 @@ export default function SettingsPage() {
 				</section>
 			) }
 
+			{ 'ai' === current.key && <AiUsage state={ aiState } /> }
 			{ values && 'performance' === current.key && <QueueStatus /> }
 			{ values && 'advanced' === current.key && <SystemInfo /> }
 			{ 'help' === current.key && <HelpTab /> }

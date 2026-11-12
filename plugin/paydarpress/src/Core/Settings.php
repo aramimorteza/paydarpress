@@ -43,6 +43,11 @@ final class Settings {
 				'orphan_exclude_ids'      => array(),
 				'gsc_min_impressions'     => 100,
 			),
+			'ai'          => array(
+				'monthly_articles' => 30,
+				'monthly_requests' => 300,
+				'max_output_tokens' => 8000,
+			),
 			'retention'   => array(
 				'activity_days' => 90,
 			),
@@ -121,6 +126,9 @@ final class Settings {
 		'audit.stale_months'               => array( 3, 60 ),
 		'audit.gsc_min_impressions'        => array( 10, 100000 ),
 		'retention.activity_days'          => array( 7, 365 ),
+		'ai.monthly_articles'              => array( 0, 1000 ),
+		'ai.monthly_requests'              => array( 0, 10000 ),
+		'ai.max_output_tokens'             => array( 1000, 64000 ),
 	);
 
 	/**

@@ -19,6 +19,7 @@ use PaydarWP\PaydarPress\Rest\SettingsController;
 use PaydarWP\PaydarPress\Rest\GscController;
 use PaydarWP\PaydarPress\Rest\ContentMasterController;
 use PaydarWP\PaydarPress\Rest\LinksController;
+use PaydarWP\PaydarPress\Rest\AiController;
 use PaydarWP\PaydarPress\Links\LinkQueue;
 use PaydarWP\PaydarPress\Admin\PostMetaBox;
 use PaydarWP\PaydarPress\Rest\InventoryController;
@@ -85,6 +86,7 @@ final class Plugin {
 				( new GscController() )->routes();
 				( new ContentMasterController() )->routes();
 				( new LinksController( $links ) )->routes();
+				( new AiController() )->routes();
 			}
 		);
 
