@@ -72,6 +72,24 @@ export function ImagesPage() {
 export function OrphansPage() {
 	const [ page, setPage ] = useState( 1 );
 	const { data, error, loading } = useLoad( '/orphans', { page, per_page: 10 }, [ page ] );
+	const canManage = !! ( window.paydarpress && window.paydarpress.caps && window.paydarpress.caps.manage );
+	const [ gen, setGen ] = useState( null );
+	const [ queued, setQueued ] = useState( {} );
+
+	const generate = () => {
+		setGen( { busy: true } );
+		post( '/links/generate' )
+			.then( ( r ) => setGen( r ) )
+			.catch( ( e ) => setGen( { error: errorMessage( e ) } ) );
+	};
+
+	const queue = ( source, target, anchor ) => {
+		const key = `${ source }-${ target }`;
+		setQueued( { ...queued, [ key ]: 'busy' } );
+		post( '/links', { source_id: source, target_id: target, anchor } )
+			.then( ( r ) => setQueued( ( q ) => ( { ...q, [ key ]: r.found ? 'ok' : 'notfound' } ) ) )
+			.catch( () => setQueued( ( q ) => ( { ...q, [ key ]: null } ) ) );
+	};
 
 	return (
 		<Page title="محتوای یتیم و لینک‌های داخلی" helpKey="orphans">
@@ -83,6 +101,22 @@ export function OrphansPage() {
 				</div>
 			) }
 			{ data && data.total > 0 && <p className="pp-muted">{ num( data.total ) } محتوای یتیم. برای هر مورد، از یکی از نوشته‌های پیشنهادی به آن لینک بدهید.</p> }
+			{ data && data.total > 0 && canManage && (
+				<section className="pp-card pp-card--section pp-gen">
+					<div>
+						<h2 className="pp-card__title">پیشنهاد لینک خودکار</h2>
+						<p className="pp-muted">پایدارپرس در نوشته‌های مرتبط، عبارتی را پیدا می‌کند که به موضوع هر محتوای یتیم اشاره دارد و پیشنهاد لینک را در صف تأیید می‌گذارد. تا تأیید شما هیچ نوشته‌ای تغییر نمی‌کند.</p>
+						{ gen && gen.error && <p className="pp-missing">{ gen.error }</p> }
+						{ gen && undefined !== gen.created && (
+							<p>
+								{ gen.created ? `${ num( gen.created ) } پیشنهاد برای ${ num( gen.targets ) } محتوا ساخته شد.` : 'پیشنهاد تازه‌ای پیدا نشد (عبارت مناسبی در نوشته‌های مرتبط نبود یا قبلاً پیشنهاد شده است).' }{ ' ' }
+								{ gen.created > 0 && <a href="#/links">بررسی و تأیید ←</a> }
+							</p>
+						) }
+					</div>
+					<Button variant="primary" onClick={ generate } isBusy={ !! ( gen && gen.busy ) } disabled={ !! ( gen && gen.busy ) } __next40pxDefaultSize>ساخت پیشنهادها</Button>
+				</section>
+			) }
 			<div className="pp-finding-list">
 				{ data &&
 					data.items.map( ( item ) => (
@@ -95,6 +129,20 @@ export function OrphansPage() {
 											<li key={ s.id }>
 												<a href={ s.edit_url }>{ s.title }</a>
 												<span className="pp-muted"> — { s.reasons.join( '، ' ) }</span>
+												{ canManage && item.object && ( () => {
+													const state = queued[ `${ s.id }-${ item.object.id }` ];
+													if ( 'ok' === state ) {
+														return <span className="pp-ok"> — در صف تأیید</span>;
+													}
+													if ( 'notfound' === state ) {
+														return <span className="pp-missing"> — در صف؛ متن لنگر در نوشته نیست، در <a href="#/links?status=pending">صف لینک</a> ویرایشش کنید</span>;
+													}
+													return (
+														<Button variant="link" disabled={ 'busy' === state } onClick={ () => queue( s.id, item.object.id, item.anchor ) }>
+															افزودن به صف لینک
+														</Button>
+													);
+												} )() }
 											</li>
 										) ) }
 									</ul>

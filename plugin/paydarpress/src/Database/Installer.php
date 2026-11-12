@@ -78,6 +78,10 @@ final class Installer {
 
 		// dbDelta can silently skip ALTER TABLE on some hosts/database layers; verify columns.
 		self::ensure_column( 'inventory', 'images_generic_alt', 'smallint(5) unsigned NOT NULL DEFAULT 0' );
+		self::ensure_column( 'link_suggestions', 'note', 'text DEFAULT NULL' );
+		self::ensure_column( 'link_suggestions', 'inserted', 'text DEFAULT NULL' );
+		self::ensure_column( 'link_suggestions', 'matched_text', 'varchar(255) DEFAULT NULL' );
+		self::ensure_column( 'link_suggestions', 'applied_at', 'datetime DEFAULT NULL' );
 
 		if ( '' !== $from && version_compare( $from, '1.1.0', '<' ) ) {
 			// New derived columns: force the next scan to reprocess every item.

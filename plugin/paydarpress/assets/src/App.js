@@ -6,6 +6,7 @@ import ActivityPage from './pages/ActivityPage';
 import SettingsPage from './pages/SettingsPage';
 import GscPage from './pages/GscPage';
 import { ImportPage, TopicsPage } from './pages/ContentMasterPages';
+import LinksPage from './pages/LinksPage';
 import Inventory from './pages/Inventory';
 import { WizardPage, ProfilePage, ExportPage } from './pages/ProfilePages';
 import { AuditPage, ImagesPage, OrphansPage, RefreshPage, TaxonomiesPage, VisibilityPage } from './pages/AuditPages';
@@ -62,6 +63,8 @@ export default function App() {
 		page = <ExportPage />;
 	} else if ( '/activity' === path ) {
 		page = <ActivityPage />;
+	} else if ( '/links' === path ) {
+		page = <LinksPage key={ window.location.hash.split( '?' )[ 0 ] } />;
 	} else if ( '/topics' === path ) {
 		page = <TopicsPage />;
 	} else if ( '/cm-import' === path ) {

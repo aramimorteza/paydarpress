@@ -18,6 +18,8 @@ use PaydarWP\PaydarPress\Rest\ProfileController;
 use PaydarWP\PaydarPress\Rest\SettingsController;
 use PaydarWP\PaydarPress\Rest\GscController;
 use PaydarWP\PaydarPress\Rest\ContentMasterController;
+use PaydarWP\PaydarPress\Rest\LinksController;
+use PaydarWP\PaydarPress\Links\LinkQueue;
 use PaydarWP\PaydarPress\Admin\PostMetaBox;
 use PaydarWP\PaydarPress\Rest\InventoryController;
 use PaydarWP\PaydarPress\Rest\ScanController;
@@ -67,10 +69,13 @@ final class Plugin {
 		$scans = new ScanManager();
 		$scans->register();
 
+		$links = new LinkQueue();
+		$links->register();
+
 		// Controllers are created only for REST requests, so public pages load none of them.
 		add_action(
 			'rest_api_init',
-			static function () use ( $scans ) {
+			static function () use ( $scans, $links ) {
 				( new UserPrefsController() )->routes();
 				( new ScanController( $scans ) )->routes();
 				( new InventoryController() )->routes();
@@ -79,6 +84,7 @@ final class Plugin {
 				( new SettingsController() )->routes();
 				( new GscController() )->routes();
 				( new ContentMasterController() )->routes();
+				( new LinksController( $links ) )->routes();
 			}
 		);
 

@@ -1362,3 +1362,106 @@ span.pp-check {
 .pp-topic-accepted { background: var(--pwp-info-soft, #e6eefa); color: var(--pwp-info, #2563b8); border-color: transparent; }
 .pp-topic-written { background: var(--pwp-success-soft, #e3f4e8); color: var(--pwp-success, #1a7f37); border-color: transparent; }
 .pp-topic-rejected { color: var(--pwp-text-muted, #5b6475); }
+
+/* Link queue */
+
+.pp-gen {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--pwp-space-4, 16px);
+
+	> div {
+		flex: 1 1 400px;
+	}
+}
+
+.pp-bulk {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--pwp-space-3, 12px);
+	margin-block: var(--pwp-space-2, 8px) var(--pwp-space-3, 12px);
+}
+
+.pp-link-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--pwp-space-3, 12px);
+}
+
+.pp-link-card {
+	&.is-applied {
+		border-inline-start: 3px solid var(--pwp-success, #1a7f37);
+	}
+
+	&.is-failed {
+		border-inline-start: 3px solid var(--pwp-danger, #c0392b);
+	}
+
+	&.is-approved {
+		border-inline-start: 3px solid var(--pwp-warning, #9a6700);
+	}
+}
+
+.pp-link-card__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--pwp-space-2, 8px) var(--pwp-space-3, 12px);
+}
+
+.pp-link-card__route {
+	flex: 1 1 auto;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--pwp-space-2, 8px);
+	font-weight: 700;
+}
+
+.pp-link-card__arrow {
+	color: var(--pwp-text-muted, #5b6475);
+}
+
+.pp-link-card__origin {
+	font-size: var(--pwp-text-xs, 12px);
+}
+
+.pp-link-card__context {
+	background: var(--pwp-bg, #f6f7f9);
+	border-radius: var(--pwp-radius-sm, 6px);
+	padding: var(--pwp-space-3, 12px);
+	line-height: 2;
+	margin-block: var(--pwp-space-3, 12px) var(--pwp-space-2, 8px);
+
+	mark {
+		background: var(--pwp-primary-soft, #e3f2f1);
+		color: var(--pwp-primary, #0f6e6e);
+		font-weight: 700;
+		padding: 0 4px;
+		border-radius: 3px;
+		text-decoration: underline;
+	}
+}
+
+.pp-link-card__edit {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: var(--pwp-space-2, 8px);
+	margin-block: var(--pwp-space-2, 8px);
+
+	.components-base-control {
+		flex: 1 1 300px;
+	}
+}
+
+.pp-link-card__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--pwp-space-2, 8px);
+	margin-block-start: var(--pwp-space-2, 8px);
+}

@@ -34,6 +34,7 @@ export default function Dashboard() {
 	const [ data, setData ] = useState( null );
 	const [ onboarding, setOnboarding ] = useState( null );
 	const [ gsc, setGsc ] = useState( null );
+	const [ pendingLinks, setPendingLinks ] = useState( 0 );
 	const scanStatus = scan.scan ? scan.scan.status : null;
 
 	useEffect( () => {
@@ -41,6 +42,7 @@ export default function Dashboard() {
 			get( '/dashboard' ).then( setData ).catch( () => {} );
 			get( '/onboarding' ).then( setOnboarding ).catch( () => {} );
 			get( '/gsc' ).then( setGsc ).catch( () => {} );
+			get( '/links', { status: 'pending', per_page: 1 } ).then( ( d ) => setPendingLinks( d.counts.pending ) ).catch( () => {} );
 		}
 	}, [ scanStatus ] );
 
@@ -132,6 +134,7 @@ export default function Dashboard() {
 					<h2 className="pp-card__title">محتوای یتیم</h2>
 					<div className="pp-big">{ stats ? num( stats.orphans ) : '—' }</div>
 					<p className="pp-muted">نوشته یا برگه‌ای که هیچ صفحه‌ای به آن لینک نداده است.</p>
+					{ pendingLinks > 0 && <p><a href="#/links">{ num( pendingLinks ) } پیشنهاد لینک در انتظار تأیید ←</a></p> }
 					<a href="#/orphans">مشاهده و پیشنهاد لینک ←</a>
 				</section>
 				<section className="pp-card">

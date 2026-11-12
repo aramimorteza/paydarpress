@@ -12,6 +12,7 @@ const GROUPS = [
 	{ key: 'profile', label: 'پروفایل' },
 	{ key: 'export', label: 'خروجی' },
 	{ key: 'import', label: 'ورود داده' },
+	{ key: 'links', label: 'لینک‌ها' },
 	{ key: 'settings', label: 'تنظیمات' },
 ];
 

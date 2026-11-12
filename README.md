@@ -4,7 +4,7 @@
 
 ## وضعیت
 
-**فاز 1 تکمیل شد (نسخه 0.6.0)؛ فاز 1.5 در حال توسعه (0.7.0: ورود سرچ کنسول؛ 0.8.0: ورود از ContentMaster).** Core، Site Intelligence، Health Audit، پروفایل سایت و خروجی ContentMaster — بدون نیاز به API هوش مصنوعی. گزارش آزمون: [docs/phase1-test-report.md](docs/phase1-test-report.md)
+**فاز 1 (0.6.0) و فاز 1.5 (0.9.0) تکمیل شدند:** ورود سرچ کنسول، ورود موضوعات و پیش‌نویس‌ها از ContentMaster و صف تأیید لینک داخلی. Core، Site Intelligence، Health Audit، پروفایل سایت و خروجی ContentMaster — بدون نیاز به API هوش مصنوعی. گزارش آزمون: [docs/phase1-test-report.md](docs/phase1-test-report.md)
 
 ## مستندات
 

@@ -27,6 +27,7 @@ export const NAV = [
 		items: [
 			{ path: '/topics', label: 'موضوعات پیشنهادی', icon: 'lightbulb' },
 			{ path: '/cm-import', label: 'ورود از ContentMaster', icon: 'upload' },
+			{ path: '/links', label: 'صف لینک داخلی', icon: 'admin-links' },
 		],
 	},
 	{

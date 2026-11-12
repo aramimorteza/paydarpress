@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Schema {
 
-	public const VERSION = '1.3.0';
+	public const VERSION = '1.4.0';
 
 	public const TABLES = array( 'inventory', 'links', 'audit_findings', 'scans', 'activity', 'imports', 'gsc', 'topics', 'link_suggestions' );
 
@@ -218,12 +218,17 @@ final class Schema {
   sentence text DEFAULT NULL,
   origin varchar(20) NOT NULL DEFAULT 'contentmaster',
   status varchar(20) NOT NULL DEFAULT 'pending',
+  note text DEFAULT NULL,
+  inserted text DEFAULT NULL,
+  matched_text varchar(255) DEFAULT NULL,
+  applied_at datetime DEFAULT NULL,
   import_id bigint(20) unsigned NOT NULL DEFAULT 0,
   created_at datetime NOT NULL,
   updated_at datetime NOT NULL,
   PRIMARY KEY  (id),
   KEY status (status),
-  KEY source_target (source_id,target_id)
+  KEY source_target (source_id,target_id),
+  KEY target_status (target_id,status)
 ) {$charset};",
 		);
 	}

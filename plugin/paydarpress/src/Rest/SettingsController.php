@@ -39,7 +39,7 @@ final class SettingsController {
 	public const NAMESPACE = 'paydarpress/v1';
 
 	/** Activity filter groups → event prefixes. */
-	private const GROUPS = array( 'scan', 'finding', 'profile', 'export', 'import', 'settings' );
+	private const GROUPS = array( 'scan', 'finding', 'profile', 'export', 'import', 'links', 'settings' );
 
 	/**
 	 * Hooks.
