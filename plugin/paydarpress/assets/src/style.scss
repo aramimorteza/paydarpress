@@ -1610,8 +1610,36 @@ span.pp-check {
 
 .pp-ai-button.components-button {
 	gap: 4px;
+}
+
+/* Outline style only for the secondary variant; the primary keeps white text on a solid fill
+   (the outline colours used to apply to both and made the primary unreadable). */
+.pp-ai-button.components-button.is-secondary {
 	border-color: var(--pwp-primary, #0f6e6e);
 	color: var(--pwp-primary, #0f6e6e);
+	box-shadow: inset 0 0 0 1px var(--pwp-primary, #0f6e6e);
+
+	&:hover:not(:disabled),
+	&:focus:not(:disabled) {
+		background: var(--pwp-primary-soft, #e3f2f1);
+		color: var(--pwp-primary-dark, #0a5252);
+	}
+}
+
+.pp-ai-button.components-button.is-primary {
+	background: var(--pwp-primary, #0f6e6e);
+	border-color: var(--pwp-primary, #0f6e6e);
+	color: #fff;
+
+	&:hover:not(:disabled),
+	&:focus:not(:disabled) {
+		background: var(--pwp-primary-dark, #0a5252);
+		color: #fff;
+	}
+
+	svg {
+		fill: currentColor;
+	}
 }
 
 .pp-row-ai {
