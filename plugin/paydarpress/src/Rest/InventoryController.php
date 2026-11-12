@@ -17,6 +17,10 @@ use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Endpoints:
  *  GET /paydarpress/v1/inventory

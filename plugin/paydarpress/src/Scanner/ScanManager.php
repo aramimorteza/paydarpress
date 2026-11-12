@@ -11,11 +11,16 @@ namespace PaydarWP\PaydarPress\Scanner;
 
 use PaydarWP\PaydarPress\Audit\AuditEngine;
 use PaydarWP\PaydarPress\Core\Activity;
+use PaydarWP\PaydarPress\Core\Resources;
 use PaydarWP\PaydarPress\Core\Settings;
 use PaydarWP\PaydarPress\Database\Schema;
 use PaydarWP\PaydarPress\Links\LinkResolver;
 use PaydarWP\PaydarPress\Queue\Queue;
 use Throwable;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 /**
  * Actions (spec section 5.1):
@@ -33,6 +38,15 @@ final class ScanManager {
 	public const ACTION_MENUS    = 'paydarpress/menus/rescan';
 	public const ACTION_DAILY    = 'paydarpress/maintenance/daily';
 	public const ACTION_AUDIT    = 'paydarpress/audit/run';
+
+	/** Last scheduled scan step, used to resume a scan whose PHP process died (memory/time limit). */
+	public const OPTION_CURSOR = 'paydarpress_scan_cursor';
+
+	/** A step with no queued action and no progress for this long is considered dead. */
+	private const STALL_AFTER = 180;
+
+	/** Resume attempts for the same step before the scan is marked failed. */
+	private const MAX_RETRIES = 3;
 
 	/** Seconds after the last change before the audit reruns (merges bursts of edits). */
 	private const AUDIT_DELAY = 90;
@@ -56,7 +70,15 @@ final class ScanManager {
 		add_action( 'deleted_post', array( $this, 'on_deleted_post' ), 10, 1 );
 		add_action( 'wp_update_nav_menu', array( $this, 'on_menu_change' ), 10, 0 );
 
-		add_action( 'action_scheduler_init', array( $this, 'ensure_daily' ) );
+		// Admin and cron requests only: public page loads must not run any PaydarPress query.
+		add_action(
+			'action_scheduler_init',
+			function () {
+				if ( is_admin() || wp_doing_cron() ) {
+					$this->ensure_daily();
+				}
+			}
+		);
 	}
 
 	/**
@@ -87,7 +109,7 @@ final class ScanManager {
 		$scan_id = (int) $wpdb->insert_id;
 
 		Activity::log( 'scan.started', 'اسکن کامل سایت شروع شد.', 'scan', $scan_id );
-		Queue::schedule( self::ACTION_BATCH, array( $scan_id, 0 ) );
+		$this->schedule_step( self::ACTION_BATCH, array( $scan_id, 0 ) );
 
 		return $scan_id;
 	}
@@ -104,6 +126,7 @@ final class ScanManager {
 		Queue::cancel( self::ACTION_BATCH );
 		Queue::cancel( self::ACTION_FINALIZE );
 		$this->update_scan( (int) $running['id'], array( 'status' => 'cancelled', 'finished_at' => current_time( 'mysql', true ) ) );
+		delete_option( self::OPTION_CURSOR );
 		Activity::log( 'scan.cancelled', 'اسکن سایت لغو شد.', 'scan', (int) $running['id'] );
 	}
 
@@ -135,10 +158,16 @@ final class ScanManager {
 				$last_id = $id;
 				++$done;
 
-				if ( microtime( true ) > $deadline ) {
+				if ( 0 === $done % 10 ) {
+					Resources::release_cache();
+				}
+
+				// Stop early on slow hosts or small memory limits; the next batch continues from here.
+				if ( microtime( true ) > $deadline || Resources::memory_tight( 0.75 ) ) {
 					break;
 				}
 			}
+			Resources::release_cache();
 		} catch ( Throwable $e ) {
 			$this->fail( $scan_id, $e );
 			return;
@@ -147,11 +176,11 @@ final class ScanManager {
 		$this->update_scan( $scan_id, array( 'processed' => min( (int) $scan['total'], (int) $scan['processed'] + $done ) ) );
 
 		if ( $done > 0 && ( count( $ids ) > $done || count( $ids ) === $limits['batch'] ) ) {
-			Queue::schedule( self::ACTION_BATCH, array( $scan_id, $last_id ), 0, false );
+			$this->schedule_step( self::ACTION_BATCH, array( $scan_id, $last_id ), false );
 			return;
 		}
 
-		Queue::schedule( self::ACTION_FINALIZE, array( $scan_id ) );
+		$this->schedule_step( self::ACTION_FINALIZE, array( $scan_id ) );
 	}
 
 	/**
@@ -190,7 +219,7 @@ final class ScanManager {
 
 			while ( $resolver->resolve_pending( 300 ) > 0 ) {
 				if ( microtime( true ) > $deadline ) {
-					Queue::schedule( self::ACTION_FINALIZE, array( $scan_id ), 0, false );
+					$this->schedule_step( self::ACTION_FINALIZE, array( $scan_id ), false, true );
 					return;
 				}
 			}
@@ -219,6 +248,7 @@ final class ScanManager {
 			)
 		);
 
+		delete_option( self::OPTION_CURSOR );
 		Activity::log( 'scan.completed', sprintf( 'اسکن کامل سایت انجام شد (%s مورد).', \PaydarWP\PaydarPress\Text\PersianNormalizer::fa_number( (int) $scan['total'] ) ), 'scan', $scan_id );
 
 		/**
@@ -292,6 +322,7 @@ final class ScanManager {
 	 * Daily maintenance.
 	 */
 	public function run_daily(): void {
+		$this->recover_stalled();
 		Activity::prune();
 		\PaydarWP\PaydarPress\Export\InventoryExporter::cleanup();
 	}
@@ -371,6 +402,97 @@ final class ScanManager {
 		if ( $this->has_completed_scan() ) {
 			Queue::schedule( self::ACTION_MENUS, array(), self::RESCAN_DELAY );
 		}
+	}
+
+	/**
+	 * Schedules the next scan step and records it as the resume point.
+	 *
+	 * @param string $hook     Action hook.
+	 * @param array  $args     Arguments.
+	 * @param bool   $unique   Skip if already queued.
+	 * @param bool   $progress Same step continues with progress (keeps the retry count at zero).
+	 */
+	private function schedule_step( string $hook, array $args, bool $unique = true, bool $progress = false ): void {
+		$cursor  = get_option( self::OPTION_CURSOR, array() );
+		$same    = is_array( $cursor ) && ( $cursor['hook'] ?? '' ) === $hook && ( $cursor['args'] ?? null ) === $args;
+		$retries = ( $same && ! $progress ) ? (int) ( $cursor['retries'] ?? 0 ) : 0;
+
+		update_option(
+			self::OPTION_CURSOR,
+			array(
+				'hook'    => $hook,
+				'args'    => $args,
+				'at'      => time(),
+				'retries' => $retries,
+			),
+			false
+		);
+
+		Queue::schedule( $hook, $args, 0, $unique );
+	}
+
+	/**
+	 * Resumes a scan whose last step died without scheduling the next one (for example a PHP
+	 * fatal error from the host's memory or time limit). After MAX_RETRIES attempts on the same
+	 * step the scan is marked failed with a message the site owner can act on.
+	 *
+	 * Called from the status poll and from daily maintenance; cheap when nothing is running.
+	 */
+	public function recover_stalled(): void {
+		$scan = $this->running_scan();
+		if ( null === $scan ) {
+			return;
+		}
+
+		$cursor = get_option( self::OPTION_CURSOR, array() );
+		if ( ! is_array( $cursor ) || empty( $cursor['hook'] ) || time() - (int) ( $cursor['at'] ?? 0 ) < self::STALL_AFTER ) {
+			return;
+		}
+
+		// Only pending actions count: an action still "in-progress" after STALL_AFTER seconds
+		// (batches stop after at most 60 s) belongs to a PHP process that died.
+		foreach ( array( self::ACTION_BATCH, self::ACTION_FINALIZE ) as $hook ) {
+			if ( $this->has_pending( $hook ) ) {
+				return; // Still queued; WP-Cron may simply be slow.
+			}
+		}
+
+		$retries = (int) ( $cursor['retries'] ?? 0 );
+		if ( $retries >= self::MAX_RETRIES ) {
+			$this->fail(
+				(int) $scan['id'],
+				new \RuntimeException( 'اسکن چند بار در یک مرحله متوقف شد؛ احتمالاً محدودیت حافظه یا زمان اجرای PHP هاست کافی نیست. «حالت هاست اشتراکی» را در تنظیمات روشن کنید یا از پشتیبانی هاست بخواهید memory_limit را دست‌کم به 128M برساند، سپس دوباره اسکن کنید.' )
+			);
+			return;
+		}
+
+		$cursor['retries'] = $retries + 1;
+		$cursor['at']      = time();
+		update_option( self::OPTION_CURSOR, $cursor, false );
+
+		Activity::log( 'scan.resumed', 'یک مرحله اسکن ناتمام ماند و دوباره از همان نقطه ادامه داده شد.', 'scan', (int) $scan['id'] );
+		Queue::schedule( (string) $cursor['hook'], (array) $cursor['args'], 0, false );
+	}
+
+	/**
+	 * Whether a pending (not in-progress) action exists for the hook.
+	 *
+	 * @param string $hook Hook.
+	 */
+	private function has_pending( string $hook ): bool {
+		if ( ! function_exists( 'as_get_scheduled_actions' ) ) {
+			return false;
+		}
+
+		return array() !== as_get_scheduled_actions(
+			array(
+				'hook'     => $hook,
+				'group'    => Queue::GROUP,
+				'status'   => \ActionScheduler_Store::STATUS_PENDING,
+				'per_page' => 1,
+			),
+			'ids'
+		);
 	}
 
 	/**
@@ -457,6 +579,7 @@ final class ScanManager {
 	 * @param Throwable $e       Error.
 	 */
 	private function fail( int $scan_id, Throwable $e ): void {
+		delete_option( self::OPTION_CURSOR );
 		$this->update_scan(
 			$scan_id,
 			array(

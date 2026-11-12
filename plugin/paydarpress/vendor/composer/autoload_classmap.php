@@ -14,6 +14,7 @@ return array(
     'PaydarWP\\PaydarPress\\Audit\\Catalog' => $baseDir . '/src/Audit/Catalog.php',
     'PaydarWP\\PaydarPress\\Core\\Activity' => $baseDir . '/src/Core/Activity.php',
     'PaydarWP\\PaydarPress\\Core\\Capabilities' => $baseDir . '/src/Core/Capabilities.php',
+    'PaydarWP\\PaydarPress\\Core\\Resources' => $baseDir . '/src/Core/Resources.php',
     'PaydarWP\\PaydarPress\\Core\\Settings' => $baseDir . '/src/Core/Settings.php',
     'PaydarWP\\PaydarPress\\Crawl\\CrawlerCheck' => $baseDir . '/src/Crawl/CrawlerCheck.php',
     'PaydarWP\\PaydarPress\\Crawl\\RobotsParser' => $baseDir . '/src/Crawl/RobotsParser.php',

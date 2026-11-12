@@ -11,6 +11,10 @@ namespace PaydarWP\PaydarPress\Core;
 
 use PaydarWP\PaydarPress\Database\Schema;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Writes rows to paydarpress_activity and prunes old ones.
  */

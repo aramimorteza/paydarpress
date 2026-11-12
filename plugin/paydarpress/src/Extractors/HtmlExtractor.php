@@ -14,6 +14,10 @@ use DOMElement;
 use DOMNode;
 use DOMXPath;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Parses HTML with DOMDocument. Independent of WordPress so it can be unit tested.
  */

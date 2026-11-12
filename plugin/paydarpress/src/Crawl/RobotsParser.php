@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace PaydarWP\PaydarPress\Crawl;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Determines whether a crawler is allowed, partially blocked or blocked from the whole site.
  */

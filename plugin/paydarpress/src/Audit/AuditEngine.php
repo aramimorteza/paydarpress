@@ -17,6 +17,10 @@ use PaydarWP\PaydarPress\Text\PersianNormalizer;
 use PaydarWP\PaydarPress\Text\YearDetector;
 use WP_Term;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Rules are pure reads of the inventory, link graph, taxonomies, users and settings
  * (spec section 7). No external requests except the optional robots.txt check.
@@ -28,10 +32,15 @@ final class AuditEngine {
 	/** Crawlers whose blocking hides the site from search (training-only bots are excluded). */
 	private const SEARCH_BOTS = array( 'Googlebot', 'Bingbot', 'OAI-SearchBot', 'ChatGPT-User', 'ClaudeBot', 'PerplexityBot' );
 
-	/** @var array<string, array{code:string, kind:string, id:int, data:?array}> */
+	/**
+	 * Findings of this run: "CODE|kind|id" => JSON details ('' when none). Kept as strings, not
+	 * nested arrays, so sites with thousands of posts fit in a 64 MB memory limit.
+	 *
+	 * @var array<string, string>
+	 */
 	private $found = array();
 
-	/** @var array<int, string[]> Codes per content ID (for refresh scores). */
+	/** @var array<int, string> Space-separated codes per content ID (for refresh scores). */
 	private $codes_by_content = array();
 
 	/** @var array */
@@ -218,10 +227,10 @@ final class AuditEngine {
 
 			// Content and SEO (posts and products; pages such as "contact" are exempt).
 			if ( in_array( $type, array( 'post', 'product' ), true ) && $indexable ) {
-				if ( $seo_active && null === $row['focus_keyword'] ) {
+				if ( $seo_active && '1' === (string) $row['no_keyword'] ) {
 					$this->add( 'NO_FOCUS_KEYWORD', 'content', $id );
 				}
-				if ( $seo_active && null === $row['meta_description'] ) {
+				if ( $seo_active && '1' === (string) $row['no_meta'] ) {
 					$this->add( 'NO_META_DESCRIPTION', 'content', $id );
 				}
 				if ( null !== $row['focus_keyword_norm'] && '' !== $row['focus_keyword_norm'] ) {
@@ -550,15 +559,10 @@ final class AuditEngine {
 	 * @param array|null $data Details.
 	 */
 	private function add( string $code, string $kind, int $id, ?array $data = null ): void {
-		$this->found[ $code . '|' . $kind . '|' . $id ] = array(
-			'code' => $code,
-			'kind' => $kind,
-			'id'   => $id,
-			'data' => $data,
-		);
+		$this->found[ $code . '|' . $kind . '|' . $id ] = null === $data ? '' : (string) wp_json_encode( $data, JSON_UNESCAPED_UNICODE );
 
 		if ( 'content' === $kind ) {
-			$this->codes_by_content[ $id ][] = $code;
+			$this->codes_by_content[ $id ] = ( $this->codes_by_content[ $id ] ?? '' ) . $code . ' ';
 		}
 	}
 
@@ -572,50 +576,64 @@ final class AuditEngine {
 		$table = Schema::table( 'audit_findings' );
 		$now   = current_time( 'mysql', true );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$existing = $wpdb->get_results( "SELECT id, code, object_kind, object_id, state, data FROM {$table}", ARRAY_A );
-
-		$by_key = array();
-		foreach ( (array) $existing as $row ) {
-			$by_key[ $row['code'] . '|' . $row['object_kind'] . '|' . $row['object_id'] ] = $row;
-		}
-
 		$insert  = array();
 		$touch   = array();
 		$reopen  = array();
 		$resolve = array();
+		$seen    = array();
+		$last_id = 0;
 
-		foreach ( $this->found as $key => $finding ) {
-			$rule = Catalog::get( $finding['code'] );
-			$data = null === $finding['data'] ? null : (string) wp_json_encode( $finding['data'], JSON_UNESCAPED_UNICODE );
+		// Existing findings are read in chunks and compared one by one (memory stays flat).
+		do {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$chunk = $wpdb->get_results( $wpdb->prepare( "SELECT id, code, object_kind, object_id, state, data FROM {$table} WHERE id > %d ORDER BY id LIMIT 2000", $last_id ), ARRAY_A );
 
-			if ( ! isset( $by_key[ $key ] ) ) {
-				$insert[] = $wpdb->prepare( '(%s, %s, %s, %d, %s, %s, %s, %s)', $finding['code'], $rule['severity'] ?? 'low', $finding['kind'], $finding['id'], (string) $data, 'open', $now, $now );
-				continue;
+			foreach ( (array) $chunk as $row ) {
+				$id      = (int) $row['id'];
+				$last_id = $id;
+				$key     = $row['code'] . '|' . $row['object_kind'] . '|' . $row['object_id'];
+
+				if ( ! isset( $this->found[ $key ] ) ) {
+					if ( 'resolved' !== $row['state'] ) {
+						$resolve[] = $id;
+					}
+					continue;
+				}
+
+				$seen[ $key ] = true;
+				if ( 'resolved' === $row['state'] ) {
+					$reopen[] = $id;
+				} else {
+					$touch[] = $id;
+				}
+
+				$data = $this->found[ $key ];
+				if ( (string) $row['data'] !== $data ) {
+					$wpdb->update( $table, array( 'data' => '' === $data ? null : $data ), array( 'id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+				}
 			}
-
-			$row = $by_key[ $key ];
-			if ( 'resolved' === $row['state'] ) {
-				$reopen[] = (int) $row['id'];
-			} else {
-				$touch[] = (int) $row['id'];
-			}
-
-			if ( (string) $row['data'] !== (string) $data ) {
-				$wpdb->update( $table, array( 'data' => $data ), array( 'id' => (int) $row['id'] ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-			}
-		}
-
-		foreach ( $by_key as $key => $row ) {
-			if ( ! isset( $this->found[ $key ] ) && 'resolved' !== $row['state'] ) {
-				$resolve[] = (int) $row['id'];
-			}
-		}
+		} while ( is_array( $chunk ) && 2000 === count( $chunk ) );
+		unset( $chunk );
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared
-		foreach ( array_chunk( $insert, 100 ) as $chunk ) {
-			$wpdb->query( "INSERT INTO {$table} (code, severity, object_kind, object_id, data, state, first_seen, last_seen) VALUES " . implode( ',', $chunk ) );
+		foreach ( $this->found as $key => $data ) {
+			if ( isset( $seen[ $key ] ) ) {
+				continue;
+			}
+			list( $code, $kind, $object_id ) = explode( '|', $key );
+			$rule     = Catalog::get( $code );
+			$insert[] = $wpdb->prepare( '(%s, %s, %s, %d, %s, %s, %s, %s)', $code, $rule['severity'] ?? 'low', $kind, (int) $object_id, $data, 'open', $now, $now );
+
+			if ( count( $insert ) >= 100 ) {
+				$wpdb->query( "INSERT INTO {$table} (code, severity, object_kind, object_id, data, state, first_seen, last_seen) VALUES " . implode( ',', $insert ) );
+				$insert = array();
+			}
 		}
+		if ( $insert ) {
+			$wpdb->query( "INSERT INTO {$table} (code, severity, object_kind, object_id, data, state, first_seen, last_seen) VALUES " . implode( ',', $insert ) );
+		}
+		unset( $seen );
+
 		foreach ( array_chunk( $touch, 500 ) as $ids ) {
 			$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET last_seen = %s WHERE id IN (" . implode( ',', $ids ) . ')', $now ) );
 		}
@@ -646,7 +664,7 @@ final class AuditEngine {
 		foreach ( $rows as $row ) {
 			$id    = (int) $row['object_id'];
 			$score = ( 'publish' === $row['status'] && 'post' === $row['object_type'] )
-				? self::refresh_score( $row, $this->codes_by_content[ $id ] ?? array(), $stale )
+				? self::refresh_score( $row, explode( ' ', trim( $this->codes_by_content[ $id ] ?? '' ) ), $stale )
 				: 0;
 
 			if ( (int) $row['refresh_score'] !== $score ) {
@@ -734,8 +752,8 @@ final class AuditEngine {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$rows = $wpdb->get_results(
-			"SELECT object_id, object_type, status, focus_keyword, focus_keyword_norm, meta_description IS NOT NULL AS has_meta,
-				meta_description, is_noindex, is_cornerstone, word_count, h2_count, years_mentioned, has_direct_answer,
+			"SELECT object_id, object_type, status, focus_keyword IS NULL AS no_keyword, focus_keyword_norm, meta_description IS NULL AS no_meta,
+				is_noindex, is_cornerstone, word_count, h2_count, years_mentioned, has_direct_answer,
 				has_featured_image, featured_alt_ok, inline_images, inline_images_no_alt, images_generic_alt,
 				internal_out, internal_in, menu_in, refresh_score, modified_at
 			FROM {$table}",

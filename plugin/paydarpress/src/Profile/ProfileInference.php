@@ -15,6 +15,10 @@ use PaydarWP\PaydarPress\Seo\SeoDetector;
 use PaydarWP\PaydarPress\Text\PersianNormalizer;
 use WP_Post;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * All rules are deterministic and explainable; the user confirms every inferred value.
  */

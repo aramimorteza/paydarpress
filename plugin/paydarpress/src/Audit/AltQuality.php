@@ -11,6 +11,10 @@ namespace PaydarWP\PaydarPress\Audit;
 
 use PaydarWP\PaydarPress\Text\PersianNormalizer;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Spec section 7.4.
  */

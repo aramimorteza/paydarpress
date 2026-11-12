@@ -12,6 +12,10 @@ namespace PaydarWP\PaydarPress\Profile;
 use WP_Post;
 use WP_Term;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Option `paydarpress_profile` (autoload: no):
  * [ 'fields' => [ name => [ 'value' => mixed, 'source' => detected|inferred|manual, 'confirmed' => bool ] ], 'updated_at' => ISO ]

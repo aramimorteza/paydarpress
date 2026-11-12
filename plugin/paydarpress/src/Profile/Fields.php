@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace PaydarWP\PaydarPress\Profile;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Mirrors the SITE PROFILE block of ContentMaster (docs/contentmaster.md section 5) so the
  * export maps one-to-one. Spec section 9.

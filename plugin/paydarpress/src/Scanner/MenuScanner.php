@@ -12,6 +12,10 @@ namespace PaydarWP\PaydarPress\Scanner;
 use PaydarWP\PaydarPress\Database\Schema;
 use PaydarWP\PaydarPress\Links\UrlNormalizer;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Menu links are stored with source_type `menu` and source_id = menu term ID.
  * They count toward menu_in, never toward internal_in (spec section 7.1, MENU_ONLY).

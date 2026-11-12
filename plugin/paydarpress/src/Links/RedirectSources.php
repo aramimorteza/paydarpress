@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace PaydarWP\PaydarPress\Links;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Supports Rank Math Redirections and the Redirection plugin (exact matches only).
  */

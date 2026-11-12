@@ -11,6 +11,10 @@ namespace PaydarWP\PaydarPress\Links;
 
 use PaydarWP\PaydarPress\Database\Schema;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Turns `pending` internal links into ok / unpublished / redirect / missing / unknown,
  * then updates internal_in and menu_in in the inventory. See spec sections 4.2 and 5.1.

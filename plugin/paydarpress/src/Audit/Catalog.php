@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace PaydarWP\PaydarPress\Audit;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Every finding shown to the user has three parts: problem, why it matters, what to do
  * (architecture section 12.6). Codes and severities follow spec section 7.1.

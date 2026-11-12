@@ -20,6 +20,10 @@ use PaydarWP\PaydarPress\Seo\SeoDetector;
 use PaydarWP\PaydarPress\Text\PersianNormalizer;
 use RuntimeException;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Spec section 12 and architecture section 10. The export never contains emails, user names,
  * comments, user data or keys. Files live in a protected uploads folder and expire after 24h.

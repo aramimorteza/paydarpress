@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace PaydarWP\PaydarPress\Queue;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * All PaydarPress background work runs in the `paydarpress` group.
  */
@@ -70,6 +74,11 @@ final class Queue {
 		$processed = 0;
 
 		while ( microtime( true ) < $deadline ) {
+			// Leave room for the rest of the request (and for the audit, which needs a few MB).
+			if ( $processed > 0 && \PaydarWP\PaydarPress\Core\Resources::memory_tight( 0.6 ) ) {
+				break;
+			}
+
 			$ids = as_get_scheduled_actions(
 				array(
 					'group'    => self::GROUP,
@@ -88,6 +97,7 @@ final class Queue {
 
 			$id = (int) reset( $ids );
 			\ActionScheduler::runner()->process_action( $id, 'PaydarPress screen' );
+			\PaydarWP\PaydarPress\Core\Resources::release_cache();
 			++$processed;
 		}
 

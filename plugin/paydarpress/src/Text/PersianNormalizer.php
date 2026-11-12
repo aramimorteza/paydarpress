@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace PaydarWP\PaydarPress\Text;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Normalizes Persian/Arabic text so equivalent strings compare equal.
  * The original text is never modified; results are only used for matching. See spec section 8.

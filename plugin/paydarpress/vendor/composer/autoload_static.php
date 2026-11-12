@@ -29,6 +29,7 @@ class ComposerStaticInitfb42b83d6c8d640da5884eda2eaeec31
         'PaydarWP\\PaydarPress\\Audit\\Catalog' => __DIR__ . '/../..' . '/src/Audit/Catalog.php',
         'PaydarWP\\PaydarPress\\Core\\Activity' => __DIR__ . '/../..' . '/src/Core/Activity.php',
         'PaydarWP\\PaydarPress\\Core\\Capabilities' => __DIR__ . '/../..' . '/src/Core/Capabilities.php',
+        'PaydarWP\\PaydarPress\\Core\\Resources' => __DIR__ . '/../..' . '/src/Core/Resources.php',
         'PaydarWP\\PaydarPress\\Core\\Settings' => __DIR__ . '/../..' . '/src/Core/Settings.php',
         'PaydarWP\\PaydarPress\\Crawl\\CrawlerCheck' => __DIR__ . '/../..' . '/src/Crawl/CrawlerCheck.php',
         'PaydarWP\\PaydarPress\\Crawl\\RobotsParser' => __DIR__ . '/../..' . '/src/Crawl/RobotsParser.php',

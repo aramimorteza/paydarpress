@@ -16,6 +16,10 @@ use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Endpoints:
  *  POST /paydarpress/v1/scan
@@ -113,6 +117,7 @@ final class ScanController {
 		$latest = $this->scans->latest_scan();
 
 		if ( $request->get_param( 'tick' ) && null !== $latest && 'running' === $latest['status'] && current_user_can( Capabilities::MANAGE ) ) {
+			$this->scans->recover_stalled();
 			Queue::run_due( 8 );
 		}
 

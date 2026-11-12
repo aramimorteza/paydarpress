@@ -21,6 +21,10 @@ use PaydarWP\PaydarPress\Text\PersianNormalizer;
 use PaydarWP\PaydarPress\Text\YearDetector;
 use WP_Post;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * See spec sections 4.1, 4.2 and 6.
  */

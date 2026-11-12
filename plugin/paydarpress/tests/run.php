@@ -8,6 +8,9 @@
 
 declare(strict_types=1);
 
+// Class files exit without ABSPATH (direct-access guard); the tests run outside WordPress.
+define( 'ABSPATH', __DIR__ . '/' );
+
 require __DIR__ . '/../vendor/autoload.php';
 
 $GLOBALS['pp_tests'] = array( 'pass' => 0, 'fail' => 0 );

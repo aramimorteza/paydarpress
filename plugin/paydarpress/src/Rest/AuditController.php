@@ -26,6 +26,10 @@ use WP_REST_Response;
 use WP_REST_Server;
 use WP_Term;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * See spec section 11.
  */

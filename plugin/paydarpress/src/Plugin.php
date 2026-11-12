@@ -64,18 +64,25 @@ final class Plugin {
 		$scans = new ScanManager();
 		$scans->register();
 
-		( new UserPrefsController() )->register();
-		( new ScanController( $scans ) )->register();
-		( new InventoryController() )->register();
-		( new AuditController( $scans ) )->register();
-		( new ProfileController( $scans ) )->register();
-		( new SettingsController() )->register();
+		// Controllers are created only for REST requests, so public pages load none of them.
+		add_action(
+			'rest_api_init',
+			static function () use ( $scans ) {
+				( new UserPrefsController() )->routes();
+				( new ScanController( $scans ) )->routes();
+				( new InventoryController() )->routes();
+				( new AuditController( $scans ) )->routes();
+				( new ProfileController( $scans ) )->routes();
+				( new SettingsController() )->routes();
+			}
+		);
 
 		// Key pages from the profile feed the WEAK_INBOUND audit rule.
 		add_filter( 'paydarpress/key_page_ids', static fn() => ProfileRepository::key_page_ids() );
 
 		if ( is_admin() ) {
 			( new AdminPage() )->register();
+			add_action( 'admin_post_' . ProfileController::DOWNLOAD_ACTION, static fn() => ( new ProfileController( $scans ) )->download() );
 			( new DashboardWidget() )->register();
 		}
 

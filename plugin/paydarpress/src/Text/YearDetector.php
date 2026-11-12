@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace PaydarWP\PaydarPress\Text;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * See spec section 7.2. Years in the title always count; years in body text count only when
  * a time word appears within three words, to avoid flagging historical dates.

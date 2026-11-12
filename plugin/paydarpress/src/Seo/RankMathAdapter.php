@@ -11,6 +11,10 @@ namespace PaydarWP\PaydarPress\Seo;
 
 use WP_Term;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Reads Rank Math post and term meta.
  */

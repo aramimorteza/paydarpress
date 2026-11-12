@@ -11,6 +11,10 @@ namespace PaydarWP\PaydarPress\Links;
 
 use PaydarWP\PaydarPress\Database\Schema;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Scores candidates by shared primary category, shared tags and shared title words.
  * Phase 1 is rule-based; semantic similarity (embeddings) arrives in phase 2.

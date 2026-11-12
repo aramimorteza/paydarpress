@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 namespace PaydarWP\PaydarPress\Extractors;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Converts Elementor widgets to equivalent HTML, then reuses HtmlExtractor.
  * This keeps heading, link, image and intro-paragraph logic in one place. See spec section 6.3.
