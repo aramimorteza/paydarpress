@@ -28,3 +28,5 @@ check( 'merge', E::refresh_action( 10, array( 'DUPLICATE_FOCUS_KEYWORD' ) ), 're
 check( 'rewrite', E::refresh_action( 55, array() ), 'refresh: rewrite' );
 check( 'light', E::refresh_action( 20, array() ), 'refresh: light' );
 check( 'none', E::refresh_action( 15, array() ), 'refresh: none' );
+check( 'light', E::refresh_action( 10, array( 'GSC_LOW_CTR' ) ), 'refresh: low ctr is a light update' );
+check( 'rewrite', E::refresh_action( 60, array( 'GSC_NEAR_PAGE_ONE' ) ), 'refresh: high score still rewrite' );

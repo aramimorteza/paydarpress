@@ -12,6 +12,7 @@ namespace PaydarWP\PaydarPress\Export;
 use PaydarWP\PaydarPress\Audit\AuditEngine;
 use PaydarWP\PaydarPress\Core\Activity;
 use PaydarWP\PaydarPress\Database\Schema;
+use PaydarWP\PaydarPress\Gsc\GscRepository;
 use PaydarWP\PaydarPress\Profile\Fields;
 use PaydarWP\PaydarPress\Profile\ProfileRepository;
 use PaydarWP\PaydarPress\Scanner\ContentScanner;
@@ -46,6 +47,9 @@ final class InventoryExporter {
 	/** @var bool Compact format: fewer fields per item, for large sites and small AI context windows. */
 	private bool $compact = false;
 
+	/** @var array<int, array>|null Search Console metrics per content ID (null without imported data). */
+	private ?array $gsc = null;
+
 	/**
 	 * Builds the export array.
 	 *
@@ -54,6 +58,7 @@ final class InventoryExporter {
 	 */
 	public function build( bool $include_drafts = false, bool $compact = false ): array {
 		$this->compact = $compact;
+		$this->gsc     = GscRepository::has_data() ? GscRepository::page_metrics() : null;
 		$profile    = ProfileRepository::get();
 		$completion = ProfileRepository::completion( $profile );
 		$statuses   = $include_drafts ? ContentScanner::STATUSES : array( 'publish' );
@@ -81,6 +86,9 @@ final class InventoryExporter {
 					'is_key_page'   => isset( $key_pages[ $id ] ),
 					'flags'         => $flags[ $id ] ?? array(),
 				);
+				if ( null !== $this->gsc ) {
+					$pages[ count( $pages ) - 1 ]['search_console'] = $this->gsc_item( $id );
+				}
 				if ( $compact ) {
 					unset( $pages[ count( $pages ) - 1 ]['slug'] );
 				}
@@ -105,7 +113,7 @@ final class InventoryExporter {
 				'generator'           => 'PaydarPress ' . PAYDARPRESS_VERSION,
 				'generated_at'        => gmdate( 'c' ),
 				'export_profile'      => $compact ? 'contentmaster-compact' : 'contentmaster-lite',
-				'sections'            => array( 'site', 'profile', 'taxonomies', 'pages', 'posts', 'products', 'stats', 'warnings' ),
+				'sections'            => array_merge( array( 'site', 'profile', 'taxonomies', 'pages', 'posts', 'products', 'stats', 'warnings' ), null === $this->gsc ? array() : array( 'search_console' ) ),
 				'part'                => 1,
 				'total_parts'         => 1,
 				'include_drafts'      => $include_drafts,
@@ -145,11 +153,16 @@ final class InventoryExporter {
 			'data_coverage' => array(
 				'seo_metadata'   => 'none' === SeoDetector::adapter()->key() ? 'unavailable' : 'full',
 				'full_content'   => 'excluded',
+				'item_detail'    => $compact ? 'compact' : 'full',
 				'link_graph'     => 'summary',
 				'media'          => 'summary',
-				'search_console' => 'not_connected',
+				'search_console' => null === $this->gsc ? 'not_connected' : 'csv_import',
 			),
 		);
+
+		if ( null !== $this->gsc ) {
+			$data['search_console'] = $this->search_console_section();
+		}
 
 		return $data;
 	}
@@ -346,6 +359,7 @@ final class InventoryExporter {
 				'years'               => is_array( $years ) ? $years : array(),
 				'refresh_score'       => (int) $row['refresh_score'],
 				'flags'               => $flags,
+				'gsc'                 => null === $this->gsc ? null : $this->gsc_compact( $id ),
 			);
 
 			// Omit empty values; the compact contract says missing means empty/zero.
@@ -395,6 +409,92 @@ final class InventoryExporter {
 			),
 			'refresh_score'       => (int) $row['refresh_score'],
 			'flags'               => $flags,
+		) + ( null === $this->gsc ? array() : array( 'search_console' => $this->gsc_item( $id ) ) );
+	}
+
+	/**
+	 * Search Console metrics of one item (zeros when it had no impressions).
+	 *
+	 * @param int $id Object ID.
+	 */
+	private function gsc_item( int $id ): array {
+		$m = $this->gsc[ $id ] ?? null;
+		if ( null === $m ) {
+			return array(
+				'clicks'      => 0,
+				'impressions' => 0,
+			);
+		}
+
+		$item = array(
+			'clicks'      => $m['clicks'],
+			'impressions' => $m['impressions'],
+			'ctr'         => $m['ctr'],
+			'position'    => $m['position'],
+		);
+		if ( null !== $m['prev_clicks'] ) {
+			$item['prev_clicks']   = $m['prev_clicks'];
+			$item['prev_position'] = $m['prev_position'];
+		}
+
+		return $item;
+	}
+
+	/**
+	 * Compact Search Console metrics: [clicks, impressions, position] or null without impressions.
+	 *
+	 * @param int $id Object ID.
+	 */
+	private function gsc_compact( int $id ): ?array {
+		$m = $this->gsc[ $id ] ?? null;
+
+		return null === $m ? null : array( $m['clicks'], $m['impressions'], $m['position'] );
+	}
+
+	/**
+	 * Top-level Search Console section: period, totals, top queries and unmatched URLs.
+	 */
+	private function search_console_section(): array {
+		$import  = GscRepository::latest_import();
+		$summary = $import['summary'] ?? array();
+		$queries = GscRepository::queries( $this->compact ? 100 : 200 )['items'];
+
+		$unmatched = array();
+		foreach ( GscRepository::unmatched( 50 ) as $row ) {
+			if ( $row['clicks'] < 1 && $row['impressions'] < 50 ) {
+				continue;
+			}
+			$unmatched[] = array(
+				'url'         => $row['item'],
+				'state'       => $row['match_state'],
+				'clicks'      => $row['clicks'],
+				'impressions' => $row['impressions'],
+			);
+		}
+
+		return array(
+			'source'          => 'csv_import',
+			'imported_at'     => self::iso( $import['created_at'] ?? null ),
+			'period'          => $summary['period'] ?? null,
+			'compare'         => (bool) ( $summary['compare'] ?? false ),
+			'totals'          => array(
+				'clicks'      => (int) ( $summary['clicks'] ?? 0 ),
+				'impressions' => (int) ( $summary['impressions'] ?? 0 ),
+			),
+			'rows_capped'     => ! empty( $summary['pages_capped'] ) || ! empty( $summary['queries_capped'] ),
+			'top_queries'     => array_map(
+				fn( $q ) => $this->compact
+					? array( $q['item'], $q['clicks'], $q['impressions'], $q['position'] )
+					: array(
+						'query'       => $q['item'],
+						'clicks'      => $q['clicks'],
+						'impressions' => $q['impressions'],
+						'position'    => $q['position'],
+					),
+				$queries
+			),
+			'unmatched_pages' => $unmatched,
+			'notes'           => 'Metrics come from a Search Console Performance export (top rows only). ' . ( $this->compact ? 'Compact: item gsc = [clicks, impressions, position]; top_queries = [query, clicks, impressions, position].' : '' ),
 		);
 	}
 

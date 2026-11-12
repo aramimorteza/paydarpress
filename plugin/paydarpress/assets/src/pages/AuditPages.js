@@ -146,6 +146,7 @@ export function RefreshPage() {
 								<th>امتیاز نیاز</th>
 								<th>اقدام پیشنهادی</th>
 								<th>دلایل</th>
+								{ data.items.some( ( i ) => i.gsc ) && <th className="pp-num">گوگل (کلیک / نمایش / جایگاه)</th> }
 								<th className="pp-num">کلمات</th>
 								<th>آخرین ویرایش</th>
 							</tr>
@@ -164,6 +165,13 @@ export function RefreshPage() {
 									</td>
 									<td><span className={ `pp-badge pp-badge--${ ACTION_CLASS[ item.action ] }` }>{ item.action_label }</span></td>
 									<td className="pp-reasons">{ item.reasons.map( ( r ) => <span key={ r } className="pp-chip">{ r }</span> ) }</td>
+									{ data.items.some( ( i ) => i.gsc ) && (
+										<td className="pp-num">
+											{ item.gsc && item.gsc.impressions > 0
+												? `${ num( item.gsc.clicks ) } / ${ num( item.gsc.impressions ) } / ${ num( item.gsc.position ) }`
+												: 'بدون نمایش' }
+										</td>
+									) }
 									<td className="pp-num">{ num( item.words ) }</td>
 									<td>{ date( item.modified_at ) }</td>
 								</tr>

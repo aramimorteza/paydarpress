@@ -438,6 +438,7 @@ final class AuditController {
 		}
 
 		$stale = (int) Settings::get( 'audit.stale_months', 18 );
+		$gsc   = \PaydarWP\PaydarPress\Gsc\GscRepository::has_data() ? \PaydarWP\PaydarPress\Gsc\GscRepository::page_metrics() : null;
 		$items = array();
 		foreach ( (array) $rows as $row ) {
 			$id         = (int) $row['object_id'];
@@ -446,7 +447,7 @@ final class AuditController {
 			$action     = AuditEngine::refresh_action( $score, $item_codes );
 			$reasons    = array();
 
-			foreach ( array( 'OUTDATED_YEAR', 'THIN_CONTENT', 'DUPLICATE_FOCUS_KEYWORD', 'NO_DIRECT_ANSWER', 'NO_INTERNAL_LINKS', 'BROKEN_INTERNAL_LINK', 'NO_H2', 'IMG_NO_FEATURED', 'IMG_MISSING_ALT' ) as $code ) {
+			foreach ( array( 'GSC_CLICK_DROP', 'GSC_NEAR_PAGE_ONE', 'GSC_LOW_CTR', 'OUTDATED_YEAR', 'THIN_CONTENT', 'DUPLICATE_FOCUS_KEYWORD', 'NO_DIRECT_ANSWER', 'NO_INTERNAL_LINKS', 'BROKEN_INTERNAL_LINK', 'NO_H2', 'IMG_NO_FEATURED', 'IMG_MISSING_ALT' ) as $code ) {
 				if ( in_array( $code, $item_codes, true ) ) {
 					$reasons[] = Catalog::get( $code )['title'];
 				}
@@ -468,6 +469,7 @@ final class AuditController {
 				'reasons'      => $reasons,
 				'words'        => (int) $row['word_count'],
 				'modified_at'  => ScanController::iso( $row['modified_at'] ),
+				'gsc'          => null === $gsc ? null : ( $gsc[ $id ] ?? array( 'clicks' => 0, 'impressions' => 0 ) ),
 			);
 		}
 
@@ -602,6 +604,13 @@ final class AuditController {
 			case 'IMG_MISSING_ALT':
 			case 'IMG_GENERIC_ALT':
 				$lines[] = sprintf( '%s تصویر', $fa( $data['count'] ?? 0 ) );
+				break;
+			case 'GSC_CLICK_DROP':
+				$lines[] = sprintf( 'کلیک: %s (دوره قبل: %s) — جایگاه: %s (دوره قبل: %s)', $fa( $data['clicks'] ?? 0 ), $fa( $data['prev_clicks'] ?? 0 ), $fa( $data['position'] ?? 0 ), $fa( $data['prev_position'] ?? 0 ) );
+				break;
+			case 'GSC_NEAR_PAGE_ONE':
+			case 'GSC_LOW_CTR':
+				$lines[] = sprintf( 'جایگاه %s، %s نمایش، %s کلیک (نرخ کلیک %s٪)', $fa( $data['position'] ?? 0 ), $fa( $data['impressions'] ?? 0 ), $fa( $data['clicks'] ?? 0 ), $fa( round( 100 * (float) ( $data['ctr'] ?? 0 ), 1 ) ) );
 				break;
 			case 'SIMILAR_CATEGORIES':
 			case 'NEAR_DUPLICATE_TAGS':

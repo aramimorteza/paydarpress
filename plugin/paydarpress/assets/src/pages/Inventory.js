@@ -4,6 +4,7 @@ import Page from '../components/Page';
 import EmptyState from '../components/EmptyState';
 import { get, errorMessage } from '../lib/api';
 import { num, date, TYPE_LABELS, STATUS_LABELS, LINK_STATE_LABELS } from '../lib/format';
+import { useMode } from '../lib/uiMode';
 
 const FILTERS = [
 	{ key: '', label: 'همه', count: 'total' },
@@ -33,6 +34,7 @@ export default function Inventory() {
 	const [ sort, setSort ] = useState( 'modified_at:desc' );
 	const [ page, setPage ] = useState( 1 );
 	const [ data, setData ] = useState( null );
+	const mode = useMode();
 	const [ loading, setLoading ] = useState( true );
 	const [ error, setError ] = useState( '' );
 	const [ selected, setSelected ] = useState( null );
@@ -60,6 +62,9 @@ export default function Inventory() {
 		{ value: 'page', label: 'برگه‌ها' },
 		...( window.paydarpress && window.paydarpress.modules && window.paydarpress.modules.woocommerce ? [ { value: 'product', label: 'محصولات' } ] : [] ),
 	];
+
+	// Search Console columns: pro mode, and only when data was imported.
+	const showGsc = 'pro' === mode && !! data && data.items.some( ( item ) => item.gsc );
 
 	return (
 		<Page title="فهرست محتوا" helpKey="inventory">
@@ -144,6 +149,7 @@ export default function Inventory() {
 									<th className="pp-num">کلمات</th>
 									<th className="pp-num" title="لینک‌های ورودی از محتوای دیگر / لینک‌های خروجی داخلی">لینک ورودی / خروجی</th>
 									<th className="pp-num">تصاویر</th>
+									{ showGsc && <th className="pp-num" title="کلیک / نمایش / جایگاه میانگین در گوگل">گوگل</th> }
 									<th>آخرین ویرایش</th>
 								</tr>
 							</thead>
@@ -172,6 +178,11 @@ export default function Inventory() {
 												{ item.featured_image ? '✓' : <span className="pp-missing">بدون شاخص</span> }
 												{ item.inline_missing_alt > 0 && <span className="pp-badge pp-badge--warning">متن جایگزین ناقص: { num( item.inline_missing_alt ) }</span> }
 											</td>
+											{ showGsc && (
+												<td className="pp-num pp-nowrap">
+													{ item.gsc && item.gsc.impressions ? `${ num( item.gsc.clicks ) } / ${ num( item.gsc.impressions ) } / ${ num( item.gsc.position ) }` : '—' }
+												</td>
+											) }
 											<td>{ date( item.modified_at ) }</td>
 										</tr>
 									) ) }

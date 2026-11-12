@@ -16,6 +16,7 @@ use PaydarWP\PaydarPress\Profile\ProfileRepository;
 use PaydarWP\PaydarPress\Rest\AuditController;
 use PaydarWP\PaydarPress\Rest\ProfileController;
 use PaydarWP\PaydarPress\Rest\SettingsController;
+use PaydarWP\PaydarPress\Rest\GscController;
 use PaydarWP\PaydarPress\Rest\InventoryController;
 use PaydarWP\PaydarPress\Rest\ScanController;
 use PaydarWP\PaydarPress\Rest\UserPrefsController;
@@ -74,6 +75,7 @@ final class Plugin {
 				( new AuditController( $scans ) )->routes();
 				( new ProfileController( $scans ) )->routes();
 				( new SettingsController() )->routes();
+				( new GscController() )->routes();
 			}
 		);
 

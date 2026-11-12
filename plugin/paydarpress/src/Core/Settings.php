@@ -41,6 +41,7 @@ final class Settings {
 				'inline_images_min_words' => 800,
 				'stale_months'            => 18,
 				'orphan_exclude_ids'      => array(),
+				'gsc_min_impressions'     => 100,
 			),
 			'retention'   => array(
 				'activity_days' => 90,
@@ -118,6 +119,7 @@ final class Settings {
 		'audit.weak_inbound_min'           => array( 1, 20 ),
 		'audit.inline_images_min_words'    => array( 200, 5000 ),
 		'audit.stale_months'               => array( 3, 60 ),
+		'audit.gsc_min_impressions'        => array( 10, 100000 ),
 		'retention.activity_days'          => array( 7, 365 ),
 	);
 

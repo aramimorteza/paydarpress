@@ -1,4 +1,4 @@
-# ContentMaster v1.4
+# ContentMaster v1.5
 ### Multi-site SEO content system: Setup, Topic Research, Article Writing, Content Refresh
 
 ---
@@ -292,7 +292,9 @@ The PaydarPress plugin exports the site as JSON (schema `1.x`, profile `contentm
 **Use the plugin's findings**
 - **Topics:** prefer topics that complete thin categories (low `count`) and give orphan items (`ORPHAN_POST`) natural inbound links from new articles.
 - **Article:** in the reverse-link suggestions (8.4), prioritize existing articles flagged `ORPHAN_POST` or `NO_INTERNAL_LINKS` that are on the same topic.
-- **Refresh (`بروزرسانی` without Search Console data):** rank by `refresh_score`, then explain using the item's `flags` in plain Persian. With Search Console data, combine both.
+- **Refresh (`بروزرسانی`):** rank by `refresh_score`, then explain using the item's `flags` in plain Persian. If the export has a `search_console` section, the Search Console data is already inside it: do not ask for a CSV; follow Section 9 using `search_console` per item and the flags `GSC_CLICK_DROP` (clicks fell vs the previous period), `GSC_NEAR_PAGE_ONE` (average position 8–20 with enough impressions), `GSC_LOW_CTR` (top-5 position, CTR under 2%) and `GSC_NOT_IN_SEARCH` (published 3+ months, no impressions).
+- **Search Console section:** `search_console.period` is the date range (mention it once), `top_queries` are the most-shown search queries, `unmatched_pages` are URLs with Google traffic but no current content (`missing` = deleted page that still gets clicks → recommend a redirect; `archive` = category/home page). Search Console exports only the top rows, so absence from the data is weak evidence.
+- **Topics with Search Console data:** before inventing topics, look for `top_queries` with many impressions that no existing title or focus keyword covers; propose those first and say they come from the site's own Google data.
 - **`وضعیت`:** summarize from `stats` (health score, findings by severity, orphans, refresh candidates) instead of recomputing.
 
 **Do not**
@@ -483,7 +485,8 @@ If the user sends `بروزرسانی` without data but an inventory exists, ran
 
 ### 9.1 Inputs
 Ask for whatever is missing:
-- **Required:** Search Console Performance export for the last 3 months (Pages tab and Queries tab, as CSV or pasted). The best format is a page+query combination (Search Console API, Looker Studio, or tools like *Search Analytics for Sheets*).
+- **If a PaydarPress export with a `search_console` section is present, use it and skip this input request.**
+- **Required (otherwise):** Search Console Performance export for the last 3 months (Pages tab and Queries tab, as CSV or pasted). The best format is a page+query combination (Search Console API, Looker Studio, or tools like *Search Analytics for Sheets*).
 - **Optional:** the previous 3 months (or the same period last year) for decline analysis.
 - **For a single-page refresh:** the current article content (paste the text or HTML, or give the URL if you can fetch it).
 

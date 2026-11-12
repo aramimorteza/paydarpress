@@ -21,9 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Schema {
 
-	public const VERSION = '1.1.0';
+	public const VERSION = '1.2.0';
 
-	public const TABLES = array( 'inventory', 'links', 'audit_findings', 'scans', 'activity' );
+	public const TABLES = array( 'inventory', 'links', 'audit_findings', 'scans', 'activity', 'imports', 'gsc' );
 
 	/**
 	 * Full table name for a short name, e.g. `inventory` → `wp_paydarpress_inventory`.
@@ -53,6 +53,8 @@ final class Schema {
 		$audit_findings = self::table( 'audit_findings' );
 		$scans          = self::table( 'scans' );
 		$activity       = self::table( 'activity' );
+		$imports        = self::table( 'imports' );
+		$gsc            = self::table( 'gsc' );
 
 		return array(
 			"CREATE TABLE {$inventory} (
@@ -153,6 +155,39 @@ final class Schema {
   PRIMARY KEY  (id),
   KEY created_at (created_at),
   KEY event (event)
+) {$charset};",
+
+			"CREATE TABLE {$imports} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  type varchar(20) NOT NULL,
+  file_name varchar(255) NOT NULL DEFAULT '',
+  status varchar(20) NOT NULL DEFAULT 'completed',
+  summary longtext DEFAULT NULL,
+  user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  created_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  KEY type (type)
+) {$charset};",
+
+			"CREATE TABLE {$gsc} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  import_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  kind varchar(10) NOT NULL,
+  item varchar(1000) NOT NULL DEFAULT '',
+  item_hash char(32) NOT NULL DEFAULT '',
+  object_id bigint(20) unsigned DEFAULT NULL,
+  match_state varchar(20) NOT NULL DEFAULT '',
+  clicks int(10) unsigned NOT NULL DEFAULT 0,
+  impressions int(10) unsigned NOT NULL DEFAULT 0,
+  ctr float NOT NULL DEFAULT 0,
+  position float NOT NULL DEFAULT 0,
+  prev_clicks int(10) unsigned DEFAULT NULL,
+  prev_impressions int(10) unsigned DEFAULT NULL,
+  prev_position float DEFAULT NULL,
+  PRIMARY KEY  (id),
+  KEY kind_object (kind,object_id),
+  KEY item_hash (item_hash),
+  KEY kind_impressions (kind,impressions)
 ) {$charset};",
 		);
 	}

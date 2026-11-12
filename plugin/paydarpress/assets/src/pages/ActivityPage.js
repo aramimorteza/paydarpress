@@ -11,6 +11,7 @@ const GROUPS = [
 	{ key: 'finding', label: 'یافته‌ها' },
 	{ key: 'profile', label: 'پروفایل' },
 	{ key: 'export', label: 'خروجی' },
+	{ key: 'import', label: 'ورود داده' },
 	{ key: 'settings', label: 'تنظیمات' },
 ];
 

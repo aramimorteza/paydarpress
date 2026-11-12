@@ -24,7 +24,10 @@ export const NAV = [
 	},
 	{
 		group: 'ورود و خروجی',
-		items: [ { path: '/export', label: 'خروجی JSON', icon: 'download' } ],
+		items: [
+			{ path: '/gsc', label: 'سرچ کنسول', icon: 'chart-line' },
+			{ path: '/export', label: 'خروجی JSON', icon: 'download' },
+		],
 	},
 	{ path: '/activity', label: 'گزارش فعالیت', icon: 'backup' },
 	{ path: '/settings', label: 'تنظیمات', icon: 'admin-generic' },

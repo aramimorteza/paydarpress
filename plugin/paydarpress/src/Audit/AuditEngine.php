@@ -12,6 +12,7 @@ namespace PaydarWP\PaydarPress\Audit;
 use PaydarWP\PaydarPress\Core\Settings;
 use PaydarWP\PaydarPress\Crawl\CrawlerCheck;
 use PaydarWP\PaydarPress\Database\Schema;
+use PaydarWP\PaydarPress\Gsc\GscRepository;
 use PaydarWP\PaydarPress\Seo\SeoDetector;
 use PaydarWP\PaydarPress\Text\PersianNormalizer;
 use PaydarWP\PaydarPress\Text\YearDetector;
@@ -70,6 +71,7 @@ final class AuditEngine {
 		$this->taxonomy_rules();
 		$this->author_rules();
 		$this->site_rules( $check_crawlers );
+		$this->gsc_rules( $rows );
 
 		$this->sync();
 		$this->update_refresh_scores( $rows );
@@ -93,6 +95,9 @@ final class AuditEngine {
 			'NO_INTERNAL_LINKS'       => 5,
 			'BROKEN_INTERNAL_LINK'    => 5,
 			'NO_H2'                   => 5,
+			'GSC_CLICK_DROP'          => 25,
+			'GSC_NEAR_PAGE_ONE'       => 20,
+			'GSC_LOW_CTR'             => 10,
 		);
 
 		$score = 0;
@@ -143,6 +148,10 @@ final class AuditEngine {
 		}
 		if ( $score >= 50 ) {
 			return 'rewrite';
+		}
+		// Search Console opportunities usually need only a better title, meta and a few links.
+		if ( in_array( 'GSC_NEAR_PAGE_ONE', $codes, true ) || in_array( 'GSC_LOW_CTR', $codes, true ) ) {
+			return 'light';
 		}
 
 		return $score >= 20 ? 'light' : 'none';
@@ -546,6 +555,67 @@ final class AuditEngine {
 		}
 	}
 
+	/**
+	 * Search Console rules (phase 1.5). Run only when Search Console data was imported.
+	 *
+	 * @param array $rows Inventory rows.
+	 */
+	private function gsc_rules( array $rows ): void {
+		$import = GscRepository::latest_import();
+		if ( null === $import ) {
+			return;
+		}
+
+		if ( GscRepository::is_stale() ) {
+			$this->add( 'GSC_DATA_STALE', 'site', 0, array( 'imported_at' => $import['created_at'] ) );
+		}
+
+		$metrics = GscRepository::page_metrics();
+		$summary = $import['summary'];
+		$min     = max( 1, (int) ( $this->settings['gsc_min_impressions'] ?? 100 ) );
+		$days    = (int) ( $summary['period']['days'] ?? 0 );
+		// Absence from Pages.csv means "no impressions" only if the export was not cut at
+		// Search Console's 1,000-row cap and covers a meaningful period.
+		$can_judge_absence = empty( $summary['pages_capped'] ) && ( 0 === $days || $days >= 28 );
+		$old_enough        = time() - 90 * DAY_IN_SECONDS;
+
+		foreach ( $rows as $row ) {
+			if ( 'publish' !== $row['status'] || '1' === (string) $row['is_noindex'] ) {
+				continue;
+			}
+
+			$id = (int) $row['object_id'];
+			$m  = $metrics[ $id ] ?? null;
+
+			if ( null === $m ) {
+				$published = ! empty( $row['published_at'] ) ? strtotime( $row['published_at'] . ' UTC' ) : false;
+				if ( $can_judge_absence && 'post' === $row['object_type'] && false !== $published && $published < $old_enough ) {
+					$this->add( 'GSC_NOT_IN_SEARCH', 'content', $id );
+				}
+				continue;
+			}
+
+			$data = array(
+				'clicks'      => $m['clicks'],
+				'impressions' => $m['impressions'],
+				'ctr'         => $m['ctr'],
+				'position'    => $m['position'],
+			);
+
+			if ( null !== $m['prev_clicks'] && $m['prev_clicks'] >= 20 && $m['clicks'] <= $m['prev_clicks'] * 0.7 ) {
+				$this->add( 'GSC_CLICK_DROP', 'content', $id, $data + array( 'prev_clicks' => $m['prev_clicks'], 'prev_position' => $m['prev_position'] ) );
+			}
+
+			if ( $m['position'] >= 8 && $m['position'] <= 20 && $m['impressions'] >= $min ) {
+				$this->add( 'GSC_NEAR_PAGE_ONE', 'content', $id, $data );
+			}
+
+			if ( $m['position'] > 0 && $m['position'] <= 5 && $m['impressions'] >= 2 * $min && $m['ctr'] < 0.02 ) {
+				$this->add( 'GSC_LOW_CTR', 'content', $id, $data );
+			}
+		}
+	}
+
 	// ---------------------------------------------------------------------
 	// Persistence.
 	// ---------------------------------------------------------------------
@@ -719,7 +789,9 @@ final class AuditEngine {
 			$by_severity[ $row['severity'] ] = ( $by_severity[ $row['severity'] ] ?? 0 ) + $n;
 			$by_group[ $rule['group'] ]     += $n;
 			$by_code[ $row['code'] ]         = $n;
-			$weight                         += $n * ( Catalog::SEVERITY_WEIGHT[ $row['severity'] ] ?? 0 );
+			if ( ! in_array( $rule['group'], Catalog::NON_HEALTH_GROUPS, true ) ) {
+				$weight += $n * ( Catalog::SEVERITY_WEIGHT[ $row['severity'] ] ?? 0 );
+			}
 		}
 
 		$inventory = Schema::table( 'inventory' );
@@ -755,7 +827,7 @@ final class AuditEngine {
 			"SELECT object_id, object_type, status, focus_keyword IS NULL AS no_keyword, focus_keyword_norm, meta_description IS NULL AS no_meta,
 				is_noindex, is_cornerstone, word_count, h2_count, years_mentioned, has_direct_answer,
 				has_featured_image, featured_alt_ok, inline_images, inline_images_no_alt, images_generic_alt,
-				internal_out, internal_in, menu_in, refresh_score, modified_at
+				internal_out, internal_in, menu_in, refresh_score, modified_at, published_at
 			FROM {$table}",
 			ARRAY_A
 		);

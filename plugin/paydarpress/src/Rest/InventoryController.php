@@ -167,6 +167,15 @@ final class InventoryController {
 
 		$items = array_map( array( $this, 'format' ), (array) $rows );
 
+		// Search Console metrics for the listed items (only when data was imported).
+		$gsc = \PaydarWP\PaydarPress\Gsc\GscRepository::has_data() ? \PaydarWP\PaydarPress\Gsc\GscRepository::page_metrics() : null;
+		if ( null !== $gsc ) {
+			foreach ( $items as &$item ) {
+				$item['gsc'] = $gsc[ (int) $item['id'] ] ?? array( 'clicks' => 0, 'impressions' => 0, 'position' => 0 );
+			}
+			unset( $item );
+		}
+
 		$response = new WP_REST_Response(
 			array(
 				'items'       => $items,

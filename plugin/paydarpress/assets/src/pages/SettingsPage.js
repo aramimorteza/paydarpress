@@ -33,6 +33,7 @@ const TABS = [
 			{ path: 'audit.weak_category_min', type: 'number', advanced: true, label: 'حداقل نوشته در هر دسته', suffix: 'نوشته', help: 'دسته‌های با نوشته کمتر «دسته ضعیف» شناخته می‌شوند.' },
 			{ path: 'audit.tag_overuse_max', type: 'number', advanced: true, label: 'حداکثر برچسب برای هر نوشته', suffix: 'برچسب' },
 			{ path: 'audit.inline_images_min_words', type: 'number', advanced: true, label: 'نیاز به تصویر داخل متن از', suffix: 'کلمه', help: 'مطالب بلندتر از این عدد بدون تصویر داخل متن گزارش می‌شوند.' },
+			{ path: 'audit.gsc_min_impressions', type: 'number', advanced: true, label: 'حداقل نمایش برای فرصت سرچ کنسول', suffix: 'نمایش', help: 'صفحات با نمایش کمتر از این عدد در «نزدیک صفحه اول» و «رتبه خوب، کلیک کم» گزارش نمی‌شوند.' },
 			{ path: 'audit.orphan_exclude_ids', type: 'ids', advanced: true, label: 'شناسه صفحاتی که یتیم حساب نشوند', help: 'شناسه نوشته یا برگه را با ویرگول جدا کنید؛ مثلاً صفحات فرود تبلیغاتی که عمداً لینک داخلی ندارند.' },
 		],
 	},

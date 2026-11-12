@@ -33,12 +33,14 @@ export default function Dashboard() {
 	const scan = useScan();
 	const [ data, setData ] = useState( null );
 	const [ onboarding, setOnboarding ] = useState( null );
+	const [ gsc, setGsc ] = useState( null );
 	const scanStatus = scan.scan ? scan.scan.status : null;
 
 	useEffect( () => {
 		if ( 'running' !== scanStatus ) {
 			get( '/dashboard' ).then( setData ).catch( () => {} );
 			get( '/onboarding' ).then( setOnboarding ).catch( () => {} );
+			get( '/gsc' ).then( setGsc ).catch( () => {} );
 		}
 	}, [ scanStatus ] );
 
@@ -145,6 +147,26 @@ export default function Dashboard() {
 						</ul>
 					) }
 					<a href="#/refresh">مشاهده همه ←</a>
+				</section>
+				<section className="pp-card">
+					<h2 className="pp-card__title">سرچ کنسول</h2>
+					{ gsc && gsc.import ? (
+						<>
+							<div className="pp-big">{ num( gsc.import.summary.clicks ) } <span className="pp-big__unit">کلیک</span></div>
+							<p className="pp-muted">
+								{ num( gsc.counts.near ) } صفحه نزدیک صفحه اول
+								{ gsc.counts.drop ? `، ${ num( gsc.counts.drop ) } افت کلیک` : '' }
+								{ ' — داده ' }{ ago( gsc.import.imported_at ) }
+							</p>
+							{ gsc.stale && <p className="pp-missing">داده قدیمی است؛ خروجی تازه آپلود کنید.</p> }
+							<a href="#/gsc">فرصت‌ها ←</a>
+						</>
+					) : (
+						<>
+							<p className="pp-muted">با آپلود خروجی گزارش «عملکرد» سرچ کنسول، صفحات نزدیک صفحه اول گوگل، افت کلیک و عبارت‌های جست‌وجو را ببینید.</p>
+							<a href="#/gsc">ورود داده سرچ کنسول ←</a>
+						</>
+					) }
 				</section>
 				<section className="pp-card">
 					<h2 className="pp-card__title">دسترسی خزنده‌ها</h2>

@@ -4,7 +4,7 @@
 
 ## وضعیت
 
-**فاز 1 تکمیل شد (نسخه 0.6.0):** Core، Site Intelligence، Health Audit، پروفایل سایت و خروجی ContentMaster — بدون نیاز به API هوش مصنوعی. گزارش آزمون: [docs/phase1-test-report.md](docs/phase1-test-report.md)
+**فاز 1 تکمیل شد (نسخه 0.6.0)؛ فاز 1.5 در حال توسعه (نسخه 0.7.0: ورود سرچ کنسول).** Core، Site Intelligence، Health Audit، پروفایل سایت و خروجی ContentMaster — بدون نیاز به API هوش مصنوعی. گزارش آزمون: [docs/phase1-test-report.md](docs/phase1-test-report.md)
 
 ## مستندات
 
@@ -12,6 +12,7 @@
 |---|---|
 | [docs/architecture.md](docs/architecture.md) | سند معماری کامل محصول (چشم‌انداز همه فازها) |
 | [docs/phase1-spec.md](docs/phase1-spec.md) | مشخصات فنی فاز 1 (مبنای پیاده‌سازی فعلی) |
+| [docs/phase15-spec.md](docs/phase15-spec.md) | مشخصات فاز 1.5: ورود سرچ کنسول، ورود از ContentMaster، صف تأیید لینک |
 | [docs/phase1-test-report.md](docs/phase1-test-report.md) | گزارش آزمون عملکرد، هاست اشتراکی و امنیت فاز 1 |
 | [docs/contentmaster.md](docs/contentmaster.md) | مسترپرامپت ContentMaster |
 | [docs/site-inventory.example.json](docs/site-inventory.example.json) | نمونه خروجی JSON |
