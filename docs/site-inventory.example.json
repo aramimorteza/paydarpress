@@ -1,0 +1,139 @@
+{
+  "export_meta": {
+    "schema_version": "1.0",
+    "generator": "PaydarPress 1.0.0",
+    "generated_at": "2026-11-11T18:30:00+03:30",
+    "export_profile": "contentmaster-lite",
+    "sections": ["site", "profile", "taxonomies", "pages", "posts", "links", "stats", "warnings"],
+    "part": 1,
+    "total_parts": 1,
+    "seo_plugin": "yoast",
+    "page_builder": "elementor",
+    "multilingual_plugin": null
+  },
+
+  "site": {
+    "name": "وکیل کرج",
+    "url": "https://vakilkaraj.net",
+    "tagline": "طلاق کرج - مشاوره طلاق - گوهردشت - عظیمیه",
+    "language": "fa_IR",
+    "timezone": "Asia/Tehran",
+    "permalink_structure": "/%postname%/",
+    "wordpress_version": "6.8",
+    "woocommerce": false,
+    "custom_post_types": []
+  },
+
+  "profile": {
+    "_note": "Each field: value + source (detected | inferred | manual) + confirmed (true/false)",
+    "industry_module": { "value": "legal", "source": "inferred", "confirmed": false },
+    "geographic_scope": { "value": "کرج، گوهردشت، عظیمیه", "source": "inferred", "confirmed": false },
+    "primary_content_goal": { "value": "رزرو مشاوره حقوقی", "source": "manual", "confirmed": true },
+    "primary_audience": { "value": null, "source": "manual", "confirmed": false },
+    "tone_of_voice": { "value": null, "source": "manual", "confirmed": false },
+    "output_language": { "value": "fa", "source": "detected", "confirmed": true },
+    "fact_sensitivity": { "value": "YMYL", "source": "inferred", "confirmed": false },
+    "forbidden_topics": { "value": [], "source": "manual", "confirmed": false },
+    "industry_rules": { "value": [], "source": "manual", "confirmed": false },
+    "cta_options": [
+      { "name": "مشاوره حقوقی", "url": "https://vakilkaraj.net/legal-consultation", "use_when": "پایان همه مقالات", "source": "manual" }
+    ],
+    "key_pages": [
+      {
+        "id": 12,
+        "name": "مشاوره حقوقی",
+        "url": "https://vakilkaraj.net/legal-consultation",
+        "link_when": "مقالات خانواده، کیفری و ملکی",
+        "anchors": ["مشاوره حقوقی در کرج", "مشاوره با وکیل"],
+        "priority": "high",
+        "source": "manual",
+        "detected_by": "in_main_menu"
+      }
+    ],
+    "missing_fields": ["primary_audience", "tone_of_voice", "forbidden_topics"]
+  },
+
+  "taxonomies": {
+    "categories": [
+      {
+        "id": 3, "name": "دعاوی خانواده", "slug": "family", "parent": 0,
+        "url": "https://vakilkaraj.net/category/family/",
+        "count": 8, "has_description": false,
+        "scope": { "value": null, "source": "manual" }
+      }
+    ],
+    "tags": [
+      { "id": 21, "name": "نفقه زن", "slug": "alimony-wife", "count": 1 }
+    ]
+  },
+
+  "pages": [
+    {
+      "id": 12, "title": "مشاوره حقوقی", "slug": "legal-consultation",
+      "url": "https://vakilkaraj.net/legal-consultation", "status": "publish",
+      "in_main_menu": true, "is_front_page": false, "template": "elementor_canvas"
+    }
+  ],
+
+  "posts": [
+    {
+      "id": 145,
+      "title": "نفقه زن در سال ۱۴۰۲ چقدر است؟",
+      "slug": "alimony",
+      "url": "https://vakilkaraj.net/alimony/",
+      "status": "publish",
+      "published_at": "2023-04-29T10:12:00+03:30",
+      "modified_at": "2023-05-02T09:00:00+03:30",
+      "primary_category_id": 3,
+      "category_ids": [3],
+      "tag_ids": [21],
+      "seo": {
+        "focus_keyword": "نفقه",
+        "secondary_keywords": [],
+        "seo_title": null,
+        "meta_description": null,
+        "cornerstone": false,
+        "noindex": false,
+        "canonical": null
+      },
+      "content_stats": {
+        "word_count": 791,
+        "h2_count": 5,
+        "outline": ["نفقه چیست", "میزان نفقه زن", "نشوز و قطع نفقه"],
+        "excerpt": "نفقه یکی از حقوق مالی زن است که ...",
+        "years_mentioned": ["1402"],
+        "has_featured_image": true,
+        "featured_image_has_alt": false
+      },
+      "links_summary": { "internal_out": 0, "internal_in": 0, "external_out": 0 },
+      "flags": ["orphan", "no_internal_links", "no_meta_description", "outdated_year", "tag_overuse"]
+    }
+  ],
+
+  "links": [
+    { "from_id": 152, "to_url": "https://vakilkaraj.net/legal-consultation", "to_id": 12, "anchor": "مشاوره حقوقی", "type": "internal" }
+  ],
+
+  "stats": {
+    "posts_published": 8,
+    "posts_draft": 0,
+    "pages_published": 6,
+    "categories": 1,
+    "tags": 34,
+    "orphan_posts": 7,
+    "posts_without_focus_keyword": 4,
+    "posts_without_meta_description": 6
+  },
+
+  "warnings": [
+    { "code": "OUTDATED_YEAR", "post_id": 145, "message": "عنوان به سال ۱۴۰۲ اشاره دارد" },
+    { "code": "PROFILE_INCOMPLETE", "message": "مخاطب، لحن و موضوعات ممنوع تکمیل نشده‌اند" }
+  ],
+
+  "data_coverage": {
+    "seo_metadata": "full",
+    "full_content": "excluded",
+    "media": "excluded",
+    "search_console": "not_connected"
+  }
+}
