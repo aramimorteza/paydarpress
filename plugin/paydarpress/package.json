@@ -1,0 +1,14 @@
+{
+	"name": "paydarpress",
+	"version": "0.3.0",
+	"private": true,
+	"description": "PaydarPress admin UI",
+	"scripts": {
+		"build": "wp-scripts build assets/src/index.js --output-path=assets/build",
+		"start": "wp-scripts start assets/src/index.js --output-path=assets/build",
+		"lint:js": "wp-scripts lint-js assets/src"
+	},
+	"devDependencies": {
+		"@wordpress/scripts": "^30.0.0"
+	}
+}

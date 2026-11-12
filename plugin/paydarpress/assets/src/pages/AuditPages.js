@@ -1,0 +1,325 @@
+import { useEffect, useState } from '@wordpress/element';
+import { Button, Spinner, Notice } from '@wordpress/components';
+import Page from '../components/Page';
+import EmptyState from '../components/EmptyState';
+import FindingsList from '../components/FindingsList';
+import FindingCard from '../components/FindingCard';
+import { get, post, errorMessage } from '../lib/api';
+import { num, date, ago } from '../lib/format';
+
+/**
+ * Reads ?code= from the hash route (e.g. #/audit?code=ORPHAN_POST).
+ */
+function hashParam( name ) {
+	const query = window.location.hash.split( '?' )[ 1 ] || '';
+	return new URLSearchParams( query ).get( name ) || '';
+}
+
+/**
+ * Generic loader hook.
+ *
+ * @param {string} path  Endpoint path.
+ * @param {Object} query Query args.
+ * @param {Array}  deps  Dependencies.
+ */
+function useLoad( path, query = {}, deps = [] ) {
+	const [ data, setData ] = useState( null );
+	const [ error, setError ] = useState( '' );
+	const [ loading, setLoading ] = useState( true );
+
+	const load = () => {
+		setLoading( true );
+		return get( path, query )
+			.then( ( d ) => {
+				setData( d );
+				setError( '' );
+			} )
+			.catch( ( e ) => setError( errorMessage( e ) ) )
+			.finally( () => setLoading( false ) );
+	};
+
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	useEffect( () => { load(); }, deps );
+
+	return { data, error, loading, reload: load, setData };
+}
+
+/**
+ * All findings.
+ */
+export function AuditPage() {
+	return (
+		<Page title="ممیزی سلامت محتوا" helpKey="audit">
+			<FindingsList initialCode={ hashParam( 'code' ) } />
+		</Page>
+	);
+}
+
+/**
+ * Image findings.
+ */
+export function ImagesPage() {
+	return (
+		<Page title="سلامت تصاویر" helpKey="images">
+			<FindingsList fixedGroup="images" />
+		</Page>
+	);
+}
+
+/**
+ * Orphan content with link suggestions.
+ */
+export function OrphansPage() {
+	const [ page, setPage ] = useState( 1 );
+	const { data, error, loading } = useLoad( '/orphans', { page, per_page: 10 }, [ page ] );
+
+	return (
+		<Page title="محتوای یتیم و لینک‌های داخلی" helpKey="orphans">
+			{ error && <Notice status="error" isDismissible={ false }>{ error }</Notice> }
+			{ loading && ! data && <Spinner /> }
+			{ data && 0 === data.total && (
+				<div className="pp-card">
+					<EmptyState title="محتوای یتیم پیدا نشد" text="به همه نوشته‌ها و برگه‌های منتشرشده حداقل از یک صفحه لینک داده شده است." />
+				</div>
+			) }
+			{ data && data.total > 0 && <p className="pp-muted">{ num( data.total ) } محتوای یتیم. برای هر مورد، از یکی از نوشته‌های پیشنهادی به آن لینک بدهید.</p> }
+			<div className="pp-finding-list">
+				{ data &&
+					data.items.map( ( item ) => (
+						<FindingCard key={ item.id } finding={ item }>
+							<div className="pp-suggest">
+								<strong>از این نوشته‌ها به آن لینک بدهید:</strong>
+								{ item.suggestions.length ? (
+									<ul>
+										{ item.suggestions.map( ( s ) => (
+											<li key={ s.id }>
+												<a href={ s.edit_url }>{ s.title }</a>
+												<span className="pp-muted"> — { s.reasons.join( '، ' ) }</span>
+											</li>
+										) ) }
+									</ul>
+								) : (
+									<p className="pp-muted">نوشته مرتبطی پیدا نشد؛ از صفحه اصلی یا منو به آن لینک بدهید.</p>
+								) }
+								<p className="pp-muted">
+									انکرتکست پیشنهادی: «{ item.anchor }» (یا یک عبارت توصیفی مشابه)
+								</p>
+							</div>
+						</FindingCard>
+					) ) }
+			</div>
+			{ data && data.total_pages > 1 && (
+				<div className="pp-pagination">
+					<Button variant="secondary" disabled={ page <= 1 } onClick={ () => setPage( page - 1 ) }>قبلی</Button>
+					<span>صفحه { num( page ) } از { num( data.total_pages ) }</span>
+					<Button variant="secondary" disabled={ page >= data.total_pages } onClick={ () => setPage( page + 1 ) }>بعدی</Button>
+				</div>
+			) }
+		</Page>
+	);
+}
+
+const ACTION_CLASS = { rewrite: 'danger', merge: 'warning', light: 'info', none: 'neutral' };
+
+/**
+ * Refresh candidates.
+ */
+export function RefreshPage() {
+	const [ page, setPage ] = useState( 1 );
+	const { data, error, loading } = useLoad( '/refresh-candidates', { page, per_page: 20 }, [ page ] );
+
+	return (
+		<Page title="پیشنهاد بازنویسی" helpKey="refresh">
+			{ error && <Notice status="error" isDismissible={ false }>{ error }</Notice> }
+			{ loading && ! data && <Spinner /> }
+			{ data && 0 === data.total && (
+				<div className="pp-card">
+					<EmptyState title="مقاله‌ای نیاز فوری به بروزرسانی ندارد" text="امتیاز نیاز به بروزرسانی همه نوشته‌ها صفر است." />
+				</div>
+			) }
+			{ data && data.total > 0 && (
+				<div className="pp-card pp-card--flush">
+					<table className="pp-table">
+						<thead>
+							<tr>
+								<th>عنوان</th>
+								<th>امتیاز نیاز</th>
+								<th>اقدام پیشنهادی</th>
+								<th>دلایل</th>
+								<th className="pp-num">کلمات</th>
+								<th>آخرین ویرایش</th>
+							</tr>
+						</thead>
+						<tbody>
+							{ data.items.map( ( item ) => (
+								<tr key={ item.id }>
+									<td>
+										<a className="pp-link" href={ item.edit_url }>{ item.title }</a>
+									</td>
+									<td>
+										<div className="pp-score">
+											<div className="pp-bar pp-bar--small"><span style={ { width: `${ item.score }%` } } /></div>
+											<span>{ num( item.score ) }</span>
+										</div>
+									</td>
+									<td><span className={ `pp-badge pp-badge--${ ACTION_CLASS[ item.action ] }` }>{ item.action_label }</span></td>
+									<td className="pp-reasons">{ item.reasons.map( ( r ) => <span key={ r } className="pp-chip">{ r }</span> ) }</td>
+									<td className="pp-num">{ num( item.words ) }</td>
+									<td>{ date( item.modified_at ) }</td>
+								</tr>
+							) ) }
+						</tbody>
+					</table>
+				</div>
+			) }
+			{ data && data.total_pages > 1 && (
+				<div className="pp-pagination">
+					<Button variant="secondary" disabled={ page <= 1 } onClick={ () => setPage( page - 1 ) }>قبلی</Button>
+					<span>صفحه { num( page ) } از { num( data.total_pages ) }</span>
+					<Button variant="secondary" disabled={ page >= data.total_pages } onClick={ () => setPage( page + 1 ) }>بعدی</Button>
+				</div>
+			) }
+		</Page>
+	);
+}
+
+/**
+ * Categories and tags health.
+ */
+export function TaxonomiesPage() {
+	const { data, error, loading } = useLoad( '/taxonomies' );
+
+	const table = ( items, emptyText ) =>
+		items.length ? (
+			<div className="pp-card pp-card--flush">
+				<table className="pp-table">
+					<thead>
+						<tr>
+							<th>نام</th>
+							<th className="pp-num">تعداد مطلب</th>
+							<th className="pp-num">توضیحات</th>
+							<th>ایندکس</th>
+							<th>مشکلات</th>
+						</tr>
+					</thead>
+					<tbody>
+						{ items.map( ( t ) => (
+							<tr key={ t.id }>
+								<td>
+									<a className="pp-link" href={ t.edit_url }>{ t.name }</a>
+								</td>
+								<td className="pp-num">{ num( t.count ) }</td>
+								<td className="pp-num">{ t.description > 0 ? `${ num( t.description ) } نویسه` : <span className="pp-missing">ندارد</span> }</td>
+								<td>{ t.noindex ? <span className="pp-badge">noindex</span> : 'قابل ایندکس' }</td>
+								<td className="pp-reasons">
+									{ t.findings.length ? t.findings.map( ( f ) => <span key={ f.code } className={ `pp-chip pp-chip--${ f.severity }` }>{ f.title }</span> ) : <span className="pp-muted">—</span> }
+								</td>
+							</tr>
+						) ) }
+					</tbody>
+				</table>
+			</div>
+		) : (
+			<p className="pp-muted">{ emptyText }</p>
+		);
+
+	return (
+		<Page title="دسته‌بندی‌ها و برچسب‌ها" helpKey="taxonomies">
+			{ error && <Notice status="error" isDismissible={ false }>{ error }</Notice> }
+			{ loading && <Spinner /> }
+			{ data && (
+				<>
+					<h2 className="pp-section-title">دسته‌بندی‌ها ({ num( data.categories.length ) })</h2>
+					{ table( data.categories, 'دسته‌بندی‌ای وجود ندارد.' ) }
+					<h2 className="pp-section-title">برچسب‌ها ({ num( data.tags.length ) })</h2>
+					{ table( data.tags, 'برچسبی وجود ندارد.' ) }
+				</>
+			) }
+		</Page>
+	);
+}
+
+const BOT_STATE = {
+	allowed: [ 'success', 'آزاد' ],
+	partial: [ 'info', 'آزاد (به‌جز بخش‌هایی مانند پیشخوان)' ],
+	blocked: [ 'danger', 'مسدود' ],
+};
+
+/**
+ * Crawler access.
+ */
+export function VisibilityPage() {
+	const canManage = !! ( window.paydarpress && window.paydarpress.caps && window.paydarpress.caps.manage );
+	const { data, error, loading, setData } = useLoad( '/crawlers' );
+	const [ checking, setChecking ] = useState( false );
+	const [ checkError, setCheckError ] = useState( '' );
+
+	const check = () => {
+		setChecking( true );
+		setCheckError( '' );
+		post( '/crawlers/check' )
+			.then( setData )
+			.catch( ( e ) => setCheckError( errorMessage( e ) ) )
+			.finally( () => setChecking( false ) );
+	};
+
+	return (
+		<Page
+			title="دیده‌شدن در گوگل و هوش مصنوعی"
+			helpKey="visibility"
+			actions={ canManage && <Button variant="secondary" onClick={ check } isBusy={ checking } disabled={ checking }>بررسی مجدد</Button> }
+		>
+			{ ( error || checkError ) && <Notice status="error" isDismissible={ false }>{ error || checkError }</Notice> }
+			{ loading && <Spinner /> }
+			{ data && (
+				<>
+					<div className={ `pp-card pp-status ${ data.site_public ? 'is-ok' : 'is-bad' }` }>
+						<strong>{ data.site_public ? 'سایت برای موتورهای جستجو قابل مشاهده است.' : 'سایت از ایندکس موتورهای جستجو خارج شده است!' }</strong>
+						{ ! data.site_public && <p>در تنظیمات ← خواندن، گزینه «از موتورهای جستجو بخواهید…» را غیرفعال کنید.</p> }
+					</div>
+
+					<h2 className="pp-section-title">وضعیت خزنده‌ها در robots.txt</h2>
+					{ ! data.checked_at ? (
+						<div className="pp-card">
+							<EmptyState title="هنوز بررسی نشده است" text="پس از اولین اسکن سایت یا با دکمه «بررسی مجدد» انجام می‌شود." />
+						</div>
+					) : (
+						<div className="pp-card pp-card--flush">
+							<table className="pp-table">
+								<thead>
+									<tr>
+										<th>خزنده</th>
+										<th>وضعیت</th>
+										<th>توضیح</th>
+									</tr>
+								</thead>
+								<tbody>
+									{ data.bots.map( ( b ) => {
+										const [ cls, label ] = BOT_STATE[ b.state ] || [ 'neutral', '—' ];
+										return (
+											<tr key={ b.name }>
+												<td dir="ltr" className="pp-bot">{ b.name }</td>
+												<td><span className={ `pp-badge pp-badge--${ cls }` }>{ label }</span></td>
+												<td className="pp-muted">{ b.description }</td>
+											</tr>
+										);
+									} ) }
+								</tbody>
+							</table>
+						</div>
+					) }
+					{ data.checked_at && (
+						<p className="pp-muted">
+							آخرین بررسی { ago( data.checked_at ) }
+							{ 'wordpress' === data.source && ' (فایل robots.txt از سرور دریافت نشد؛ نسخه‌ای که وردپرس می‌سازد بررسی شد)' } —{ ' ' }
+							<a href={ data.robots_url } target="_blank" rel="noreferrer">مشاهده robots.txt</a>
+						</p>
+					) }
+					<p className="pp-muted">
+						بررسی دسترسی سایت از خارج ایران و تنظیمات فایروال در نسخه‌های بعدی اضافه می‌شود. اگر سایت روی هاستی است که ترافیک خارجی را محدود می‌کند، خزنده‌ها حتی با robots.txt آزاد هم نمی‌توانند سایت را ببینند.
+					</p>
+				</>
+			) }
+		</Page>
+	);
+}

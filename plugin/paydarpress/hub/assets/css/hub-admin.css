@@ -1,0 +1,39 @@
+.paydarwp-hub {
+	font-family: var(--pwp-font);
+	color: var(--pwp-text);
+}
+
+.paydarwp-hub h1,
+.paydarwp-hub h2 {
+	font-family: var(--pwp-font);
+}
+
+.paydarwp-hub__lead {
+	color: var(--pwp-text-muted);
+	font-size: var(--pwp-text-base);
+}
+
+.paydarwp-hub__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+	gap: var(--pwp-space-4);
+	margin-block-start: var(--pwp-space-5);
+}
+
+.paydarwp-hub__card {
+	background: var(--pwp-surface);
+	border: 1px solid var(--pwp-border);
+	border-radius: var(--pwp-radius);
+	box-shadow: var(--pwp-shadow);
+	padding: var(--pwp-space-5);
+}
+
+.paydarwp-hub__card h2 {
+	margin-block: 0 var(--pwp-space-2);
+	font-size: var(--pwp-text-lg);
+}
+
+.paydarwp-hub__meta {
+	color: var(--pwp-text-muted);
+	font-size: var(--pwp-text-xs);
+}

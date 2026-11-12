@@ -18,7 +18,7 @@
 
 ## نیازمندی‌ها
 
-- WordPress 6.4 یا بالاتر
+- WordPress 6.5 یا بالاتر
 - PHP 8.0 یا بالاتر
 
 ## ساختار مخزن
@@ -32,6 +32,6 @@ plugin/paydarpress/ کد افزونه (این پوشه به‌صورت zip نص�
 
 ```bash
 cd plugin/paydarpress
-composer install      # وابستگی‌ها (Action Scheduler)
+composer dump-autoload -o   # Autoloader (Action Scheduler در lib/ قرار دارد)
 npm install && npm run build   # رابط کاربری مدیریت
 ```

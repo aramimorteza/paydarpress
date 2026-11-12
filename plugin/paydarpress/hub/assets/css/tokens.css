@@ -1,0 +1,53 @@
+/*
+ * PaydarWP design tokens. Shared by all PaydarWP products.
+ * Products scope their UI under their own root class and read these variables.
+ */
+:root {
+	--pwp-font: "Vazirmatn", Tahoma, "Segoe UI", sans-serif;
+
+	/* Brand */
+	--pwp-primary: #0f6e6e;
+	--pwp-primary-hover: #0b5858;
+	--pwp-primary-soft: #e3f2f1;
+
+	/* Neutrals */
+	--pwp-bg: #f6f7f9;
+	--pwp-surface: #ffffff;
+	--pwp-border: #e2e5ea;
+	--pwp-text: #1d2330;
+	--pwp-text-muted: #5b6475;
+
+	/* Status */
+	--pwp-success: #1f8a4c;
+	--pwp-success-soft: #e5f4ec;
+	--pwp-warning: #b26a00;
+	--pwp-warning-soft: #fdf1de;
+	--pwp-danger: #c0392b;
+	--pwp-danger-soft: #fbe7e5;
+	--pwp-info: #2563b8;
+	--pwp-info-soft: #e6eefa;
+	--pwp-pending: #6b4fbb;
+	--pwp-pending-soft: #efeafb;
+
+	/* Spacing (4px scale) */
+	--pwp-space-1: 4px;
+	--pwp-space-2: 8px;
+	--pwp-space-3: 12px;
+	--pwp-space-4: 16px;
+	--pwp-space-5: 24px;
+	--pwp-space-6: 32px;
+
+	/* Shape */
+	--pwp-radius-sm: 6px;
+	--pwp-radius: 10px;
+	--pwp-radius-lg: 14px;
+	--pwp-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.08);
+
+	/* Type scale */
+	--pwp-text-xs: 12px;
+	--pwp-text-sm: 13px;
+	--pwp-text-base: 14px;
+	--pwp-text-lg: 16px;
+	--pwp-text-xl: 20px;
+	--pwp-text-2xl: 26px;
+}

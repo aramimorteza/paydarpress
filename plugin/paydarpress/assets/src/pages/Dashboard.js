@@ -1,0 +1,151 @@
+import { useEffect, useState } from '@wordpress/element';
+import { Spinner } from '@wordpress/components';
+import Page from '../components/Page';
+import EmptyState from '../components/EmptyState';
+import ScanPanel from '../components/ScanPanel';
+import { SeverityBadge } from '../components/FindingCard';
+import useScan from '../lib/useScan';
+import { get } from '../lib/api';
+import { num, ago } from '../lib/format';
+
+/**
+ * Health score label and color.
+ *
+ * @param {number|null} score Score.
+ */
+function healthLevel( score ) {
+	if ( null === score || undefined === score ) {
+		return [ 'neutral', '—' ];
+	}
+	if ( score >= 80 ) {
+		return [ 'success', 'خوب' ];
+	}
+	if ( score >= 50 ) {
+		return [ 'warning', 'نیاز به توجه' ];
+	}
+	return [ 'danger', 'ضعیف' ];
+}
+
+/**
+ * Dashboard with health, quick wins, orphans and refresh widgets.
+ */
+export default function Dashboard() {
+	const scan = useScan();
+	const [ data, setData ] = useState( null );
+	const scanStatus = scan.scan ? scan.scan.status : null;
+
+	useEffect( () => {
+		if ( 'running' !== scanStatus ) {
+			get( '/dashboard' ).then( setData ).catch( () => {} );
+		}
+	}, [ scanStatus ] );
+
+	if ( scan.loaded && ! scan.scan ) {
+		return (
+			<Page title="پیشخوان" helpKey="dashboard">
+				<div className="pp-card pp-card--highlight">
+					<EmptyState
+						title="هنوز سایت اسکن نشده است"
+						text="برای دیدن وضعیت محتوای سایت، اولین اسکن را اجرا کنید."
+						action={ <a className="button button-primary" href="#/welcome">شروع کار</a> }
+					/>
+				</div>
+			</Page>
+		);
+	}
+
+	const stats = data && data.stats;
+	const [ level, levelLabel ] = healthLevel( stats ? stats.health_score : null );
+
+	return (
+		<Page title="پیشخوان" helpKey="dashboard">
+			{ ! data && <Spinner /> }
+
+			<div className="pp-dash">
+				<section className="pp-card pp-health">
+					<h2 className="pp-card__title">امتیاز سلامت محتوا</h2>
+					{ stats ? (
+						<>
+							<div className={ `pp-health__score pp-health__score--${ level }` }>
+								{ null === stats.health_score ? '—' : num( stats.health_score ) }
+								<small>از ۱۰۰</small>
+							</div>
+							<span className={ `pp-badge pp-badge--${ level }` }>{ levelLabel }</span>
+							<ul className="pp-health__counts">
+								<li><SeverityBadge severity="high" /> { num( stats.by_severity.high ) }</li>
+								<li><SeverityBadge severity="medium" /> { num( stats.by_severity.medium ) }</li>
+								<li><SeverityBadge severity="low" /> { num( stats.by_severity.low ) }</li>
+							</ul>
+							<p className="pp-muted">{ num( stats.published ) } محتوای منتشرشده — آخرین ممیزی { ago( stats.audited_at ) }</p>
+						</>
+					) : (
+						<p className="pp-muted">پس از اسکن محاسبه می‌شود.</p>
+					) }
+				</section>
+
+				<section className="pp-card pp-quick">
+					<h2 className="pp-card__title">۵ اقدام سریع پیشنهادی</h2>
+					{ data && data.quick_wins.length ? (
+						<ol className="pp-quick__list">
+							{ data.quick_wins.map( ( q ) => (
+								<li key={ q.code }>
+									<a href={ `#/audit?code=${ q.code }` } className="pp-quick__title">
+										{ q.title } <span className="pp-tab__count">{ num( q.count ) }</span>
+									</a>
+									<p className="pp-muted">{ q.fix }</p>
+								</li>
+							) ) }
+						</ol>
+					) : (
+						<p className="pp-muted">{ data ? 'مشکلی پیدا نشد.' : '' }</p>
+					) }
+				</section>
+			</div>
+
+			<div className="pp-grid">
+				<section className="pp-card">
+					<h2 className="pp-card__title">محتوای یتیم</h2>
+					<div className="pp-big">{ stats ? num( stats.orphans ) : '—' }</div>
+					<p className="pp-muted">نوشته یا برگه‌ای که هیچ صفحه‌ای به آن لینک نداده است.</p>
+					<a href="#/orphans">مشاهده و پیشنهاد لینک ←</a>
+				</section>
+				<section className="pp-card">
+					<h2 className="pp-card__title">پیشنهاد بازنویسی</h2>
+					<div className="pp-big">{ stats ? num( stats.refresh ) : '—' }</div>
+					{ data && data.refresh.length > 0 && (
+						<ul className="pp-mini-list">
+							{ data.refresh.slice( 0, 3 ).map( ( r ) => (
+								<li key={ r.id }>
+									<a href={ r.edit_url }>{ r.title }</a> <span className="pp-muted">({ r.action_label })</span>
+								</li>
+							) ) }
+						</ul>
+					) }
+					<a href="#/refresh">مشاهده همه ←</a>
+				</section>
+				<section className="pp-card">
+					<h2 className="pp-card__title">دسترسی خزنده‌ها</h2>
+					{ data && data.crawlers ? (
+						<>
+							<div className="pp-big">
+								{ Object.values( data.crawlers.bots ).filter( ( s ) => 'blocked' === s ).length ? (
+									<span className="pp-missing">{ num( Object.values( data.crawlers.bots ).filter( ( s ) => 'blocked' === s ).length ) } مسدود</span>
+								) : (
+									<span className="pp-ok">آزاد</span>
+								) }
+							</div>
+							<p className="pp-muted">{ data.crawlers.site_public ? 'سایت قابل ایندکس است.' : 'سایت از ایندکس خارج است!' }</p>
+						</>
+					) : (
+						<p className="pp-muted">پس از اسکن بررسی می‌شود.</p>
+					) }
+					<a href="#/visibility">جزئیات ←</a>
+				</section>
+				<section className="pp-card">
+					<h2 className="pp-card__title">آخرین اسکن</h2>
+					<ScanPanel state={ scan } doneLink="#/audit" doneLabel="مشاهده ممیزی" />
+				</section>
+			</div>
+		</Page>
+	);
+}
