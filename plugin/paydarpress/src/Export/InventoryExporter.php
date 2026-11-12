@@ -17,6 +17,7 @@ use PaydarWP\PaydarPress\Profile\ProfileRepository;
 use PaydarWP\PaydarPress\Scanner\ContentScanner;
 use PaydarWP\PaydarPress\Scanner\MenuScanner;
 use PaydarWP\PaydarPress\Seo\SeoDetector;
+use PaydarWP\PaydarPress\Text\PersianNormalizer;
 use RuntimeException;
 
 /**
@@ -191,7 +192,7 @@ final class InventoryExporter {
 
 		update_option( self::OPTION_LAST, $info, false );
 
-		Activity::log( 'export.created', sprintf( 'خروجی JSON برای ContentMaster ساخته شد (%s نوشته، %s برگه).', count( $data['posts'] ), count( $data['pages'] ) ), 'export', 0 );
+		Activity::log( 'export.created', sprintf( 'خروجی JSON برای ContentMaster ساخته شد (%s نوشته، %s برگه%s).', PersianNormalizer::fa_number( count( $data['posts'] ) ), PersianNormalizer::fa_number( count( $data['pages'] ) ), $compact ? '، فشرده' : '' ), 'export', 0 );
 
 		return $info;
 	}

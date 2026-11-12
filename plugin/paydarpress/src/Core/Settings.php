@@ -105,6 +105,84 @@ final class Settings {
 	}
 
 	/**
+	 * Bounds for numeric settings: path => [min, max].
+	 */
+	public const LIMITS = array(
+		'performance.batch_size'           => array( 5, 200 ),
+		'performance.batch_time_limit'     => array( 5, 60 ),
+		'performance.quiet_hours_start'    => array( 0, 23 ),
+		'performance.quiet_hours_end'      => array( 0, 23 ),
+		'audit.thin_words'                 => array( 50, 3000 ),
+		'audit.weak_category_min'          => array( 1, 50 ),
+		'audit.tag_overuse_max'            => array( 2, 50 ),
+		'audit.weak_inbound_min'           => array( 1, 20 ),
+		'audit.inline_images_min_words'    => array( 200, 5000 ),
+		'audit.stale_months'               => array( 3, 60 ),
+		'retention.activity_days'          => array( 7, 365 ),
+	);
+
+	/**
+	 * Keeps only known keys, casts each value to the default's type and clamps numbers.
+	 *
+	 * @param array $input Untrusted input (same shape as defaults()).
+	 * @return array Sanitized partial settings.
+	 */
+	public static function sanitize( array $input ): array {
+		$out = array();
+
+		foreach ( self::defaults() as $group => $fields ) {
+			if ( ! isset( $input[ $group ] ) || ! is_array( $input[ $group ] ) ) {
+				continue;
+			}
+			foreach ( $fields as $key => $default ) {
+				if ( ! array_key_exists( $key, $input[ $group ] ) ) {
+					continue;
+				}
+				$value = $input[ $group ][ $key ];
+				$path  = $group . '.' . $key;
+
+				if ( is_bool( $default ) ) {
+					$out[ $group ][ $key ] = (bool) rest_sanitize_boolean( $value );
+				} elseif ( is_int( $default ) ) {
+					$value = (int) $value;
+					if ( isset( self::LIMITS[ $path ] ) ) {
+						$value = max( self::LIMITS[ $path ][0], min( self::LIMITS[ $path ][1], $value ) );
+					}
+					$out[ $group ][ $key ] = $value;
+				} elseif ( is_array( $default ) ) {
+					// Only list of IDs is supported (orphan_exclude_ids).
+					$ids = is_array( $value ) ? $value : preg_split( '/[\s,،]+/u', (string) $value );
+					$ids = array_values( array_unique( array_filter( array_map( 'absint', (array) $ids ) ) ) );
+					$out[ $group ][ $key ] = array_slice( $ids, 0, 500 );
+				}
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Replaces list values instead of merging them (used by update()).
+	 *
+	 * @param array $settings Sanitized partial settings.
+	 */
+	public static function replace( array $settings ): void {
+		$all = self::all();
+		foreach ( $settings as $group => $fields ) {
+			foreach ( $fields as $key => $value ) {
+				$all[ $group ][ $key ] = $value;
+			}
+		}
+
+		if ( false === get_option( self::OPTION, false ) ) {
+			add_option( self::OPTION, $all, '', false );
+			return;
+		}
+
+		update_option( self::OPTION, $all, false );
+	}
+
+	/**
 	 * Recursive merge where scalar values and lists in $override replace those in $base.
 	 *
 	 * @param array $base     Base values.

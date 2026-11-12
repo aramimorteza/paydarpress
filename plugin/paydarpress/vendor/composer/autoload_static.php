@@ -23,6 +23,7 @@ class ComposerStaticInitfb42b83d6c8d640da5884eda2eaeec31
     public static $classMap = array (
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
         'PaydarWP\\PaydarPress\\Admin\\AdminPage' => __DIR__ . '/../..' . '/src/Admin/AdminPage.php',
+        'PaydarWP\\PaydarPress\\Admin\\DashboardWidget' => __DIR__ . '/../..' . '/src/Admin/DashboardWidget.php',
         'PaydarWP\\PaydarPress\\Audit\\AltQuality' => __DIR__ . '/../..' . '/src/Audit/AltQuality.php',
         'PaydarWP\\PaydarPress\\Audit\\AuditEngine' => __DIR__ . '/../..' . '/src/Audit/AuditEngine.php',
         'PaydarWP\\PaydarPress\\Audit\\Catalog' => __DIR__ . '/../..' . '/src/Audit/Catalog.php',
@@ -50,6 +51,7 @@ class ComposerStaticInitfb42b83d6c8d640da5884eda2eaeec31
         'PaydarWP\\PaydarPress\\Rest\\InventoryController' => __DIR__ . '/../..' . '/src/Rest/InventoryController.php',
         'PaydarWP\\PaydarPress\\Rest\\ProfileController' => __DIR__ . '/../..' . '/src/Rest/ProfileController.php',
         'PaydarWP\\PaydarPress\\Rest\\ScanController' => __DIR__ . '/../..' . '/src/Rest/ScanController.php',
+        'PaydarWP\\PaydarPress\\Rest\\SettingsController' => __DIR__ . '/../..' . '/src/Rest/SettingsController.php',
         'PaydarWP\\PaydarPress\\Rest\\UserPrefsController' => __DIR__ . '/../..' . '/src/Rest/UserPrefsController.php',
         'PaydarWP\\PaydarPress\\Scanner\\ContentScanner' => __DIR__ . '/../..' . '/src/Scanner/ContentScanner.php',
         'PaydarWP\\PaydarPress\\Scanner\\MenuScanner' => __DIR__ . '/../..' . '/src/Scanner/MenuScanner.php',

@@ -10,10 +10,12 @@ declare(strict_types=1);
 namespace PaydarWP\PaydarPress;
 
 use PaydarWP\PaydarPress\Admin\AdminPage;
+use PaydarWP\PaydarPress\Admin\DashboardWidget;
 use PaydarWP\PaydarPress\Database\Installer;
 use PaydarWP\PaydarPress\Profile\ProfileRepository;
 use PaydarWP\PaydarPress\Rest\AuditController;
 use PaydarWP\PaydarPress\Rest\ProfileController;
+use PaydarWP\PaydarPress\Rest\SettingsController;
 use PaydarWP\PaydarPress\Rest\InventoryController;
 use PaydarWP\PaydarPress\Rest\ScanController;
 use PaydarWP\PaydarPress\Rest\UserPrefsController;
@@ -67,12 +69,14 @@ final class Plugin {
 		( new InventoryController() )->register();
 		( new AuditController( $scans ) )->register();
 		( new ProfileController( $scans ) )->register();
+		( new SettingsController() )->register();
 
 		// Key pages from the profile feed the WEAK_INBOUND audit rule.
 		add_filter( 'paydarpress/key_page_ids', static fn() => ProfileRepository::key_page_ids() );
 
 		if ( is_admin() ) {
 			( new AdminPage() )->register();
+			( new DashboardWidget() )->register();
 		}
 
 		add_filter( 'paydarwp_hub_products', array( $this, 'register_hub_product' ) );

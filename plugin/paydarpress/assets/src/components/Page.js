@@ -1,6 +1,7 @@
-import { useState } from '@wordpress/element';
+import { useEffect, useState } from '@wordpress/element';
 import { Button } from '@wordpress/components';
 import HelpBox from './HelpBox';
+import { useMode } from '../lib/uiMode';
 
 const config = window.paydarpress || {};
 
@@ -14,8 +15,14 @@ const config = window.paydarpress || {};
  * @param {*}      props.children Page content.
  */
 export default function Page( { title, helpKey, actions, children } ) {
+	const mode = useMode();
 	const dismissed = ( config.dismissedHelp || [] ).includes( helpKey );
-	const [ helpOpen, setHelpOpen ] = useState( ! dismissed );
+	// Simple mode opens help boxes the user has not dismissed; pro mode keeps them behind "؟".
+	const [ helpOpen, setHelpOpen ] = useState( ! dismissed && 'simple' === mode );
+
+	useEffect( () => {
+		setHelpOpen( ! ( config.dismissedHelp || [] ).includes( helpKey ) && 'simple' === mode );
+	}, [ mode, helpKey ] );
 
 	return (
 		<div className="pp-page">

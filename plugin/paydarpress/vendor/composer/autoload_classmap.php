@@ -8,6 +8,7 @@ $baseDir = dirname($vendorDir);
 return array(
     'Composer\\InstalledVersions' => $vendorDir . '/composer/InstalledVersions.php',
     'PaydarWP\\PaydarPress\\Admin\\AdminPage' => $baseDir . '/src/Admin/AdminPage.php',
+    'PaydarWP\\PaydarPress\\Admin\\DashboardWidget' => $baseDir . '/src/Admin/DashboardWidget.php',
     'PaydarWP\\PaydarPress\\Audit\\AltQuality' => $baseDir . '/src/Audit/AltQuality.php',
     'PaydarWP\\PaydarPress\\Audit\\AuditEngine' => $baseDir . '/src/Audit/AuditEngine.php',
     'PaydarWP\\PaydarPress\\Audit\\Catalog' => $baseDir . '/src/Audit/Catalog.php',
@@ -35,6 +36,7 @@ return array(
     'PaydarWP\\PaydarPress\\Rest\\InventoryController' => $baseDir . '/src/Rest/InventoryController.php',
     'PaydarWP\\PaydarPress\\Rest\\ProfileController' => $baseDir . '/src/Rest/ProfileController.php',
     'PaydarWP\\PaydarPress\\Rest\\ScanController' => $baseDir . '/src/Rest/ScanController.php',
+    'PaydarWP\\PaydarPress\\Rest\\SettingsController' => $baseDir . '/src/Rest/SettingsController.php',
     'PaydarWP\\PaydarPress\\Rest\\UserPrefsController' => $baseDir . '/src/Rest/UserPrefsController.php',
     'PaydarWP\\PaydarPress\\Scanner\\ContentScanner' => $baseDir . '/src/Scanner/ContentScanner.php',
     'PaydarWP\\PaydarPress\\Scanner\\MenuScanner' => $baseDir . '/src/Scanner/MenuScanner.php',

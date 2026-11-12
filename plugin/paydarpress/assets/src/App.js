@@ -2,26 +2,12 @@ import { useEffect, useState } from '@wordpress/element';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Welcome from './pages/Welcome';
-import Placeholder from './pages/Placeholder';
+import ActivityPage from './pages/ActivityPage';
+import SettingsPage from './pages/SettingsPage';
 import Inventory from './pages/Inventory';
 import { WizardPage, ProfilePage, ExportPage } from './pages/ProfilePages';
 import { AuditPage, ImagesPage, OrphansPage, RefreshPage, TaxonomiesPage, VisibilityPage } from './pages/AuditPages';
 import { ROUTES } from './routes';
-
-const HELP_KEYS = {
-	'/profile': 'profile',
-	'/inventory': 'inventory',
-	'/taxonomies': 'taxonomies',
-	'/audit': 'audit',
-	'/orphans': 'orphans',
-	'/images': 'images',
-	'/refresh': 'refresh',
-	'/visibility': 'visibility',
-	'/export': 'export',
-	'/activity': 'activity',
-	'/settings': 'settings',
-	'/wizard': 'profile',
-};
 
 /**
  * Reads the current route from the URL hash (e.g. #/audit).
@@ -72,9 +58,12 @@ export default function App() {
 		page = <ProfilePage />;
 	} else if ( '/export' === path ) {
 		page = <ExportPage />;
+	} else if ( '/activity' === path ) {
+		page = <ActivityPage />;
+	} else if ( '/settings' === path ) {
+		page = <SettingsPage />;
 	} else {
-		const route = ROUTES.find( ( item ) => item.path === path );
-		page = <Placeholder key={ path } title={ route ? route.label : '' } helpKey={ HELP_KEYS[ path ] } />;
+		page = <Dashboard />;
 	}
 
 	return (

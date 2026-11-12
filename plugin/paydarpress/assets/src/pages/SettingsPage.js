@@ -1,0 +1,448 @@
+import { useEffect, useMemo, useState } from '@wordpress/element';
+import { Button, Notice, SelectControl, Spinner, TextControl, ToggleControl } from '@wordpress/components';
+import Page from '../components/Page';
+import EmptyState from '../components/EmptyState';
+import { get, post, errorMessage } from '../lib/api';
+import { num, ago, date } from '../lib/format';
+import { setMode, useMode } from '../lib/uiMode';
+import glossary from '../../../help/fa_IR/glossary.json';
+
+const config = window.paydarpress || {};
+
+/**
+ * Settings fields per tab. `advanced` fields are shown only in pro mode.
+ * `type`: toggle | number | ids | hour.
+ */
+const TABS = [
+	{
+		key: 'general',
+		label: 'عمومی',
+		fields: [
+			{ path: 'ui.dashboard_widget', type: 'toggle', label: 'ویجت سلامت محتوا در پیشخوان وردپرس', help: 'امتیاز سلامت و تعداد مشکلات مهم را در صفحه اول پیشخوان وردپرس نشان می‌دهد. فقط داده ذخیره‌شده را می‌خواند و پیشخوان را کند نمی‌کند.' },
+			{ path: 'ui.font_everywhere', type: 'toggle', advanced: true, label: 'فونت وزیرمتن در کل پیشخوان وردپرس', help: 'به‌طور پیش‌فرض فونت فقط در صفحات پایدارپرس بارگذاری می‌شود.' },
+		],
+	},
+	{
+		key: 'audit',
+		label: 'ممیزی',
+		intro: 'این عددها تعیین می‌کنند چه چیزی «مشکل» حساب شود. پس از ذخیره، ممیزی چند ثانیه بعد با مقادیر جدید دوباره اجرا می‌شود.',
+		fields: [
+			{ path: 'audit.thin_words', type: 'number', label: 'حداقل تعداد کلمات یک مطلب', suffix: 'کلمه', help: 'مطالب کوتاه‌تر از این عدد «محتوای کم‌حجم» شناخته می‌شوند.' },
+			{ path: 'audit.stale_months', type: 'number', label: 'قدیمی شدن مطلب پس از', suffix: 'ماه', help: 'مطالبی که در این مدت ویرایش نشده‌اند، در پیشنهاد بازنویسی امتیاز بیشتری می‌گیرند.' },
+			{ path: 'audit.weak_inbound_min', type: 'number', advanced: true, label: 'حداقل لینک ورودی صفحات کلیدی', suffix: 'لینک', help: 'صفحات کلیدی پروفایل که کمتر از این تعداد لینک داخلی دریافت کنند، گزارش می‌شوند.' },
+			{ path: 'audit.weak_category_min', type: 'number', advanced: true, label: 'حداقل نوشته در هر دسته', suffix: 'نوشته', help: 'دسته‌های با نوشته کمتر «دسته ضعیف» شناخته می‌شوند.' },
+			{ path: 'audit.tag_overuse_max', type: 'number', advanced: true, label: 'حداکثر برچسب برای هر نوشته', suffix: 'برچسب' },
+			{ path: 'audit.inline_images_min_words', type: 'number', advanced: true, label: 'نیاز به تصویر داخل متن از', suffix: 'کلمه', help: 'مطالب بلندتر از این عدد بدون تصویر داخل متن گزارش می‌شوند.' },
+			{ path: 'audit.orphan_exclude_ids', type: 'ids', advanced: true, label: 'شناسه صفحاتی که یتیم حساب نشوند', help: 'شناسه نوشته یا برگه را با ویرگول جدا کنید؛ مثلاً صفحات فرود تبلیغاتی که عمداً لینک داخلی ندارند.' },
+		],
+	},
+	{
+		key: 'performance',
+		label: 'عملکرد و صف',
+		fields: [
+			{ path: 'performance.shared_hosting', type: 'toggle', label: 'حالت هاست اشتراکی', help: 'اسکن در بسته‌های کوچک‌تر (۱۵ مطلب در هر مرحله) و آرام‌تر انجام می‌شود. برای هاست‌های ارزان یا شلوغ پیشنهاد می‌شود.' },
+			{ path: 'performance.batch_size', type: 'number', advanced: true, label: 'تعداد مطلب در هر مرحله اسکن', suffix: 'مطلب', disabledBy: 'performance.shared_hosting' },
+			{ path: 'performance.batch_time_limit', type: 'number', advanced: true, label: 'حداکثر زمان هر مرحله', suffix: 'ثانیه', disabledBy: 'performance.shared_hosting' },
+			{ path: 'performance.quiet_hours_only', type: 'toggle', advanced: true, label: 'کارهای روزانه فقط در ساعات خلوت', help: 'پاک‌سازی روزانه (گزارش‌های قدیمی و فایل‌های خروجی منقضی) در ساعت شروع بازه اجرا می‌شود. اسکن‌هایی که خودتان شروع می‌کنید همیشه فوری اجرا می‌شوند.' },
+			{ path: 'performance.quiet_hours_start', type: 'hour', advanced: true, label: 'شروع ساعات خلوت', showIf: 'performance.quiet_hours_only' },
+			{ path: 'performance.quiet_hours_end', type: 'hour', advanced: true, label: 'پایان ساعات خلوت', showIf: 'performance.quiet_hours_only' },
+		],
+	},
+	{
+		key: 'advanced',
+		label: 'پیشرفته',
+		proOnly: true,
+		fields: [
+			{ path: 'retention.activity_days', type: 'number', label: 'نگهداری گزارش فعالیت', suffix: 'روز' },
+			{ path: 'uninstall.delete_data', type: 'toggle', danger: true, label: 'حذف همه داده‌ها هنگام پاک کردن افزونه', help: 'اگر روشن باشد، با حذف افزونه از صفحه افزونه‌ها، جدول‌ها، پروفایل سایت، تنظیمات و خروجی‌ها برای همیشه پاک می‌شوند. غیرفعال کردن افزونه چیزی را پاک نمی‌کند.' },
+		],
+	},
+	{ key: 'help', label: 'راهنما', fields: [] },
+];
+
+const HOURS = Array.from( { length: 24 }, ( _, h ) => ( { value: String( h ), label: `ساعت ${ num( h ) }` } ) );
+
+function read( obj, path ) {
+	return path.split( '.' ).reduce( ( acc, key ) => ( acc ? acc[ key ] : undefined ), obj );
+}
+
+function write( obj, path, value ) {
+	const [ group, key ] = path.split( '.' );
+	return { ...obj, [ group ]: { ...obj[ group ], [ key ]: value } };
+}
+
+function initialTab() {
+	const match = window.location.hash.match( /[?&]tab=([a-z]+)/ );
+	return match ? match[ 1 ] : 'general';
+}
+
+export default function SettingsPage() {
+	const canManage = !! ( config.caps && config.caps.manage );
+	const mode = useMode();
+	const [ tab, setTab ] = useState( initialTab );
+	const [ data, setData ] = useState( null );
+	const [ values, setValues ] = useState( null );
+	const [ saving, setSaving ] = useState( false );
+	const [ notice, setNotice ] = useState( null );
+
+	useEffect( () => {
+		if ( canManage ) {
+			get( '/settings' )
+				.then( ( d ) => {
+					setData( d );
+					setValues( d.settings );
+				} )
+				.catch( ( e ) => setNotice( { status: 'error', text: errorMessage( e ) } ) );
+		}
+	}, [ canManage ] );
+
+	const visibleTabs = TABS.filter( ( t ) => ! t.proOnly || 'pro' === mode );
+	const current = visibleTabs.find( ( t ) => t.key === tab ) || visibleTabs[ 0 ];
+
+	const dirty = useMemo( () => {
+		if ( ! data || ! values ) {
+			return [];
+		}
+		return TABS.flatMap( ( t ) => t.fields )
+			.filter( ( f ) => JSON.stringify( read( values, f.path ) ) !== JSON.stringify( read( data.settings, f.path ) ) )
+			.map( ( f ) => f.path );
+	}, [ data, values ] );
+
+	if ( ! canManage ) {
+		return (
+			<Page title="تنظیمات" helpKey="settings">
+				<div className="pp-card"><EmptyState title="دسترسی ندارید" text="تنظیمات فقط برای مدیر سایت قابل تغییر است." /></div>
+			</Page>
+		);
+	}
+
+	const save = () => {
+		setSaving( true );
+		setNotice( null );
+		const payload = {};
+		dirty.forEach( ( path ) => {
+			const [ group, key ] = path.split( '.' );
+			payload[ group ] = { ...( payload[ group ] || {} ), [ key ]: read( values, path ) };
+		} );
+		post( '/settings', { settings: payload } )
+			.then( ( d ) => {
+				setData( d );
+				setValues( d.settings );
+				setNotice( { status: 'success', text: 'تنظیمات ذخیره شد.' } );
+			} )
+			.catch( ( e ) => setNotice( { status: 'error', text: errorMessage( e ) } ) )
+			.finally( () => setSaving( false ) );
+	};
+
+	const selectTab = ( key ) => {
+		setTab( key );
+		window.history.replaceState( null, '', `#/settings?tab=${ key }` );
+	};
+
+	const hiddenCount = current.fields.filter( ( f ) => f.advanced ).length;
+
+	return (
+		<Page title="تنظیمات" helpKey="settings">
+			{ notice && <Notice status={ notice.status } onRemove={ () => setNotice( null ) }>{ notice.text }</Notice> }
+
+			<div className="pp-tabs" role="tablist" aria-label="بخش‌های تنظیمات">
+				{ visibleTabs.map( ( t ) => (
+					<button
+						key={ t.key }
+						type="button"
+						role="tab"
+						aria-selected={ t.key === current.key }
+						className={ `pp-tab${ t.key === current.key ? ' is-active' : '' }` }
+						onClick={ () => selectTab( t.key ) }
+					>
+						{ t.label }
+					</button>
+				) ) }
+			</div>
+
+			{ ! values && <Spinner /> }
+
+			{ values && current.fields.length > 0 && (
+				<section className="pp-card pp-card--section">
+					{ current.intro && <p className="pp-help-text">{ current.intro }</p> }
+					<div className="pp-form">
+						{ current.fields
+							.filter( ( f ) => ! f.advanced || 'pro' === mode )
+							.filter( ( f ) => ! f.showIf || read( values, f.showIf ) )
+							.map( ( f ) => (
+								<SettingField
+									key={ f.path }
+									field={ f }
+									value={ read( values, f.path ) }
+									defaultValue={ read( data.defaults, f.path ) }
+									limit={ data.limits[ f.path ] }
+									disabled={ !! f.disabledBy && !! read( values, f.disabledBy ) }
+									onChange={ ( v ) => setValues( write( values, f.path, v ) ) }
+								/>
+							) ) }
+					</div>
+					{ 'simple' === mode && hiddenCount > 0 && (
+						<p className="pp-muted pp-advanced-hint">
+							{ num( hiddenCount ) } گزینه پیشرفته دیگر در این بخش هست.{ ' ' }
+							<Button variant="link" onClick={ () => setMode( 'pro' ) }>نمایش در حالت حرفه‌ای</Button>
+						</p>
+					) }
+					<div className="pp-sticky-actions pp-sticky-actions--in-card">
+						<span className="pp-muted">{ dirty.length ? `${ num( dirty.length ) } تنظیم تغییر کرده است.` : 'تغییری ذخیره‌نشده ندارید.' }</span>
+						<div className="pp-sticky-actions__buttons">
+							{ dirty.length > 0 && (
+								<Button variant="tertiary" onClick={ () => setValues( data.settings ) } disabled={ saving }>انصراف</Button>
+							) }
+							<Button variant="primary" onClick={ save } isBusy={ saving } disabled={ saving || 0 === dirty.length } __next40pxDefaultSize>
+								ذخیره تنظیمات
+							</Button>
+						</div>
+					</div>
+				</section>
+			) }
+
+			{ values && 'performance' === current.key && <QueueStatus /> }
+			{ values && 'advanced' === current.key && <SystemInfo /> }
+			{ 'help' === current.key && <HelpTab /> }
+		</Page>
+	);
+}
+
+/**
+ * One settings control.
+ *
+ * @param {Object} props
+ */
+function SettingField( { field, value, defaultValue, limit, disabled, onChange } ) {
+	const isDefault = JSON.stringify( value ) === JSON.stringify( defaultValue );
+	const reset = ! isDefault && 'toggle' !== field.type && (
+		<Button variant="link" className="pp-reset" onClick={ () => onChange( defaultValue ) }>
+			بازگشت به پیش‌فرض ({ Array.isArray( defaultValue ) ? 'خالی' : num( defaultValue ) })
+		</Button>
+	);
+
+	if ( 'toggle' === field.type ) {
+		return (
+			<div className={ `pp-setting${ field.danger && value ? ' pp-setting--danger' : '' }` }>
+				<ToggleControl __nextHasNoMarginBottom label={ field.label } help={ field.help } checked={ !! value } onChange={ onChange } />
+			</div>
+		);
+	}
+
+	if ( 'hour' === field.type ) {
+		return (
+			<div className="pp-setting">
+				<SelectControl __nextHasNoMarginBottom __next40pxDefaultSize label={ field.label } value={ String( value ) } options={ HOURS } onChange={ ( v ) => onChange( parseInt( v, 10 ) ) } />
+			</div>
+		);
+	}
+
+	if ( 'ids' === field.type ) {
+		return (
+			<div className="pp-setting">
+				<TextControl
+					__nextHasNoMarginBottom
+					__next40pxDefaultSize
+					label={ field.label }
+					help={ field.help }
+					dir="ltr"
+					value={ ( value || [] ).join( ', ' ) }
+					onChange={ ( v ) => onChange( v.split( /[\s,،]+/ ).map( ( x ) => parseInt( x, 10 ) ).filter( ( x ) => x > 0 ) ) }
+				/>
+				{ reset }
+			</div>
+		);
+	}
+
+	const help = [
+		field.help,
+		limit ? `بین ${ num( limit.min ) } تا ${ num( limit.max ) } ${ field.suffix || '' }.` : '',
+		disabled ? 'در حالت هاست اشتراکی مقدار ثابت و کم استفاده می‌شود.' : '',
+	]
+		.filter( Boolean )
+		.join( ' ' );
+
+	return (
+		<div className="pp-setting pp-setting--number">
+			<TextControl
+				__nextHasNoMarginBottom
+				__next40pxDefaultSize
+				type="number"
+				label={ field.label }
+				help={ help }
+				value={ String( value ) }
+				min={ limit ? limit.min : undefined }
+				max={ limit ? limit.max : undefined }
+				disabled={ disabled }
+				onChange={ ( v ) => onChange( '' === v ? 0 : parseInt( v, 10 ) ) }
+			/>
+			{ reset }
+		</div>
+	);
+}
+
+/**
+ * Background queue health and "run now".
+ */
+function QueueStatus() {
+	const [ queue, setQueue ] = useState( null );
+	const [ busy, setBusy ] = useState( false );
+	const [ ran, setRan ] = useState( null );
+
+	useEffect( () => {
+		get( '/queue' ).then( setQueue ).catch( () => {} );
+	}, [] );
+
+	const run = () => {
+		setBusy( true );
+		post( '/queue/run' )
+			.then( ( d ) => {
+				setQueue( d );
+				setRan( d.processed );
+			} )
+			.catch( () => {} )
+			.finally( () => setBusy( false ) );
+	};
+
+	if ( ! queue ) {
+		return null;
+	}
+
+	return (
+		<section className="pp-card pp-card--section">
+			<h2 className="pp-card__title">وضعیت صف پس‌زمینه</h2>
+			{ ! queue.healthy && (
+				<Notice status="warning" isDismissible={ false }>
+					{ num( queue.overdue ) } کار بیش از ۱۰ دقیقه منتظر مانده است{ queue.oldest_overdue ? ` (قدیمی‌ترین: ${ ago( queue.oldest_overdue ) })` : '' }. یعنی کارهای پس‌زمینه وردپرس (WP-Cron) روی این هاست اجرا نمی‌شوند. تا وقتی صفحه پایدارپرس باز است کارها انجام می‌شوند؛ برای اجرای خودکار، از پشتیبانی هاست بخواهید یک Cron Job برای wp-cron.php تنظیم کند.
+				</Notice>
+			) }
+			{ queue.cron_disabled && queue.healthy && (
+				<Notice status="info" isDismissible={ false }>
+					WP-Cron در این سایت غیرفعال است (DISABLE_WP_CRON)؛ صف به Cron Job سرور وابسته است و در حال حاضر سالم کار می‌کند.
+				</Notice>
+			) }
+			<dl className="pp-facts">
+				<div><dt>کارهای در انتظار</dt><dd>{ num( queue.pending ) }</dd></div>
+				<div><dt>کارهای عقب‌افتاده</dt><dd className={ queue.overdue ? 'pp-missing' : '' }>{ num( queue.overdue ) }</dd></div>
+				<div><dt>خطا در ۷ روز اخیر</dt><dd className={ queue.failed_7d ? 'pp-missing' : '' }>{ num( queue.failed_7d ) }</dd></div>
+				<div><dt>پاک‌سازی روزانه بعدی</dt><dd>{ queue.next_daily_at ? `${ date( queue.next_daily_at ) } ساعت ${ new Date( queue.next_daily_at ).toLocaleTimeString( 'fa-IR', { hour: '2-digit', minute: '2-digit' } ) }` : '—' }</dd></div>
+			</dl>
+			<div className="pp-form__actions">
+				{ null !== ran && <span className="pp-muted">{ ran ? `${ num( ran ) } کار انجام شد.` : 'کار عقب‌افتاده‌ای نبود.' }</span> }
+				<Button variant="secondary" onClick={ run } isBusy={ busy } disabled={ busy }>اجرای کارهای در انتظار</Button>
+			</div>
+		</section>
+	);
+}
+
+/**
+ * System info for support (copyable, no personal data).
+ */
+function SystemInfo() {
+	const [ info, setInfo ] = useState( null );
+	const [ copied, setCopied ] = useState( false );
+
+	useEffect( () => {
+		get( '/system' ).then( setInfo ).catch( () => {} );
+	}, [] );
+
+	if ( ! info ) {
+		return null;
+	}
+
+	const rows = [
+		[ 'نسخه پایدارپرس', info.plugin_version ],
+		[ 'نسخه پایگاه داده افزونه', info.db_version ],
+		[ 'وردپرس', info.wordpress ],
+		[ 'PHP', info.php ],
+		[ 'پایگاه داده', info.database ],
+		[ 'محدودیت حافظه PHP', info.memory_limit ],
+		[ 'حداکثر زمان اجرا', info.max_execution ? `${ info.max_execution } s` : 'نامحدود' ],
+		[ 'پوسته', `${ info.theme }${ info.block_theme ? ' (بلوکی)' : '' }` ],
+		[ 'افزونه سئو', info.seo_plugin ],
+		[ 'ووکامرس', info.woocommerce ? 'فعال' : 'غیرفعال' ],
+		[ 'Action Scheduler', info.action_scheduler ],
+		[ 'WP-Cron', info.wp_cron_disabled ? 'غیرفعال' : 'فعال' ],
+		[ 'منطقه زمانی', info.timezone ],
+		[ 'ردیف‌های جدول‌ها', Object.entries( info.table_rows ).map( ( [ k, v ] ) => `${ k }: ${ v }` ).join( '، ' ) ],
+	];
+
+	const copy = () => {
+		const text = rows.map( ( [ k, v ] ) => `${ k }: ${ v }` ).join( '\n' );
+		const done = () => {
+			setCopied( true );
+			setTimeout( () => setCopied( false ), 2000 );
+		};
+		if ( window.navigator.clipboard ) {
+			window.navigator.clipboard.writeText( text ).then( done ).catch( () => {} );
+		}
+	};
+
+	return (
+		<section className="pp-card pp-card--section">
+			<h2 className="pp-card__title">اطلاعات سیستم</h2>
+			<p className="pp-help-text">هنگام درخواست پشتیبانی این اطلاعات را بفرستید. ایمیل، نام کاربری و کلیدها در آن نیست.</p>
+			<table className="pp-table pp-table--kv">
+				<tbody>
+					{ rows.map( ( [ k, v ] ) => (
+						<tr key={ k }><th scope="row">{ k }</th><td><bdi dir="ltr">{ String( v ) }</bdi></td></tr>
+					) ) }
+				</tbody>
+			</table>
+			<div className="pp-form__actions">
+				<Button variant="secondary" onClick={ copy }>{ copied ? 'کپی شد' : 'کپی اطلاعات' }</Button>
+			</div>
+		</section>
+	);
+}
+
+/**
+ * Help tab: reset help boxes, glossary.
+ */
+function HelpTab() {
+	const [ busy, setBusy ] = useState( false );
+	const [ done, setDone ] = useState( false );
+	const [ query, setQuery ] = useState( '' );
+
+	const reset = () => {
+		setBusy( true );
+		post( '/help/reset' )
+			.then( () => {
+				config.dismissedHelp = [];
+				setDone( true );
+			} )
+			.catch( () => {} )
+			.finally( () => setBusy( false ) );
+	};
+
+	const items = glossary.filter( ( g ) => ! query || g.term.includes( query ) || g.definition.includes( query ) );
+
+	return (
+		<>
+			<section className="pp-card pp-card--section">
+				<h2 className="pp-card__title">راهنماهای صفحات</h2>
+				<p className="pp-help-text">راهنماهایی که با «متوجه شدم» بسته‌اید، فقط برای حساب شما پنهان شده‌اند. با این دکمه همه دوباره نمایش داده می‌شوند.</p>
+				<div className="pp-form__actions pp-form__actions--start">
+					<Button variant="secondary" onClick={ reset } isBusy={ busy } disabled={ busy || done }>
+						{ done ? 'همه راهنماها دوباره نمایش داده می‌شوند' : 'نمایش دوباره همه راهنماها' }
+					</Button>
+					<Button variant="tertiary" href="#/welcome">صفحه شروع کار</Button>
+				</div>
+			</section>
+			<section className="pp-card pp-card--section">
+				<h2 className="pp-card__title">واژه‌نامه</h2>
+				<TextControl __nextHasNoMarginBottom __next40pxDefaultSize label="جست‌وجو در واژه‌نامه" hideLabelFromVision placeholder="جست‌وجو در واژه‌نامه…" value={ query } onChange={ setQuery } />
+				<dl className="pp-glossary">
+					{ items.map( ( g ) => (
+						<div key={ g.term }>
+							<dt>{ g.term }</dt>
+							<dd>{ g.definition }</dd>
+						</div>
+					) ) }
+				</dl>
+				{ 0 === items.length && <p className="pp-muted">موردی پیدا نشد.</p> }
+			</section>
+		</>
+	);
+}
+

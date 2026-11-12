@@ -301,8 +301,38 @@ final class ScanManager {
 	 */
 	public function ensure_daily(): void {
 		if ( function_exists( 'as_has_scheduled_action' ) && ! as_has_scheduled_action( self::ACTION_DAILY, array(), Queue::GROUP ) ) {
-			as_schedule_recurring_action( time() + HOUR_IN_SECONDS, DAY_IN_SECONDS, self::ACTION_DAILY, array(), Queue::GROUP );
+			as_schedule_recurring_action( self::next_daily_time(), DAY_IN_SECONDS, self::ACTION_DAILY, array(), Queue::GROUP );
 		}
+	}
+
+	/**
+	 * Moves the daily maintenance to the new time after performance settings change.
+	 */
+	public static function reschedule_daily(): void {
+		if ( ! function_exists( 'as_unschedule_all_actions' ) ) {
+			return;
+		}
+		as_unschedule_all_actions( self::ACTION_DAILY, array(), Queue::GROUP );
+		as_schedule_recurring_action( self::next_daily_time(), DAY_IN_SECONDS, self::ACTION_DAILY, array(), Queue::GROUP );
+	}
+
+	/**
+	 * First run of the daily maintenance: in one hour, or at the start of the quiet hours
+	 * (site time zone) when "quiet hours only" is on.
+	 */
+	public static function next_daily_time(): int {
+		if ( ! (bool) Settings::get( 'performance.quiet_hours_only', false ) ) {
+			return time() + HOUR_IN_SECONDS;
+		}
+
+		$hour = (int) Settings::get( 'performance.quiet_hours_start', 1 );
+		$now  = new \DateTimeImmutable( 'now', wp_timezone() );
+		$next = $now->setTime( $hour, 15 );
+		if ( $next <= $now ) {
+			$next = $next->modify( '+1 day' );
+		}
+
+		return $next->getTimestamp();
 	}
 
 	/**

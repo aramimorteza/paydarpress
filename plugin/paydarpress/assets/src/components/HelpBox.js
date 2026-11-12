@@ -32,6 +32,7 @@ export default function HelpBox( { pageKey, open, onClose } ) {
 			.catch( () => {} )
 			.finally( () => {
 				setSaving( false );
+				config.dismissedHelp = [ ...( config.dismissedHelp || [] ), pageKey ];
 				onClose();
 			} );
 	};

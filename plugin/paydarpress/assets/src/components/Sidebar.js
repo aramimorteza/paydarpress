@@ -1,4 +1,5 @@
 import { Dashicon } from '@wordpress/components';
+import { setMode, useMode } from '../lib/uiMode';
 import { NAV } from '../routes';
 
 /**
@@ -8,6 +9,7 @@ import { NAV } from '../routes';
  * @param {string} props.current Current route path.
  */
 export default function Sidebar( { current } ) {
+	const mode = useMode();
 	const link = ( item ) => (
 		<li key={ item.path }>
 			<a
@@ -36,6 +38,23 @@ export default function Sidebar( { current } ) {
 					)
 				) }
 			</ul>
+			<div className="pp-mode" role="group" aria-label="حالت نمایش">
+				<span className="pp-mode__label">حالت نمایش</span>
+				<div className="pp-mode__switch">
+					{ [ [ 'simple', 'ساده' ], [ 'pro', 'حرفه‌ای' ] ].map( ( [ key, label ] ) => (
+						<button
+							key={ key }
+							type="button"
+							className={ `pp-mode__option${ mode === key ? ' is-active' : '' }` }
+							aria-pressed={ mode === key }
+							onClick={ () => setMode( key ) }
+						>
+							{ label }
+						</button>
+					) ) }
+				</div>
+				<p className="pp-mode__hint">{ 'simple' === mode ? 'راهنماها باز و گزینه‌های پیشرفته پنهان‌اند.' : 'راهنماها جمع شده‌اند و همه گزینه‌ها نمایش داده می‌شوند.' }</p>
+			</div>
 		</nav>
 	);
 }
