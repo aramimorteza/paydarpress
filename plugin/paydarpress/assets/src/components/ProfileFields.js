@@ -1,4 +1,5 @@
-import { useState } from '@wordpress/element';
+import { useEffect, useState } from '@wordpress/element';
+import { get } from '../lib/api';
 import { Button, SelectControl, TextControl, TextareaControl } from '@wordpress/components';
 
 /** Field name → key of the industry example used as placeholder. */
@@ -136,7 +137,7 @@ export function ProfileField( { name, def, value, field, choices, onChange, indu
 				</div>
 			);
 		case 'key_pages':
-			return <KeyPagesEditor label={ label } help={ help } ex={ industry ? industry.ex : {} } value={ value || [] } pages={ choices.pages || [] } onChange={ set } />;
+			return <KeyPagesEditor label={ label } help={ help } ex={ industry ? industry.ex : {} } value={ value || [] } pages={ choices.pages || [] } categories={ choices.categories || [] } onChange={ set } />;
 		case 'cta_options':
 			return <CtaEditor label={ label } help={ help } ex={ industry ? industry.ex : {} } value={ value || [] } onChange={ set } />;
 		case 'categories':
@@ -150,51 +151,151 @@ export function ProfileField( { name, def, value, field, choices, onChange, indu
 	}
 }
 
+const ANCHOR_TYPES = { exact: 'دقیق', partial: 'بخشی', branded: 'برند', generic: 'بی‌معنی', other: 'سایر' };
+
 /**
- * Key pages: list with priority, "link when" and anchors.
+ * Category multi-select: checkboxes with a filter for long lists.
  */
-function KeyPagesEditor( { label, help, ex, value, pages, onChange } ) {
+function CategoryPicker( { categories, value, onChange } ) {
+	const [ filter, setFilter ] = useState( '' );
+	const selected = new Set( ( value || [] ).map( Number ) );
+	const toggle = ( id ) => {
+		const next = new Set( selected );
+		if ( next.has( id ) ) {
+			next.delete( id );
+		} else {
+			next.add( id );
+		}
+		onChange( [ ...next ] );
+	};
+	const shown = categories.filter( ( c ) => ! filter || c.name.includes( filter ) );
+
+	return (
+		<div className="pp-catpick">
+			<div className="pp-catpick__label">از مقالات کدام دسته‌ها به این صفحه لینک داده شود؟</div>
+			<div className="pp-help-text">هیچ دسته‌ای انتخاب نشود یعنی «همه مقالات». ContentMaster و صف لینک‌ها از این انتخاب پیروی می‌کنند.</div>
+			{ categories.length > 12 && (
+				<TextControl __nextHasNoMarginBottom placeholder="جست‌وجوی دسته…" value={ filter } onChange={ setFilter } />
+			) }
+			<div className="pp-catpick__list">
+				{ shown.map( ( c ) => (
+					<label key={ c.id } className={ `pp-chip${ selected.has( c.id ) ? ' is-on' : '' }` }>
+						<input type="checkbox" checked={ selected.has( c.id ) } onChange={ () => toggle( c.id ) } />
+						{ c.name } <small>({ c.count })</small>
+					</label>
+				) ) }
+			</div>
+			<div className="pp-catpick__summary">{ selected.size ? `${ selected.size } دسته انتخاب شده` : 'همه مقالات' }</div>
+		</div>
+	);
+}
+
+/**
+ * Anchor distribution of one key page (from the last scan).
+ */
+function AnchorStats( { stats } ) {
+	if ( ! stats ) {
+		return null;
+	}
+	if ( ! stats.total ) {
+		return <div className="pp-anchorstats pp-help-text">هنوز هیچ مقاله‌ای به این صفحه لینک نداده است.</div>;
+	}
+	const pct = Math.round( stats.exact_share * 100 );
+	return (
+		<div className={ `pp-anchorstats${ stats.over_cap ? ' is-warn' : '' }` }>
+			<div className="pp-anchorstats__bar" aria-hidden="true">
+				{ Object.keys( ANCHOR_TYPES ).map( ( k ) => stats.counts[ k ] > 0 && (
+					<span key={ k } className={ `pp-anchorstats__seg is-${ k }` } style={ { flexGrow: stats.counts[ k ] } } title={ `${ ANCHOR_TYPES[ k ] }: ${ stats.counts[ k ] }` } />
+				) ) }
+			</div>
+			<div className="pp-anchorstats__legend">
+				{ stats.total } لینک ورودی — { Object.keys( ANCHOR_TYPES ).filter( ( k ) => stats.counts[ k ] > 0 ).map( ( k ) => `${ ANCHOR_TYPES[ k ] } ${ stats.counts[ k ] }` ).join( '، ' ) }
+				{ ' ' }· متن دقیق: <strong>{ pct }٪</strong> (سقف ۳۰٪)
+			</div>
+			{ stats.warnings.map( ( w, i ) => <div key={ i } className="pp-anchorstats__warn">⚠ { w }</div> ) }
+		</div>
+	);
+}
+
+/**
+ * Key pages: list with priority, link categories, anchors and anchor statistics.
+ */
+function KeyPagesEditor( { label, help, ex, value, pages, categories, onChange } ) {
+	const [ stats, setStats ] = useState( {} );
+	const [ suggestions, setSuggestions ] = useState( {} );
 	const update = ( index, patch ) => onChange( value.map( ( p, i ) => ( i === index ? { ...p, ...patch } : p ) ) );
 	const remove = ( index ) => onChange( value.filter( ( _, i ) => i !== index ) );
 	const available = pages.filter( ( p ) => ! value.some( ( v ) => v.id === p.id ) );
 
+	useEffect( () => {
+		get( '/profile/key-pages/stats' ).then( ( r ) => setStats( Object.fromEntries( ( r.pages || [] ).map( ( s ) => [ s.id, s ] ) ) ) ).catch( () => {} );
+	}, [] );
+
+	const suggest = ( id ) => {
+		setSuggestions( { ...suggestions, [ id ]: 'loading' } );
+		get( `/profile/key-pages/${ id }/anchors` )
+			.then( ( r ) => setSuggestions( ( s ) => ( { ...s, [ id ]: r.anchors || [] } ) ) )
+			.catch( () => setSuggestions( ( s ) => ( { ...s, [ id ]: [] } ) ) );
+	};
+
 	return (
 		<fieldset className="pp-field pp-repeater">
 			<legend>{ label }</legend>
-			<div className="pp-help-text">{ help }</div>
-			{ value.map( ( page, index ) => (
-				<div key={ page.id } className="pp-repeater__item">
-					<div className="pp-repeater__head">
-						<strong>{ page.name || ( pages.find( ( p ) => p.id === page.id ) || {} ).title }</strong>
-						{ 'menu' === page.detected_by && <span className="pp-badge">در منو</span> }
-						<SelectControl
+			<div className="pp-help-text">{ help } هر مقاله حداکثر به ۲ صفحه کلیدی لینک می‌دهد.</div>
+			{ value.map( ( page, index ) => {
+				const anchors = page.anchors || [];
+				const list = suggestions[ page.id ];
+				return (
+					<div key={ page.id } className="pp-repeater__item">
+						<div className="pp-repeater__head">
+							<strong>{ page.name || ( pages.find( ( p ) => p.id === page.id ) || {} ).title }</strong>
+							{ 'menu' === page.detected_by && <span className="pp-badge">در منو</span> }
+							{ 'gsc' === page.detected_by && <span className="pp-badge">از سرچ کنسول</span> }
+							<SelectControl
+								__nextHasNoMarginBottom
+								label="اولویت"
+								hideLabelFromVision
+								value={ page.priority || 'normal' }
+								options={ [ { value: 'high', label: 'اولویت بالا' }, { value: 'normal', label: 'اولویت عادی' } ] }
+								onChange={ ( v ) => update( index, { priority: v } ) }
+							/>
+							<Button variant="tertiary" isDestructive size="small" onClick={ () => remove( index ) }>حذف</Button>
+						</div>
+						<CategoryPicker categories={ categories } value={ page.link_categories } onChange={ ( v ) => update( index, { link_categories: v } ) } />
+						{ page.link_when && ! ( page.link_categories || [] ).length && (
+							<div className="pp-help-text">توضیح قبلی شما: «{ page.link_when }» — دسته‌های مربوط را بالا انتخاب کنید.</div>
+						) }
+						<TextControl
 							__nextHasNoMarginBottom
-							label="اولویت"
-							hideLabelFromVision
-							value={ page.priority || 'normal' }
-							options={ [ { value: 'high', label: 'اولویت بالا' }, { value: 'normal', label: 'اولویت عادی' } ] }
-							onChange={ ( v ) => update( index, { priority: v } ) }
+							label="متن‌های لینک (انکرتکست) — با ویرگول جدا کنید"
+							help="۳ تا ۶ عبارت متنوع. حداکثر ۳۰٪ لینک‌ها باید دقیقاً عبارت اصلی صفحه باشند؛ بقیه بخشی، توصیفی یا با نام برند. «اینجا کلیک کنید» ننویسید."
+							placeholder={ ex.anchors ? `مثال: ${ ex.anchors }` : '' }
+							value={ anchors.join( '، ' ) }
+							onChange={ ( v ) => update( index, { anchors: v.split( /[،,]/ ).map( ( a ) => a.trim() ).filter( Boolean ) } ) }
 						/>
-						<Button variant="tertiary" isDestructive size="small" onClick={ () => remove( index ) }>حذف</Button>
+						<div className="pp-anchor-suggest">
+							<Button variant="secondary" size="small" onClick={ () => suggest( page.id ) } isBusy={ 'loading' === list } disabled={ 'loading' === list }>
+								پیشنهاد متن لینک
+							</Button>
+							{ Array.isArray( list ) && list.map( ( a ) => {
+								const added = anchors.includes( a.anchor );
+								return (
+									<button
+										type="button"
+										key={ a.anchor }
+										className={ `pp-chip${ added ? ' is-on' : '' }` }
+										disabled={ added || anchors.length >= 6 }
+										onClick={ () => update( index, { anchors: [ ...anchors, a.anchor ] } ) }
+									>
+										{ added ? '✓ ' : '+ ' }{ a.anchor } <small>({ ANCHOR_TYPES[ a.type ] || a.type })</small>
+									</button>
+								);
+							} ) }
+						</div>
+						<AnchorStats stats={ stats[ page.id ] } />
 					</div>
-					<TextControl
-						__nextHasNoMarginBottom
-						label="چه زمانی لینک داده شود؟"
-						help="نوع یا دسته مقالاتی که باید به این صفحه لینک بدهند. اگر همه مقالات، بنویسید «همه مقالات»."
-						placeholder={ ex.link_when ? `مثال: ${ ex.link_when }` : '' }
-						value={ page.link_when || '' }
-						onChange={ ( v ) => update( index, { link_when: v } ) }
-					/>
-					<TextControl
-						__nextHasNoMarginBottom
-						label="متن‌های لینک (انکرتکست) — با ویرگول جدا کنید"
-						help="۲ تا ۴ عبارت ۲ تا ۶ کلمه‌ای که موضوع این صفحه را توصیف کنند. یکی شامل عبارت اصلی صفحه و بقیه متنوع؛ «اینجا کلیک کنید» ننویسید."
-						placeholder={ ex.anchors ? `مثال: ${ ex.anchors }` : '' }
-						value={ ( page.anchors || [] ).join( '، ' ) }
-						onChange={ ( v ) => update( index, { anchors: v.split( /[،,]/ ).map( ( a ) => a.trim() ).filter( Boolean ) } ) }
-					/>
-				</div>
-			) ) }
+				);
+			} ) }
 			{ available.length > 0 && (
 				<SelectControl
 					__nextHasNoMarginBottom
@@ -202,7 +303,7 @@ function KeyPagesEditor( { label, help, ex, value, pages, onChange } ) {
 					label="افزودن صفحه کلیدی"
 					value=""
 					options={ [ { value: '', label: 'انتخاب صفحه…' }, ...available.map( ( p ) => ( { value: String( p.id ), label: `${ p.title }${ 'post' === p.type ? ' (نوشته)' : '' }` } ) ) ] }
-					onChange={ ( id ) => id && onChange( [ ...value, { id: Number( id ), name: ( pages.find( ( p ) => String( p.id ) === id ) || {} ).title, priority: 'normal', link_when: '', anchors: [], detected_by: 'manual' } ] ) }
+					onChange={ ( id ) => id && onChange( [ ...value, { id: Number( id ), name: ( pages.find( ( p ) => String( p.id ) === id ) || {} ).title, priority: 'normal', link_categories: [], anchors: [], detected_by: 'manual' } ] ) }
 				/>
 			) }
 		</fieldset>

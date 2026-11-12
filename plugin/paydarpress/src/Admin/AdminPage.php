@@ -184,6 +184,29 @@ final class AdminPage {
 			'modules'       => array(
 				'woocommerce' => class_exists( 'WooCommerce' ),
 			),
+			'badges'        => self::badges(),
+		);
+	}
+
+	/**
+	 * Counts shown next to menu items (things waiting for the user).
+	 *
+	 * @return array<string, int>
+	 */
+	public static function badges(): array {
+		global $wpdb;
+
+		$stats  = get_option( \PaydarWP\PaydarPress\Audit\AuditEngine::OPTION_STATS, array() );
+		$stats  = is_array( $stats ) ? $stats : array();
+		$topics = \PaydarWP\PaydarPress\Database\Schema::table( 'topics' );
+
+		return array(
+			'audit'   => (int) ( $stats['by_severity']['high'] ?? 0 ),
+			'orphans' => (int) ( $stats['orphans'] ?? 0 ),
+			'refresh' => (int) ( $stats['refresh'] ?? 0 ),
+			'links'   => \PaydarWP\PaydarPress\Import\LinkSuggestionRepository::pending_count(),
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			'topics'  => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$topics} WHERE status = 'new'" ),
 		);
 	}
 

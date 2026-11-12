@@ -205,6 +205,8 @@ final class ProfileRepository {
 						'name'        => html_entity_decode( get_the_title( $post ), ENT_QUOTES, 'UTF-8' ),
 						'url'         => (string) get_permalink( $post ),
 						'link_when'   => mb_substr( sanitize_text_field( (string) ( $item['link_when'] ?? '' ) ), 0, 200 ),
+						// Categories whose articles should link here; empty = every article.
+						'link_categories' => array_values( array_unique( array_filter( array_map( 'intval', array_slice( (array) ( $item['link_categories'] ?? array() ), 0, 30 ) ), static fn( $c ) => $c > 0 && term_exists( $c, 'category' ) ) ) ),
 						'anchors'     => $anchors,
 						'priority'    => 'high' === ( $item['priority'] ?? '' ) ? 'high' : 'normal',
 						'detected_by' => sanitize_key( (string) ( $item['detected_by'] ?? 'manual' ) ),

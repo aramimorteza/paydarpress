@@ -17,6 +17,7 @@ const TABS = [
 	{ key: 'absent', label: 'دیده‌نشده در گوگل', hint: 'نوشته‌های قدیمی‌تر از ۳ ماه که در این دوره هیچ نمایشی در گوگل نداشته‌اند.' },
 	{ key: 'top', label: 'پربازدیدترین صفحات', hint: 'صفحات سایت به ترتیب کلیک از گوگل.' },
 	{ key: 'unmatched', label: 'آدرس‌های بدون محتوا', hint: 'آدرس‌هایی که در گوگل دیده شده‌اند اما به نوشته یا برگه فعلی نمی‌رسند.' },
+	{ key: 'gaps', label: 'جست‌وجوهای بی‌مقاله', hint: 'کاربران این عبارت‌ها را جست‌وجو کرده‌اند و سایت شما در نتایج دیده شده، اما هیچ عنوان یا کلمه کلیدی مقاله‌ای آن را پوشش نمی‌دهد. فرصت مقاله جدید یا تکمیل یک مقاله نزدیک است.' },
 	{ key: 'queries', label: 'عبارت‌های جست‌وجو', hint: 'عبارت‌هایی که سایت شما با آن‌ها در گوگل دیده شده است.' },
 ];
 
@@ -83,7 +84,9 @@ export default function GscPage() {
 						) ) }
 					</div>
 					<p className="pp-muted pp-filter-hint">{ TABS.find( ( t ) => t.key === tab ).hint }</p>
-					{ 'queries' === tab ? <QueriesTable /> : <PagesTable key={ tab } tab={ tab } compare={ !! summary.compare } /> }
+					{ 'queries' === tab && <QueriesTable /> }
+					{ 'gaps' === tab && <GapsTable /> }
+					{ 'queries' !== tab && 'gaps' !== tab && <PagesTable key={ tab } tab={ tab } compare={ !! summary.compare } /> }
 					{ canManage && (
 						<details className="pp-card pp-card--section pp-gsc-replace">
 							<summary>آپلود داده تازه یا حذف داده</summary>
@@ -389,6 +392,110 @@ function QueriesTable() {
 									<td className="pp-num">{ num( q.impressions ) }</td>
 									<td className="pp-num">{ percent( q.ctr ) }</td>
 									<td className="pp-num">{ num( q.position ) }</td>
+								</tr>
+							) ) }
+						</tbody>
+					</table>
+				</div>
+			) }
+			{ data && data.total_pages > 1 && (
+				<div className="pp-pagination">
+					<Button variant="secondary" disabled={ page <= 1 } onClick={ () => setPage( page - 1 ) }>قبلی</Button>
+					<span>صفحه { num( page ) } از { num( data.total_pages ) }</span>
+					<Button variant="secondary" disabled={ page >= data.total_pages } onClick={ () => setPage( page + 1 ) }>بعدی</Button>
+				</div>
+			) }
+		</>
+	);
+}
+
+/**
+ * Searches with impressions that no article covers.
+ */
+function GapsTable() {
+	const [ status, setStatus ] = useState( 'open' );
+	const [ page, setPage ] = useState( 1 );
+	const [ data, setData ] = useState( null );
+	const [ added, setAdded ] = useState( {} );
+	const [ error, setError ] = useState( '' );
+	const manage = !! ( config.caps && config.caps.manage );
+
+	useEffect( () => {
+		setData( null );
+		get( '/gsc/gaps', { status, page, per_page: 30 } ).then( setData ).catch( ( e ) => setError( errorMessage( e ) ) );
+	}, [ status, page ] );
+
+	const addTopic = ( q ) => {
+		setAdded( ( a ) => ( { ...a, [ q ]: 'busy' } ) );
+		post( '/gsc/gaps/topic', { query: q } )
+			.then( ( r ) => setAdded( ( a ) => ( { ...a, [ q ]: r.created ? 'added' : 'exists' } ) ) )
+			.catch( ( e ) => {
+				setAdded( ( a ) => ( { ...a, [ q ]: null } ) );
+				setError( errorMessage( e ) );
+			} );
+	};
+
+	const counts = data ? data.counts : null;
+	const FILTERS = [
+		[ 'open', 'همه فرصت‌ها', counts ? counts.gap + counts.partial : null ],
+		[ 'gap', 'بدون هیچ مقاله', counts ? counts.gap : null ],
+		[ 'partial', 'مقاله نزدیک دارد', counts ? counts.partial : null ],
+		[ 'planned', 'در موضوعات پیشنهادی', counts ? counts.planned : null ],
+	];
+
+	return (
+		<>
+			{ error && <Notice status="error" onRemove={ () => setError( '' ) }>{ error }</Notice> }
+			<div className="pp-toolbar pp-segmented">
+				{ FILTERS.map( ( [ key, label, count ] ) => (
+					<Button key={ key } variant={ status === key ? 'primary' : 'secondary' } size="small" onClick={ () => { setStatus( key ); setPage( 1 ); } }>
+						{ label }{ null !== count && ` (${ num( count ) })` }
+					</Button>
+				) ) }
+			</div>
+			{ ! data && ! error && <Spinner /> }
+			{ data && 0 === data.total && (
+				<div className="pp-card"><EmptyState title="موردی نیست" text={ 'planned' === status ? 'هنوز هیچ جست‌وجویی به موضوعات پیشنهادی اضافه نشده است.' : 'همه جست‌وجوهای پرنمایش (۱۰ نمایش یا بیشتر) مقاله‌ای مرتبط در سایت دارند.' } /></div>
+			) }
+			{ data && data.total > 0 && (
+				<div className="pp-card pp-card--flush">
+					<table className="pp-table">
+						<thead>
+							<tr>
+								<th>عبارت جست‌وجو</th>
+								<th className="pp-num">نمایش</th>
+								<th className="pp-num">کلیک</th>
+								<th className="pp-num">جایگاه</th>
+								<th>وضعیت</th>
+							</tr>
+						</thead>
+						<tbody>
+							{ data.items.map( ( g ) => (
+								<tr key={ g.query }>
+									<td>
+										<strong>{ g.query }</strong>
+										<div className="pp-row-ai">
+											{ 'planned' !== g.status && <AiButton command={ queryCommand( g.query ) } /> }
+											{ manage && 'planned' !== g.status && (
+												<Button variant="link" disabled={ !! added[ g.query ] } onClick={ () => addTopic( g.query ) }>
+													{ { busy: 'در حال افزودن…', added: '✓ به موضوعات پیشنهادی اضافه شد', exists: 'از قبل در موضوعات هست' }[ added[ g.query ] ] || 'افزودن به موضوعات پیشنهادی' }
+												</Button>
+											) }
+										</div>
+									</td>
+									<td className="pp-num">{ num( g.impressions ) }</td>
+									<td className="pp-num">{ num( g.clicks ) }</td>
+									<td className="pp-num">{ num( g.position ) }</td>
+									<td>
+										{ 'gap' === g.status && <span className="pp-badge pp-badge--danger">بدون مقاله</span> }
+										{ 'planned' === g.status && <span className="pp-badge pp-badge--info">در موضوعات</span> }
+										{ 'partial' === g.status && g.closest && (
+											<>
+												<span className="pp-badge pp-badge--warning">مقاله نزدیک</span>
+												<div className="pp-muted"><a href={ g.closest.url } target="_blank" rel="noreferrer">{ g.closest.title }</a> — شاید با افزودن یک بخش این جست‌وجو را هم پوشش دهد.</div>
+											</>
+										) }
+									</td>
 								</tr>
 							) ) }
 						</tbody>

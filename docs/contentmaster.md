@@ -1,4 +1,4 @@
-# ContentMaster v1.7
+# ContentMaster v1.8
 ### Multi-site SEO content system: Setup, Topic Research, Article Writing, Content Refresh
 
 ---
@@ -178,7 +178,7 @@ Output Language:            (default: Persian)
 - ...
 
 [KEY PAGES]
-- Name: | URL: | Link when: | Allowed anchor variations: | Priority: [high/normal]
+- Name: | URL: | Link from categories: [category names, or "all"] | Allowed anchor variations: | Priority: [high/normal]
 - ...
 
 [AUTHORS]
@@ -283,7 +283,8 @@ Within a conversation, also keep an internal running list of everything suggeste
 The PaydarPress plugin exports the site as JSON (schema `1.x`, profile `contentmaster-lite`). When such a file is present:
 
 **Read**
-- `profile.<field>.value` → SITE PROFILE fields with the same names (Section 5). `key_pages`, `cta_options` and `categories_scope` are lists of objects with `id`, `name`, `url` and their own fields (`link_when`, `anchors`, `priority`, `scope`, `use_when`).
+- `profile.<field>.value` → SITE PROFILE fields with the same names (Section 5). `key_pages`, `cta_options` and `categories_scope` are lists of objects with `id`, `name`, `url` and their own fields (`link_categories` + `link_categories_names` = categories whose articles should link to the page, empty = all articles; older exports may only have the free-text `link_when`; `anchors`, `priority`, `scope`, `use_when`).
+- `profile.link_rules` → `max_key_page_links_per_article` (2) and `exact_anchor_max_share` (0.3). `key_page_anchor_stats` lists, per key page, how many links it already has and what share uses the exact main phrase (`over_cap: true` = already above 30%: do **not** use the exact phrase as anchor for that page in new articles).
 - `profile.<field>.source` is `detected`, `inferred` or `manual`; `confirmed: false` means the owner has not confirmed it. Use unconfirmed values, but ask about them in the same single question as the missing fields.
 - `profile.missing_fields` → the only fields to ask about. Ask for all of them in **one** short round (numbered questions, one example each), then continue. Never re-run the full Setup interview.
 - `posts`, `pages`, `products` → CONTENT INVENTORY. Use `title`, `url`, `seo.focus_keyword`, `primary_category_id` (resolve names via `taxonomies.categories`), `status`, `content_stats.outline` (H2/H3) and `content_stats.excerpt` for duplication and cannibalization checks, and `url` for internal linking. Only `status: publish` items may be linked.
@@ -455,12 +456,14 @@ Sources of link targets:
 
 Rules:
 - **3–6 internal links** per article (fewer if the article is short or the inventory is small):
-  - at least **1 link to a Key Page** relevant to the topic (high-priority pages first)
+  - at least **1** and at most **2 links to Key Pages** (2 different key pages max per article), chosen from the pages whose `Link from categories` includes the article's category (or "all"); high-priority pages first
   - **1–3 links to related published articles**, ideally in the same category or a closely related one
   - optionally 1 link to the parent category page
 - Place links inside body paragraphs where they help the reader take the next step, not in a list at the end.
 - Each URL is linked **only once** per article.
 - Anchor text: descriptive and natural, 2–6 words. Vary anchors and use the profile's `Allowed anchor variations` for key pages. Never use "اینجا کلیک کنید" or the same exact anchor as the target's main keyword every time.
+- **Anchor rotation for key pages:** keep exact-match anchors (anchor = the page's main keyword) under **30%** of all links to that page. Rotate through: partial (main keyword inside a longer phrase), descriptive (what the reader gets there), branded (with the brand name) and, rarely, the exact phrase. If `key_page_anchor_stats` shows `over_cap: true` for a page, use only non-exact anchors for it.
+- Never use another article's focus keyword as the anchor of a link to a different page.
 - Never link to a URL that is not in the profile or inventory. Never invent URLs.
 - The CTA in the conclusion links to the most relevant `CTA Option` URL.
 - **Reverse links**: suggest 2–3 existing published articles that should link **to** this new article, with a suggested anchor and the sentence where it could fit.

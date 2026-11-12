@@ -57,6 +57,16 @@ final class SettingsController {
 
 		register_rest_route(
 			self::NAMESPACE,
+			'/badges',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => static fn() => new WP_REST_Response( \PaydarWP\PaydarPress\Admin\AdminPage::badges() ),
+				'permission_callback' => $view,
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
 			'/settings',
 			array(
 				array(

@@ -114,6 +114,15 @@ final class LinkQueue {
 			return $this->set( $id, 'applied', 'این نوشته از قبل به مقصد لینک داده بود؛ تغییری لازم نبود.' );
 		}
 
+		// At most two different key pages per article: more looks like advertising to readers and Google.
+		$key_pages = KeyPageLinks::pages();
+		if ( isset( $key_pages[ $target->ID ] ) ) {
+			$already = array_diff( KeyPageLinks::linked_in( (string) $source->post_content, array_keys( $key_pages ) ), array( $target->ID ) );
+			if ( count( $already ) >= KeyPageLinks::MAX_PER_ARTICLE ) {
+				return $this->set( $id, 'failed', sprintf( 'این نوشته از قبل به %s صفحه کلیدی (%s) لینک داده است؛ سقف ۲ صفحه کلیدی در هر مقاله است. اگر این لینک مهم‌تر است، یکی از آن لینک‌ها را بردارید و دوباره «درج» بزنید.', PersianNormalizer::fa_number( count( $already ) ), implode( '، ', array_map( fn( $k ) => $this->title( (int) $k ), $already ) ) ) );
+			}
+		}
+
 		$url    = esc_url( (string) get_permalink( $target->ID ) );
 		$result = LinkInserter::insert( (string) $source->post_content, (string) $row['anchor'], $url );
 		if ( null === $result ) {

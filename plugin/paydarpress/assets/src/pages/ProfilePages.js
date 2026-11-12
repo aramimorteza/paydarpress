@@ -201,6 +201,105 @@ export function WizardPage() {
 /**
  * Full profile editor.
  */
+/**
+ * Suggestions from the imported Search Console queries. Clicking adds them to the form;
+ * nothing is stored until the user saves.
+ */
+function GscSuggestions( { values, onChange } ) {
+	const [ data, setData ] = useState( null );
+	const [ used, setUsed ] = useState( {} );
+
+	useEffect( () => {
+		get( '/gsc/insights' ).then( setData ).catch( () => setData( null ) );
+	}, [] );
+
+	if ( ! data ) {
+		return null;
+	}
+	if ( ! data.available ) {
+		return (
+			<div className="pp-card pp-gsc-suggest pp-gsc-suggest--empty">
+				<strong>پر کردن پروفایل با داده‌های گوگل:</strong> اگر فایل خروجی سرچ کنسول را در صفحه «سرچ کنسول» وارد کنید، جست‌وجوهای واقعی کاربران اینجا به الگوی کلمات کلیدی، سؤال‌های مخاطب، محدوده جغرافیایی و صفحات کلیدی تبدیل می‌شوند. <a href="#/gsc">ورود فایل سرچ کنسول</a>
+			</div>
+		);
+	}
+
+	const append = ( field, text, key ) => {
+		const current = ( values[ field ] || '' ).trim();
+		const lines = text.split( '\n' ).filter( ( l ) => l && ! current.includes( l.split( ' (' )[ 0 ] ) );
+		if ( lines.length ) {
+			onChange( field, current ? `${ current }\n${ lines.join( '\n' ) }` : lines.join( '\n' ) );
+		}
+		setUsed( ( u ) => ( { ...u, [ key ]: true } ) );
+	};
+	const addKeyPage = ( page ) => {
+		const list = values.key_pages || [];
+		if ( ! list.some( ( p ) => p.id === page.id ) ) {
+			onChange( 'key_pages', [ ...list, { id: page.id, name: page.title, priority: 'normal', link_categories: [], anchors: [], detected_by: 'gsc' } ] );
+		}
+		setUsed( ( u ) => ( { ...u, [ `kp${ page.id }` ]: true } ) );
+	};
+
+	const f = data.fields || {};
+	const hasAny = f.primary_keyword_patterns || f.audience_problems || f.geographic_scope || ( data.key_pages || [] ).length;
+	if ( ! hasAny ) {
+		return null;
+	}
+
+	return (
+		<section className="pp-card pp-gsc-suggest">
+			<h2 className="pp-card__title">پیشنهاد از سرچ کنسول</h2>
+			<p className="pp-muted">از { num( data.queries ) } جست‌وجوی واقعی که سایت شما در گوگل برایشان دیده شده (جست‌وجوی نام برند حذف شده). با «افزودن»، متن به فیلد اضافه می‌شود؛ سپس ویرایش و ذخیره کنید.</p>
+
+			{ f.primary_keyword_patterns && (
+				<div className="pp-gsc-suggest__row">
+					<div>
+						<strong>الگوی کلمات کلیدی</strong>
+						<ul>{ data.patterns.map( ( p ) => <li key={ p.pattern }><code>{ p.pattern }</code> — { num( p.queries ) } جست‌وجو، { num( p.impressions ) } نمایش؛ مثل «{ p.examples.slice( 0, 2 ).join( '»، «' ) }»</li> ) }</ul>
+					</div>
+					<Button variant="secondary" size="small" disabled={ used.patterns } onClick={ () => append( 'primary_keyword_patterns', f.primary_keyword_patterns, 'patterns' ) }>{ used.patterns ? 'اضافه شد' : 'افزودن' }</Button>
+				</div>
+			) }
+			{ f.audience_problems && (
+				<div className="pp-gsc-suggest__row">
+					<div>
+						<strong>سؤال‌ها و مشکلات مخاطب</strong>
+						<ul>{ data.questions.slice( 0, 8 ).map( ( q ) => <li key={ q.query }>{ q.query } <span className="pp-muted">({ num( q.impressions ) } نمایش)</span></li> ) }</ul>
+					</div>
+					<Button variant="secondary" size="small" disabled={ used.problems } onClick={ () => append( 'audience_problems', f.audience_problems, 'problems' ) }>{ used.problems ? 'اضافه شد' : 'افزودن' }</Button>
+				</div>
+			) }
+			{ f.geographic_scope && (
+				<div className="pp-gsc-suggest__row">
+					<div>
+						<strong>محدوده جغرافیایی</strong>
+						<div>{ data.places.map( ( p ) => `${ p.place } (${ num( p.impressions ) } نمایش)` ).join( '، ' ) }</div>
+						{ values.geographic_scope && <div className="pp-muted">مقدار فعلی: { values.geographic_scope }</div> }
+					</div>
+					<Button variant="secondary" size="small" disabled={ used.geo || values.geographic_scope === f.geographic_scope } onClick={ () => { onChange( 'geographic_scope', f.geographic_scope ); setUsed( ( u ) => ( { ...u, geo: true } ) ); } }>
+						{ values.geographic_scope ? `جایگزینی با «${ f.geographic_scope }»` : `ثبت «${ f.geographic_scope }»` }
+					</Button>
+				</div>
+			) }
+			{ ( data.key_pages || [] ).length > 0 && (
+				<div className="pp-gsc-suggest__row">
+					<div>
+						<strong>صفحات پربازدید که صفحه کلیدی نیستند</strong>
+						<ul>
+							{ data.key_pages.map( ( p ) => (
+								<li key={ p.id }>
+									{ p.title } <span className="pp-muted">({ num( p.clicks ) } کلیک)</span>{ ' ' }
+									<Button variant="link" disabled={ used[ `kp${ p.id }` ] } onClick={ () => addKeyPage( p ) }>{ used[ `kp${ p.id }` ] ? 'اضافه شد' : 'افزودن به صفحات کلیدی' }</Button>
+								</li>
+							) ) }
+						</ul>
+					</div>
+				</div>
+			) }
+		</section>
+	);
+}
+
 export function ProfilePage() {
 	const profile = useProfile();
 	const { data, values, dirty, error, saving } = profile;
@@ -231,6 +330,7 @@ export function ProfilePage() {
 			}
 		>
 			<Completion completion={ data.completion } defs={ data.defs } />
+			{ canManage() && <GscSuggestions values={ values } onChange={ profile.change } /> }
 			{ error && <Notice status="error" isDismissible={ false }>{ error }</Notice> }
 			{ saved && 0 === dirtyNames.length && <Notice status="success" onRemove={ () => setSaved( false ) }>تغییرات ذخیره شد.</Notice> }
 

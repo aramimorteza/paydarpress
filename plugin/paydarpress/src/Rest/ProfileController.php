@@ -13,6 +13,7 @@ use PaydarWP\PaydarPress\Core\Activity;
 use PaydarWP\PaydarPress\Core\Capabilities;
 use PaydarWP\PaydarPress\Database\Schema;
 use PaydarWP\PaydarPress\Export\InventoryExporter;
+use PaydarWP\PaydarPress\Links\KeyPageLinks;
 use PaydarWP\PaydarPress\Profile\Fields;
 use PaydarWP\PaydarPress\Profile\ProfileInference;
 use PaydarWP\PaydarPress\Profile\ProfileRepository;
@@ -89,6 +90,16 @@ final class ProfileController {
 			)
 		);
 
+		register_rest_route( $ns, '/profile/key-pages/stats', array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'key_page_stats' ), 'permission_callback' => $view ) );
+		register_rest_route(
+			$ns,
+			'/profile/key-pages/(?P<id>\\d+)/anchors',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'anchor_suggestions' ),
+				'permission_callback' => $view,
+			)
+		);
 		register_rest_route( $ns, '/profile/infer', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'infer' ), 'permission_callback' => $manage ) );
 
 		register_rest_route(
@@ -265,6 +276,37 @@ final class ProfileController {
 	}
 
 	/**
+	 * Anchor distribution and warnings per key page.
+	 */
+	public function key_page_stats(): WP_REST_Response {
+		return new WP_REST_Response(
+			array(
+				'pages'           => array_values( KeyPageLinks::stats() ),
+				'exact_cap'       => KeyPageLinks::EXACT_CAP,
+				'max_per_article' => KeyPageLinks::MAX_PER_ARTICLE,
+			)
+		);
+	}
+
+	/**
+	 * Anchor variations for one page.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 */
+	public function anchor_suggestions( WP_REST_Request $request ) {
+		$id = (int) $request['id'];
+		if ( 'publish' !== get_post_status( $id ) ) {
+			return new WP_Error( 'paydarpress_not_found', 'صفحه پیدا نشد.', array( 'status' => 404 ) );
+		}
+		return new WP_REST_Response(
+			array(
+				'main_phrase' => KeyPageLinks::main_phrase( $id ),
+				'anchors'     => KeyPageLinks::suggest( $id ),
+			)
+		);
+	}
+
+	/**
 	 * Profile response.
 	 */
 	private function profile_payload(): array {
@@ -295,6 +337,20 @@ final class ProfileController {
 						'type'  => $p->post_type,
 					),
 					$pages
+				),
+				'categories' => array_map(
+					static fn( $t ) => array(
+						'id'    => (int) $t->term_id,
+						'name'  => html_entity_decode( $t->name, ENT_QUOTES, 'UTF-8' ),
+						'count' => (int) $t->count,
+					),
+					(array) get_terms(
+						array(
+							'taxonomy'   => 'category',
+							'hide_empty' => false,
+							'number'     => 200,
+						)
+					)
 				),
 			),
 		);

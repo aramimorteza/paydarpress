@@ -51,3 +51,13 @@ check( null, L::remove( '<p>edited by hand</p>', $r['inserted'], $r['text'] ), '
 // Context.
 $c = L::context( '<p>مقدمه طولانی.</p><p>برای محاسبه مهریه به نرخ روز</p>', 'محاسبه مهریه', 20 );
 check( array( 'before' => 'مقدمه طولانی. برای', 'match' => 'محاسبه مهریه', 'after' => 'به نرخ روز' ), $c, 'context: around match' );
+
+// Persian ezafe after a word ending in ه.
+$r = L::insert( '<p>هزینه‌ی وکیل طلاق در کرج</p>', 'هزینه وکیل طلاق', $u );
+check( '<p><a href="https://x.ir/mahrieh/">هزینه‌ی وکیل طلاق</a> در کرج</p>', $r['html'], 'insert: ezafe with zwnj' );
+$r = L::insert( '<p>هزینهٔ وکیل طلاق</p>', 'هزینه وکیل طلاق', $u );
+check( true, null !== $r, 'insert: ezafe hamza' );
+$r = L::insert( '<p>درباره خانه ی ما</p>', 'خانه', $u );
+check( '<p>درباره <a href="https://x.ir/mahrieh/">خانه ی</a> ما</p>', $r['html'], 'insert: separated ezafe at phrase end' );
+check( null, L::insert( '<p>خانه‌ها و خانه یک</p>', 'خانه بزرگ', $u ), 'insert: ezafe never swallows another word' );
+check( null, L::insert( '<p>خانه‌ها</p>', 'خانه', $u ), 'insert: plural is not ezafe' );

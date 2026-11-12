@@ -20,6 +20,7 @@ use PaydarWP\PaydarPress\Core\Activity;
 use PaydarWP\PaydarPress\Core\Capabilities;
 use PaydarWP\PaydarPress\Database\Schema;
 use PaydarWP\PaydarPress\Gsc\GscImporter;
+use PaydarWP\PaydarPress\Gsc\GscInsights;
 use PaydarWP\PaydarPress\Gsc\GscRepository;
 use Throwable;
 use WP_Error;
@@ -67,6 +68,38 @@ final class GscController {
 		);
 
 		register_rest_route( self::NAMESPACE, '/gsc', array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'summary' ), 'permission_callback' => $view ) );
+		register_rest_route( self::NAMESPACE, '/gsc/insights', array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'insights' ), 'permission_callback' => $view ) );
+		register_rest_route(
+			self::NAMESPACE,
+			'/gsc/gaps',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'gaps' ),
+				'permission_callback' => $view,
+				'args'                => $paging + array(
+					'status' => array(
+						'type'    => 'string',
+						'enum'    => array( 'open', 'gap', 'partial', 'planned', 'all' ),
+						'default' => 'open',
+					),
+				),
+			)
+		);
+		register_rest_route(
+			self::NAMESPACE,
+			'/gsc/gaps/topic',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'gap_topic' ),
+				'permission_callback' => $manage,
+				'args'                => array(
+					'query' => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+				),
+			)
+		);
 		register_rest_route( self::NAMESPACE, '/gsc/import', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'import' ), 'permission_callback' => $manage ) );
 		register_rest_route( self::NAMESPACE, '/gsc/clear', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'clear' ), 'permission_callback' => $manage ) );
 		register_rest_route(
@@ -200,6 +233,67 @@ final class GscController {
 		}
 
 		return $this->paged( $items, $total, $page, $per_page );
+	}
+
+	/**
+	 * Profile suggestions from the queries.
+	 */
+	public function insights(): WP_REST_Response {
+		return new WP_REST_Response( GscInsights::profile() );
+	}
+
+	/**
+	 * Searches with no matching article.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 */
+	public function gaps( WP_REST_Request $request ): WP_REST_Response {
+		$all    = GscInsights::gaps();
+		$status = (string) $request->get_param( 'status' );
+		$counts = array_count_values( array_column( $all, 'status' ) );
+		$items  = array_values(
+			array_filter(
+				$all,
+				static fn( $g ) => 'all' === $status || ( 'open' === $status ? 'planned' !== $g['status'] : $status === $g['status'] )
+			)
+		);
+
+		$per_page = (int) $request->get_param( 'per_page' );
+		$page     = (int) $request->get_param( 'page' );
+		$response = $this->paged( array_slice( $items, ( $page - 1 ) * $per_page, $per_page ), count( $items ), $page, $per_page );
+		$data           = $response->get_data();
+		$data['counts'] = array(
+			'gap'     => (int) ( $counts['gap'] ?? 0 ),
+			'partial' => (int) ( $counts['partial'] ?? 0 ),
+			'planned' => (int) ( $counts['planned'] ?? 0 ),
+		);
+		$response->set_data( $data );
+		return $response;
+	}
+
+	/**
+	 * Adds a searched query as a suggested topic.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 */
+	public function gap_topic( WP_REST_Request $request ) {
+		$query = trim( (string) $request->get_param( 'query' ) );
+		$row   = null;
+		foreach ( GscInsights::queries() as $q ) {
+			if ( $q['query'] === $query ) {
+				$row = $q;
+				break;
+			}
+		}
+		if ( null === $row ) {
+			return new WP_Error( 'paydarpress_not_found', 'این عبارت در داده سرچ کنسول نیست.', array( 'status' => 404 ) );
+		}
+
+		$result = GscInsights::add_topic( $row['query'], $row['impressions'], $row['position'] );
+		if ( $result['created'] ) {
+			Activity::log( 'import.topic_from_gsc', 'جست‌وجوی «' . $row['query'] . '» به موضوعات پیشنهادی اضافه شد.' );
+		}
+		return new WP_REST_Response( $result );
 	}
 
 	/**

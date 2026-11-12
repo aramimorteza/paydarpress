@@ -185,10 +185,14 @@ final class LinkInserter {
 		$joiner = '(?:\s|&nbsp;|\x{00A0}|\x{200C})?';
 		$digits = array( '0' => '[0۰٠]', '1' => '[1۱١]', '2' => '[2۲٢]', '3' => '[3۳٣]', '4' => '[4۴٤]', '5' => '[5۵٥]', '6' => '[6۶٦]', '7' => '[7۷٧]', '8' => '[8۸٨]', '9' => '[9۹٩]' );
 
-		$out = '';
+		// Persian ezafe after a word ending in ه: «خانه ی»، «خانه‌ی»، «خانهٔ» all match «خانه».
+		$ezafe = '(?:\x{0654}|' . $joiner . '[یيى](?=' . $space . '|$|[^\p{L}\p{M}\p{N}]))?';
+
+		$out  = '';
+		$prev = '';
 		foreach ( preg_split( '//u', $phrase, -1, PREG_SPLIT_NO_EMPTY ) as $char ) {
 			if ( ' ' === $char ) {
-				$out .= $space;
+				$out .= ( 'ه' === $prev ? $ezafe : '' ) . $space;
 			} elseif ( "\u{200C}" === $char ) {
 				$out .= $joiner;
 			} elseif ( isset( self::VARIANTS[ $char ] ) ) {
@@ -198,6 +202,10 @@ final class LinkInserter {
 			} else {
 				$out .= preg_quote( $char, '/' );
 			}
+			$prev = $char;
+		}
+		if ( 'ه' === $prev ) {
+			$out .= $ezafe;
 		}
 
 		// Optional diacritics between letters are not supported; they are rare in body text.

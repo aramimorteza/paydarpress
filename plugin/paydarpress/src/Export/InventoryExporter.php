@@ -338,6 +338,33 @@ final class InventoryExporter {
 			);
 		}
 
+		// Category names next to ids, so ContentMaster can match "link from these categories".
+		if ( is_array( $out['key_pages']['value'] ?? null ) ) {
+			foreach ( $out['key_pages']['value'] as &$page ) {
+				$page['link_categories_names'] = array_values( array_filter( array_map( static fn( $c ) => ( $t = get_term( (int) $c, 'category' ) ) && ! is_wp_error( $t ) ? html_entity_decode( $t->name, ENT_QUOTES, 'UTF-8' ) : '', (array) ( $page['link_categories'] ?? array() ) ) ) );
+			}
+			unset( $page );
+		}
+
+		$stats              = \PaydarWP\PaydarPress\Links\KeyPageLinks::stats();
+		$out['link_rules']  = array(
+			'max_key_page_links_per_article' => \PaydarWP\PaydarPress\Links\KeyPageLinks::MAX_PER_ARTICLE,
+			'exact_anchor_max_share'         => \PaydarWP\PaydarPress\Links\KeyPageLinks::EXACT_CAP,
+			'key_page_anchor_stats'          => array_values(
+				array_map(
+					static fn( $st ) => array(
+						'id'          => $st['id'],
+						'main_phrase' => $st['main_phrase'],
+						'links'       => $st['total'],
+						'exact_share' => $st['exact_share'],
+						'over_cap'    => $st['over_cap'],
+						'counts'      => $st['counts'],
+					),
+					$stats
+				)
+			),
+		);
+
 		$out['missing_fields']        = $completion['missing'];
 		$out['completion_percent']    = $completion['percent'];
 		$industry                     = \PaydarWP\PaydarPress\Profile\Industries::all()[ $profile['fields']['industry_module']['value'] ] ?? null;

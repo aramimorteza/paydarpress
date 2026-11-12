@@ -303,6 +303,21 @@ final class ImportService {
 		}
 		$internal_ok = count( array_filter( $links, static fn( $l ) => $l['internal'] && ! in_array( $l['state'], array( 'missing', 'unpublished' ), true ) ) );
 
+		// Key pages: at most two per article, and only from the categories chosen for each page.
+		$key_pages = \PaydarWP\PaydarPress\Links\KeyPageLinks::pages();
+		$linked    = $key_pages ? \PaydarWP\PaydarPress\Links\KeyPageLinks::linked_in( $article['html'], array_keys( $key_pages ) ) : array();
+		if ( count( $linked ) > \PaydarWP\PaydarPress\Links\KeyPageLinks::MAX_PER_ARTICLE ) {
+			$checks[] = array( 'warning', sprintf( 'این مقاله به %s صفحه کلیدی لینک می‌دهد (%s)؛ سقف ۲ صفحه است. پس از ورود، لینک‌های کم‌اهمیت‌تر را در ویرایشگر بردارید.', PersianNormalizer::fa_number( count( $linked ) ), implode( '، ', array_map( static fn( $k ) => (string) ( $key_pages[ $k ]['name'] ?? $k ), $linked ) ) ) );
+		}
+		if ( null !== $category['id'] ) {
+			foreach ( $linked as $k ) {
+				$cats = array_map( 'intval', (array) ( $key_pages[ $k ]['link_categories'] ?? array() ) );
+				if ( $cats && ! in_array( (int) $category['id'], $cats, true ) ) {
+					$checks[] = array( 'info', 'صفحه کلیدی «' . ( $key_pages[ $k ]['name'] ?? $k ) . '» برای دسته‌های دیگری تعیین شده، نه «' . $category['name'] . '». اگر لینک به موضوع مقاله ربط دارد، مشکلی نیست.' );
+				}
+			}
+		}
+
 		$author = $this->resolve_author( $article['author'] );
 		if ( '' !== $article['author'] && null === $author['id'] ) {
 			$checks[] = array( 'info', 'نویسنده «' . $article['author'] . '» کاربر این سایت نیست؛ نوشته به نام شما ساخته می‌شود.' );
