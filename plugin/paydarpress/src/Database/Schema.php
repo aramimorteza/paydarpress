@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Schema {
 
-	public const VERSION = '1.0.0';
+	public const VERSION = '1.1.0';
 
 	public const TABLES = array( 'inventory', 'links', 'audit_findings', 'scans', 'activity' );
 
@@ -80,6 +80,7 @@ final class Schema {
   featured_alt_ok tinyint(1) NOT NULL DEFAULT 0,
   inline_images smallint(5) unsigned NOT NULL DEFAULT 0,
   inline_images_no_alt smallint(5) unsigned NOT NULL DEFAULT 0,
+  images_generic_alt smallint(5) unsigned NOT NULL DEFAULT 0,
   internal_out smallint(5) unsigned NOT NULL DEFAULT 0,
   internal_in smallint(5) unsigned NOT NULL DEFAULT 0,
   menu_in smallint(5) unsigned NOT NULL DEFAULT 0,

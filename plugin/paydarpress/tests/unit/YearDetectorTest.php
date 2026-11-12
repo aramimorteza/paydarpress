@@ -27,4 +27,9 @@ check( array(), $d->detect( 'اجرای محکومیت', 'قانون نحوه ا
 check( array(), $d->detect( 'قانون حمایت خانواده مصوب ۱۳۹۱', '' ), 'law date in title ignored' );
 check( array( 1402 ), $d->detect( 'نفقه', 'مبلغ نفقه در سال 1402 طبق قانون' ), 'year before law word still counts' );
 
+check( array(), $d->detect( 'مقاله آزمایشی شماره 1395', '' ), 'number after شماره ignored' );
+check( array(), $d->detect( 'خرید زمین ۱۴۰۰ متری', '' ), 'quantity with unit ignored' );
+check( array(), $d->detect( 'مبلغ', 'هزینه آن 1400 تومان در سال است' ), 'price ignored' );
+check( array( 1403 ), $d->detect( 'قیمت کابینت در سال ۱۴۰۳', '' ), 'real year in title still counts' );
+
 check( array( 1402, 2024 ), $d->outdated( array( 1402, 1405, 2024, 2026 ) ), 'outdated filter' );

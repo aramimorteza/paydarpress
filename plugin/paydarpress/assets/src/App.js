@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard';
 import Welcome from './pages/Welcome';
 import Placeholder from './pages/Placeholder';
 import Inventory from './pages/Inventory';
+import { AuditPage, ImagesPage, OrphansPage, RefreshPage, TaxonomiesPage, VisibilityPage } from './pages/AuditPages';
 import { ROUTES } from './routes';
 
 const HELP_KEYS = {
@@ -52,6 +53,18 @@ export default function App() {
 		page = <Welcome />;
 	} else if ( '/inventory' === path ) {
 		page = <Inventory />;
+	} else if ( '/audit' === path ) {
+		page = <AuditPage key={ window.location.hash } />;
+	} else if ( '/orphans' === path ) {
+		page = <OrphansPage />;
+	} else if ( '/images' === path ) {
+		page = <ImagesPage />;
+	} else if ( '/refresh' === path ) {
+		page = <RefreshPage />;
+	} else if ( '/taxonomies' === path ) {
+		page = <TaxonomiesPage />;
+	} else if ( '/visibility' === path ) {
+		page = <VisibilityPage />;
 	} else {
 		const route = ROUTES.find( ( item ) => item.path === path );
 		page = <Placeholder key={ path } title={ route ? route.label : '' } helpKey={ HELP_KEYS[ path ] } />;

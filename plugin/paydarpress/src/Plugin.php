@@ -11,6 +11,7 @@ namespace PaydarWP\PaydarPress;
 
 use PaydarWP\PaydarPress\Admin\AdminPage;
 use PaydarWP\PaydarPress\Database\Installer;
+use PaydarWP\PaydarPress\Rest\AuditController;
 use PaydarWP\PaydarPress\Rest\InventoryController;
 use PaydarWP\PaydarPress\Rest\ScanController;
 use PaydarWP\PaydarPress\Rest\UserPrefsController;
@@ -62,6 +63,7 @@ final class Plugin {
 		( new UserPrefsController() )->register();
 		( new ScanController( $scans ) )->register();
 		( new InventoryController() )->register();
+		( new AuditController( $scans ) )->register();
 
 		if ( is_admin() ) {
 			( new AdminPage() )->register();

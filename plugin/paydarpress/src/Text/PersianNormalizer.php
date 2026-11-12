@@ -115,6 +115,18 @@ final class PersianNormalizer {
 	}
 
 	/**
+	 * Formats a number with Persian digits and Persian thousands separator, independent of the
+	 * site locale (the PaydarPress UI is always Persian).
+	 *
+	 * @param int|float $number Number.
+	 */
+	public static function fa_number( $number ): string {
+		$formatted = number_format( (float) $number, ( (float) $number === floor( (float) $number ) ) ? 0 : 1, '٫', '٬' );
+
+		return strtr( $formatted, array_flip( array_slice( self::DIGIT_MAP, 0, 10, true ) ) );
+	}
+
+	/**
 	 * Counts words. ZWNJ joins parts of one word.
 	 *
 	 * @param string $plain_text Plain text (no HTML).

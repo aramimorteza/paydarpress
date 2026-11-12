@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace PaydarWP\PaydarPress\Scanner;
 
+use PaydarWP\PaydarPress\Audit\AuditEngine;
 use PaydarWP\PaydarPress\Core\Activity;
 use PaydarWP\PaydarPress\Core\Settings;
 use PaydarWP\PaydarPress\Database\Schema;
@@ -31,6 +32,10 @@ final class ScanManager {
 	public const ACTION_ITEM     = 'paydarpress/item/rescan';
 	public const ACTION_MENUS    = 'paydarpress/menus/rescan';
 	public const ACTION_DAILY    = 'paydarpress/maintenance/daily';
+	public const ACTION_AUDIT    = 'paydarpress/audit/run';
+
+	/** Seconds after the last change before the audit reruns (merges bursts of edits). */
+	private const AUDIT_DELAY = 90;
 
 	/** Seconds after the last edit before an item is rescanned (merges rapid saves). */
 	private const RESCAN_DELAY = 60;
@@ -44,6 +49,7 @@ final class ScanManager {
 		add_action( self::ACTION_ITEM, array( $this, 'run_item' ), 10, 1 );
 		add_action( self::ACTION_MENUS, array( $this, 'run_menus' ), 10, 0 );
 		add_action( self::ACTION_DAILY, array( $this, 'run_daily' ), 10, 0 );
+		add_action( self::ACTION_AUDIT, array( $this, 'run_audit' ), 10, 0 );
 
 		// Incremental scanning: hooks only enqueue work (spec section 5.3, Performance Budget).
 		add_action( 'save_post', array( $this, 'on_save_post' ), 20, 2 );
@@ -190,6 +196,10 @@ final class ScanManager {
 			}
 
 			$resolver->recount_inbound();
+
+			// The audit runs inside the scan so a completed scan always has fresh findings.
+			Queue::cancel( self::ACTION_AUDIT );
+			( new AuditEngine() )->run( true );
 		} catch ( Throwable $e ) {
 			$this->fail( $scan_id, $e );
 			return;
@@ -205,7 +215,7 @@ final class ScanManager {
 			)
 		);
 
-		Activity::log( 'scan.completed', sprintf( 'اسکن کامل سایت انجام شد (%d مورد).', (int) $scan['total'] ), 'scan', $scan_id );
+		Activity::log( 'scan.completed', sprintf( 'اسکن کامل سایت انجام شد (%s مورد).', \PaydarWP\PaydarPress\Text\PersianNormalizer::fa_number( (int) $scan['total'] ) ), 'scan', $scan_id );
 
 		/**
 		 * Fires after a full scan completes. The audit engine hooks in here.
@@ -239,6 +249,8 @@ final class ScanManager {
 			$resolver->recount_inbound();
 		}
 
+		Queue::schedule( self::ACTION_AUDIT, array(), self::AUDIT_DELAY );
+
 		/**
 		 * Fires after an incremental rescan.
 		 *
@@ -258,6 +270,18 @@ final class ScanManager {
 			// Menus are small.
 		}
 		$resolver->recount_inbound();
+		Queue::schedule( self::ACTION_AUDIT, array(), self::AUDIT_DELAY );
+	}
+
+	/**
+	 * Reruns the audit (after incremental changes or settings changes).
+	 */
+	public function run_audit(): void {
+		if ( null !== $this->running_scan() ) {
+			return; // The full scan runs its own audit.
+		}
+
+		( new AuditEngine() )->run( false );
 	}
 
 	/**

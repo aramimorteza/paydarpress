@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace PaydarWP\PaydarPress\Scanner;
 
+use PaydarWP\PaydarPress\Audit\AltQuality;
 use PaydarWP\PaydarPress\Database\Schema;
 use PaydarWP\PaydarPress\Extractors\ElementorExtractor;
 use PaydarWP\PaydarPress\Extractors\Extracted;
@@ -26,6 +27,12 @@ use WP_Post;
 final class ContentScanner {
 
 	public const STATUSES = array( 'publish', 'future', 'draft', 'pending', 'private' );
+
+	/**
+	 * Bump whenever extraction or detection logic changes (year rules, alt rules, word count…),
+	 * so the next scan reprocesses items whose content itself has not changed.
+	 */
+	public const LOGIC_VERSION = 3;
 
 	/** @var HtmlExtractor */
 	private $html;
@@ -92,7 +99,7 @@ final class ContentScanner {
 
 		$hash = md5(
 			(string) wp_json_encode(
-				array( $post->post_title, $post->post_content, $elementor_raw, $post->post_status, $permalink, $seo, $thumbnail_id, $thumb_alt, $post->post_author, $post->post_modified_gmt, wp_get_post_categories( $post_id ) )
+				array( self::LOGIC_VERSION, $post->post_title, $post->post_content, $elementor_raw, $post->post_status, $permalink, $seo, $thumbnail_id, $thumb_alt, $post->post_author, $post->post_modified_gmt, wp_get_post_categories( $post_id ) )
 			)
 		);
 
@@ -104,6 +111,10 @@ final class ContentScanner {
 
 		$link_stats = $this->store_links( $post_id, $extracted->links, $permalink );
 		$images     = $this->image_stats( $extracted );
+
+		if ( $thumbnail_id > 0 && '' !== $thumb_alt && AltQuality::is_generic( $thumb_alt, (string) wp_get_attachment_url( $thumbnail_id ) ) ) {
+			++$images['generic_alt'];
+		}
 
 		$row = array(
 			'object_id'            => $post_id,
@@ -129,6 +140,7 @@ final class ContentScanner {
 			'featured_alt_ok'      => ( $thumbnail_id > 0 && '' !== $thumb_alt ) ? 1 : 0,
 			'inline_images'        => min( 65535, $images['total'] ),
 			'inline_images_no_alt' => min( 65535, $images['missing_alt'] ),
+			'images_generic_alt'   => min( 65535, $images['generic_alt'] ),
 			'internal_out'         => min( 65535, $link_stats['internal'] ),
 			'external_out'         => min( 65535, $link_stats['external'] ),
 			'author_id'            => (int) $post->post_author,
@@ -229,7 +241,7 @@ final class ContentScanner {
 				++$stats['internal'];
 			}
 
-			$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$written = $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 				$table,
 				array(
 					'source_id'    => $post_id,
@@ -241,6 +253,7 @@ final class ContentScanner {
 				),
 				array( '%d', '%s', '%s', '%s', '%s', '%s' )
 			);
+			self::assert_written( $written );
 		}
 
 		return $stats;
@@ -251,10 +264,11 @@ final class ContentScanner {
 	 * attachment) or empty.
 	 *
 	 * @param Extracted $extracted Extracted content.
-	 * @return array{total:int, missing_alt:int}
+	 * @return array{total:int, missing_alt:int, generic_alt:int}
 	 */
 	private function image_stats( Extracted $extracted ): array {
 		$missing = 0;
+		$generic = 0;
 
 		foreach ( $extracted->images as $image ) {
 			$alt = $image['alt'];
@@ -265,12 +279,15 @@ final class ContentScanner {
 
 			if ( null === $alt || '' === $alt ) {
 				++$missing;
+			} elseif ( AltQuality::is_generic( $alt, (string) $image['src'] ) ) {
+				++$generic;
 			}
 		}
 
 		return array(
 			'total'       => count( $extracted->images ),
 			'missing_alt' => $missing,
+			'generic_alt' => $generic,
 		);
 	}
 
@@ -351,10 +368,12 @@ final class ContentScanner {
 		global $wpdb;
 
 		$table = Schema::table( 'inventory' );
+		// get_row, not get_var: get_var() returns null for an empty string, which would make an
+		// existing row with a cleared hash look new.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$hash = $wpdb->get_var( $wpdb->prepare( "SELECT content_hash FROM {$table} WHERE object_id = %d", $post_id ) );
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT object_id, content_hash FROM {$table} WHERE object_id = %d", $post_id ), ARRAY_A );
 
-		return null === $hash ? null : (string) $hash;
+		return is_array( $row ) ? (string) $row['content_hash'] : null;
 	}
 
 	/**
@@ -388,10 +407,26 @@ final class ContentScanner {
 		if ( $exists ) {
 			$id = $row['object_id'];
 			unset( $row['object_id'] );
-			$wpdb->update( $table, $row, array( 'object_id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-			return;
+			$result = $wpdb->update( $table, $row, array( 'object_id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		} else {
+			$result = $wpdb->insert( $table, $row ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		}
 
-		$wpdb->insert( $table, $row ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		self::assert_written( $result );
+	}
+
+	/**
+	 * Stops the scan when a write fails. Continuing would let the stale-row cleanup at the end
+	 * of the scan delete content that simply failed to save.
+	 *
+	 * @param int|false $result Result of $wpdb->insert/update.
+	 * @throws \RuntimeException On database error.
+	 */
+	private static function assert_written( $result ): void {
+		global $wpdb;
+
+		if ( false === $result ) {
+			throw new \RuntimeException( 'ذخیره اطلاعات در دیتابیس ناموفق بود: ' . (string) $wpdb->last_error );
+		}
 	}
 }

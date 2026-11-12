@@ -21,7 +21,10 @@ final class YearDetector {
 	 * A year right after these words is a law/regulation date, not a sign of outdated content
 	 * (e.g. «قانون حمایت خانواده مصوب 1391»).
 	 */
-	private const EXCLUDE_BEFORE = array( 'مصوب', 'مصوبه', 'مصوبات', 'قانون', 'ماده', 'اصلاحیه', 'since' );
+	private const EXCLUDE_BEFORE = array( 'مصوب', 'مصوبه', 'مصوبات', 'قانون', 'ماده', 'اصلاحیه', 'since', 'شماره', 'کد', 'پلاک', 'مدل', 'قطعه', 'نمره', 'تلفن', 'داخلی', 'no', 'model', 'code' );
+
+	/** A number followed by a unit is a quantity, not a year (e.g. «1400 متر»). */
+	private const EXCLUDE_AFTER = array( 'متر', 'مترمربع', 'متری', 'تومان', 'ریال', 'نفر', 'عدد', 'کیلو', 'کیلوگرم', 'گرم', 'لیتر', 'سانت', 'سانتی', 'میلیون', 'هزار', 'دلار', 'کیلومتر', 'واحد', 'مورد', 'm', 'kg' );
 
 	private const MIN_JALALI    = 1390;
 	private const MIN_GREGORIAN = 2010;
@@ -127,7 +130,7 @@ final class YearDetector {
 				continue;
 			}
 
-			if ( $this->is_law_date( $text, (int) $match[1] ) ) {
+			if ( $this->is_law_date( $text, (int) $match[1] ) || $this->is_quantity( $text, (int) $match[1] ) ) {
 				continue;
 			}
 
@@ -178,6 +181,20 @@ final class YearDetector {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Whether the number is followed by a unit word.
+	 *
+	 * @param string $text   Normalized text.
+	 * @param int    $offset Byte offset of the year.
+	 */
+	private function is_quantity( string $text, int $offset ): bool {
+		$after = substr( $text, $offset + 4, 40 );
+		$words = preg_split( '/[\s\x{200C}]+/u', trim( (string) $after ), -1, PREG_SPLIT_NO_EMPTY );
+		$next  = is_array( $words ) && isset( $words[0] ) ? (string) preg_replace( '/[\p{P}\p{S}]+$/u', '', $words[0] ) : '';
+
+		return in_array( $next, self::EXCLUDE_AFTER, true );
 	}
 
 	/**

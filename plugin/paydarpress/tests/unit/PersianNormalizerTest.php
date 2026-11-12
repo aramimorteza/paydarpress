@@ -29,3 +29,6 @@ check( 'كيك', N::latin_digits( 'كيك' ), 'latin_digits keeps letters' );
 check( 4, N::word_count( "طلاق توافقی چگونه است؟" ), 'word count' );
 check( 3, N::word_count( "می\u{200C}خواهم طلاق بگیرم" ), 'zwnj joins word' );
 check( 0, N::word_count( "   " ), 'empty word count' );
+check( '۱۸', N::fa_number( 18 ), 'fa_number int' );
+check( '۳٬۴۲۶', N::fa_number( 3426 ), 'fa_number thousands' );
+check( '۲٫۵', N::fa_number( 2.5 ), 'fa_number decimal' );

@@ -58,11 +58,32 @@ final class Installer {
 	 * Runs migrations when the stored schema version is older than the code.
 	 */
 	public static function maybe_upgrade(): void {
-		if ( get_option( self::DB_VERSION_OPTION ) === Schema::VERSION ) {
+		$installed = (string) get_option( self::DB_VERSION_OPTION, '' );
+
+		if ( Schema::VERSION === $installed ) {
 			return;
 		}
 
 		self::install();
+		self::migrate( $installed );
+	}
+
+	/**
+	 * Data migrations between schema versions (table changes are handled by dbDelta).
+	 *
+	 * @param string $from Previously installed schema version ('' on fresh installs).
+	 */
+	private static function migrate( string $from ): void {
+		global $wpdb;
+
+		// dbDelta can silently skip ALTER TABLE on some hosts/database layers; verify columns.
+		self::ensure_column( 'inventory', 'images_generic_alt', 'smallint(5) unsigned NOT NULL DEFAULT 0' );
+
+		if ( '' !== $from && version_compare( $from, '1.1.0', '<' ) ) {
+			// New derived columns: force the next scan to reprocess every item.
+			$table = Schema::table( 'inventory' );
+			$wpdb->query( "UPDATE {$table} SET content_hash = ''" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		}
 	}
 
 	/**
@@ -82,6 +103,24 @@ final class Installer {
 		}
 
 		update_option( self::DB_VERSION_OPTION, Schema::VERSION, true );
+	}
+
+	/**
+	 * Adds a column if it is missing.
+	 *
+	 * @param string $table      Short table name.
+	 * @param string $column     Column name.
+	 * @param string $definition Column definition.
+	 */
+	private static function ensure_column( string $table, string $column, string $definition ): void {
+		global $wpdb;
+
+		$full    = Schema::table( $table );
+		$columns = array_map( 'strtolower', (array) $wpdb->get_col( "SHOW COLUMNS FROM {$full}" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		if ( array() !== $columns && ! in_array( strtolower( $column ), $columns, true ) ) {
+			$wpdb->query( "ALTER TABLE {$full} ADD COLUMN {$column} {$definition}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.SchemaChange
+		}
 	}
 
 	/**
