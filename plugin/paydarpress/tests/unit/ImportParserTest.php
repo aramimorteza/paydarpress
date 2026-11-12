@@ -58,3 +58,22 @@ check( true, P::similar_titles( 'مهریه چیست؟', 'مهريه چيست' )
 check( true, P::similar_titles( 'نحوه محاسبه مهریه به نرخ روز', 'محاسبه مهریه به نرخ روز' ), 'similar: word overlap' );
 check( false, P::similar_titles( 'محاسبه مهریه به نرخ روز', 'محاسبه نفقه زن در سال جدید' ), 'similar: different topics' );
 check( false, P::similar_titles( 'مهریه', 'نفقه' ), 'similar: short titles not fuzzy' );
+
+// Rewrites, term descriptions, SEO updates and notes.
+$r = P::parse( '```json
+{"schema":"paydarpress-import/1","articles":[{"rewrite_of":"https://x.ir/a/","title":"عنوان تازه","html":"<p>متن کامل</p>"}],
+ "term_descriptions":[{"taxonomy":"product_cat","term_id":"12","name":"کمد","description":"<p>معرفی</p>"},{"name":"","description":"x"}],
+ "seo_updates":[{"url":"https://x.ir/a/","seo_title":"عنوان سئو","meta_description":"توضیح"},{"url":"https://x.ir/b/"}],
+ "notes":"توضیح"}
+```' );
+check( 'https://x.ir/a/', $r['articles'][0]['rewrite_of'], 'parser: rewrite_of kept' );
+check( 1, count( $r['term_descriptions'] ), 'parser: invalid term description dropped' );
+check( array( 'product_cat', 12 ), array( $r['term_descriptions'][0]['taxonomy'], $r['term_descriptions'][0]['term_id'] ), 'parser: term taxonomy and id' );
+check( 1, count( $r['seo_updates'] ), 'parser: empty seo update dropped' );
+check( 'توضیح', $r['notes'], 'parser: notes' );
+try {
+	P::parse( '{"schema":"paydarpress-import/1","articles":[],"notes":"این موضوع تکراری است؛ https://x.ir/a/ را بروز کنید"}' );
+	check( 'exception', 'none', 'parser: notes-only reply explained' );
+} catch ( RuntimeException $e ) {
+	check( true, str_contains( $e->getMessage(), 'تکراری' ), 'parser: notes-only reply explained' );
+}

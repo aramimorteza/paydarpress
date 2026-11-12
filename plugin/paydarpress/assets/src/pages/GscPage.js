@@ -4,7 +4,7 @@ import apiFetch from '@wordpress/api-fetch';
 import Page from '../components/Page';
 import EmptyState from '../components/EmptyState';
 import AiButton from '../components/AiButton';
-import { refreshCommand, queryCommand } from '../lib/aiCommands';
+import { refreshCommand, queryCommand, metaCommand } from '../lib/aiCommands';
 import { get, post, errorMessage } from '../lib/api';
 import { num, date, ago } from '../lib/format';
 
@@ -311,7 +311,7 @@ function PagesTable( { tab, compare } ) {
 												<a className="pp-link" href={ item.edit_url }>{ item.title }</a>
 												<div><a className="pp-muted" href={ item.url } target="_blank" rel="noreferrer">مشاهده</a></div>
 												{ [ 'near', 'ctr', 'drop', 'absent' ].includes( tab ) && (
-													<div className="pp-row-ai"><AiButton command={ refreshCommand( item.title, item.url, [ ( TABS.find( ( t ) => t.key === tab ) || {} ).label ] ) } /></div>
+													<div className="pp-row-ai"><AiButton command={ 'ctr' === tab ? metaCommand( item.title, item.url, item.id ) : refreshCommand( item.title, item.url, [ ( TABS.find( ( t ) => t.key === tab ) || {} ).label ], item.id, item.type ) } /></div>
 												) }
 											</>
 										) }

@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace PaydarWP\PaydarPress\Admin;
 
 use PaydarWP\PaydarPress\Import\ImportService;
+use PaydarWP\PaydarPress\Import\Rewrites;
 use WP_Post;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -26,7 +27,7 @@ final class PostMetaBox {
 	 * Hooks.
 	 */
 	public function register(): void {
-		add_action( 'add_meta_boxes_post', array( $this, 'add' ) );
+		add_action( 'add_meta_boxes', array( $this, 'add_any' ), 10, 2 );
 	}
 
 	/**
@@ -35,11 +36,21 @@ final class PostMetaBox {
 	 * @param WP_Post $post Post.
 	 */
 	public function add( $post ): void {
-		if ( ! $post instanceof WP_Post || '' === (string) get_post_meta( $post->ID, ImportService::META_IMPORT, true ) ) {
+		$this->add_any( 'post', $post );
+	}
+
+	/**
+	 * Adds the box to posts, pages and products created by an import (rewrites included).
+	 *
+	 * @param string  $post_type Post type.
+	 * @param WP_Post $post      Post.
+	 */
+	public function add_any( $post_type, $post ): void {
+		if ( ! $post instanceof WP_Post || ! in_array( $post_type, array( 'post', 'page', 'product' ), true ) || '' === (string) get_post_meta( $post->ID, ImportService::META_IMPORT, true ) ) {
 			return;
 		}
-
-		add_meta_box( 'paydarpress-import', 'پایدارپرس: از ContentMaster', array( $this, 'render' ), 'post', 'side', 'default' );
+		$rewrite = null !== Rewrites::original_of( $post->ID );
+		add_meta_box( 'paydarpress-import', $rewrite ? 'پایدارپرس: بازنویسی' : 'پایدارپرس: از ContentMaster', array( $this, 'render' ), $post_type, 'side', $rewrite ? 'high' : 'default' );
 	}
 
 	/**
@@ -54,6 +65,22 @@ final class PostMetaBox {
 		$seo    = get_post_meta( $post->ID, ImportService::META_SEO, true );
 
 		echo '<div dir="rtl" class="paydarpress-box">';
+
+		$original = Rewrites::original_of( $post->ID );
+		if ( null !== $original && in_array( $post->post_status, array( 'draft', 'pending' ), true ) ) {
+			printf(
+				'<p>%s <a href="%s" target="_blank" rel="noopener">%s</a>.</p><p class="description">%s</p><p><a class="button button-primary" href="%s" onclick="return confirm(this.dataset.confirm);" data-confirm="%s">%s</a> <a class="button" href="%s" target="_blank" rel="noopener">%s</a></p><hr>',
+				esc_html( 'این پیش‌نویس، بازنویسی' ),
+				esc_url( (string) get_permalink( $original ) ),
+				esc_html( '«' . html_entity_decode( get_the_title( $original ), ENT_QUOTES, 'UTF-8' ) . '»' ),
+				esc_html( 'متن را بخوانید و ویرایش کنید و ذخیره کنید. با «جایگزینی»، عنوان، متن، چکیده و سئوی این پیش‌نویس روی نوشته اصلی می‌نشیند (آدرس عوض نمی‌شود، نسخه قبلی در بازنگری‌ها می‌ماند) و این پیش‌نویس به زباله‌دان می‌رود.' ),
+				esc_url( Rewrites::apply_url( $post->ID ) ),
+				esc_attr( 'تغییرات ذخیره‌نشده این صفحه از بین می‌رود. اول «ذخیره پیش‌نویس» را زده‌اید؟ جایگزین شود؟' ),
+				esc_html( 'جایگزینی نوشته اصلی' ),
+				esc_url( (string) get_permalink( $original ) ),
+				esc_html( 'دیدن نسخه فعلی' )
+			);
+		}
 
 		if ( '' !== $prompt ) {
 			$this->copy_field( 'پرامپت تصویر شاخص', $prompt, 'ltr', 5 );

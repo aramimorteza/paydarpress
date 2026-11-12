@@ -98,6 +98,7 @@ final class Plugin {
 			add_action( 'admin_post_' . ProfileController::DOWNLOAD_ACTION, static fn() => ( new ProfileController( $scans ) )->download() );
 			( new DashboardWidget() )->register();
 			( new PostMetaBox() )->register();
+			( new \PaydarWP\PaydarPress\Import\Rewrites() )->register();
 		}
 
 		add_filter( 'paydarwp_hub_products', array( $this, 'register_hub_product' ) );

@@ -130,6 +130,18 @@ final class ImportService {
 			);
 		}
 
+		$term_items = array();
+		foreach ( $parsed['term_descriptions'] as $i => $t ) {
+			$term_items[] = $this->check_term( $i, $t );
+		}
+		$seo_items = array();
+		foreach ( $parsed['seo_updates'] as $i => $u ) {
+			$seo_items[] = $this->check_seo( $i, $u );
+		}
+		if ( '' !== $parsed['notes'] ) {
+			$warnings[] = 'توضیح هوش مصنوعی: ' . $parsed['notes'];
+		}
+
 		$token   = wp_generate_password( 20, false, false );
 		$payload = array(
 			'token'            => $token,
@@ -139,6 +151,8 @@ final class ImportService {
 			'topics'           => $topics,
 			'articles'         => $articles,
 			'link_suggestions' => $suggestions,
+			'term_descriptions' => $term_items,
+			'seo_updates'      => $seo_items,
 		);
 
 		set_transient( $this->transient_key( $token ), $payload, self::TTL );
@@ -194,7 +208,13 @@ final class ImportService {
 			'topics'           => 0,
 			'articles'         => array(),
 			'link_suggestions' => 0,
+			'terms'            => 0,
+			'seo'              => 0,
 			'errors'           => array(),
+		);
+		$preview += array(
+			'term_descriptions' => array(),
+			'seo_updates'       => array(),
 		);
 
 		foreach ( $pick( 'topics' ) as $topic ) {
@@ -222,19 +242,39 @@ final class ImportService {
 					'id'       => $post_id,
 					'title'    => $article['title'],
 					'edit_url' => (string) get_edit_post_link( $post_id, 'raw' ),
+					'rewrite'  => ! empty( $article['rewrite_id'] ),
 				);
 
-				TopicRepository::mark_written( $article['title'], $post_id );
+				if ( empty( $article['rewrite_id'] ) ) {
+					TopicRepository::mark_written( $article['title'], $post_id );
+				}
 
 				foreach ( $article['reverse_links'] as $link ) {
 					if ( null !== $link['source_id'] ) {
-						LinkSuggestionRepository::insert( (int) $link['source_id'], $post_id, $link['anchor'], $link['sentence'], 'contentmaster', $import_id );
+						LinkSuggestionRepository::insert( (int) $link['source_id'], empty( $article['rewrite_id'] ) ? $post_id : (int) $article['rewrite_id'], $link['anchor'], $link['sentence'], 'contentmaster', $import_id );
 						++$result['link_suggestions'];
 					}
 				}
 			}
 		} elseif ( array() !== $pick( 'articles' ) ) {
 			$result['errors'][] = 'برای ساخت پیش‌نویس، دسترسی نوشتن نوشته لازم است.';
+		}
+
+		foreach ( $pick( 'term_descriptions' ) as $t ) {
+			$done = $this->apply_term( $t );
+			if ( true === $done ) {
+				++$result['terms'];
+			} else {
+				$result['errors'][] = $done;
+			}
+		}
+		foreach ( $pick( 'seo_updates' ) as $u ) {
+			$done = $this->apply_seo( $u );
+			if ( true === $done ) {
+				++$result['seo'];
+			} else {
+				$result['errors'][] = $done;
+			}
 		}
 
 		foreach ( $pick( 'link_suggestions' ) as $s ) {
@@ -261,10 +301,12 @@ final class ImportService {
 		Activity::log(
 			'import.contentmaster',
 			sprintf(
-				'ورود از ContentMaster: %s موضوع، %s پیش‌نویس، %s پیشنهاد لینک.',
+				'ورود از ContentMaster: %s موضوع، %s پیش‌نویس، %s پیشنهاد لینک، %s متن دسته، %s متا.',
 				PersianNormalizer::fa_number( $result['topics'] ),
 				PersianNormalizer::fa_number( count( $result['articles'] ) ),
-				PersianNormalizer::fa_number( $result['link_suggestions'] )
+				PersianNormalizer::fa_number( $result['link_suggestions'] ),
+				PersianNormalizer::fa_number( $result['terms'] ),
+				PersianNormalizer::fa_number( $result['seo'] )
 			),
 			'import',
 			$import_id
@@ -283,15 +325,40 @@ final class ImportService {
 	 * @param array $seen       Earlier items of this file.
 	 */
 	private function check_article( int $index, array $article, array $categories, array $topics_db, array $seen ): array {
-		$checks   = $this->duplicate_checks( $article['title'], $article['seo']['focus_keyword'], $topics_db, $seen, true );
-		$category = $this->resolve_category( $article['category_id'], $article['category'], $categories );
+		$rewrite = null;
+		if ( '' !== $article['rewrite_of'] ) {
+			$target  = $this->resolve_url( $article['rewrite_of'] );
+			$post    = null === $target['id'] ? null : get_post( (int) $target['id'] );
+			$rewrite = $post && in_array( $post->post_type, array( 'post', 'page', 'product' ), true ) ? $post : null;
+		}
 
-		if ( null === $category['id'] ) {
+		if ( '' !== $article['rewrite_of'] && null === $rewrite ) {
+			$checks = array( array( 'error', 'نوشته‌ای که باید بازنویسی شود در سایت پیدا نشد: ' . rawurldecode( $article['rewrite_of'] ) ) );
+		} elseif ( $rewrite ) {
+			$checks = array( array( 'info', 'بازنویسی «' . html_entity_decode( get_the_title( $rewrite ), ENT_QUOTES, 'UTF-8' ) . '»: یک پیش‌نویس جدا ساخته می‌شود و نوشته فعلی تا وقتی در ویرایشگر «جایگزینی» را نزنید دست نمی‌خورد.' ) );
+			if ( ! current_user_can( 'edit_post', $rewrite->ID ) ) {
+				$checks[] = array( 'error', 'اجازه ویرایش این نوشته را ندارید.' );
+			}
+		} else {
+			$checks = $this->duplicate_checks( $article['title'], $article['seo']['focus_keyword'], $topics_db, $seen, true );
+		}
+		$category = $this->resolve_category( $article['category_id'], $article['category'], $categories );
+		if ( $rewrite && null === $category['id'] && 'post' === $rewrite->post_type ) {
+			$cat_ids  = wp_get_post_categories( $rewrite->ID );
+			$category = array(
+				'id'   => $cat_ids ? (int) $cat_ids[0] : null,
+				'name' => $cat_ids ? (string) get_cat_name( (int) $cat_ids[0] ) : '',
+			);
+		}
+
+		if ( $rewrite && 'post' !== $rewrite->post_type ) {
+			// Pages and products have no blog category.
+		} elseif ( null === $category['id'] ) {
 			$checks[] = array( 'warning', '' === $article['category'] ? 'دسته مشخص نشده؛ در دسته پیش‌فرض قرار می‌گیرد.' : 'دسته «' . $article['category'] . '» در سایت نیست؛ در دسته پیش‌فرض قرار می‌گیرد.' );
 		}
 
 		$slug = sanitize_title( $article['slug'] );
-		if ( '' !== $slug && get_page_by_path( $slug, OBJECT, array( 'post', 'page' ) ) ) {
+		if ( ! $rewrite && '' !== $slug && get_page_by_path( $slug, OBJECT, array( 'post', 'page' ) ) ) {
 			$checks[] = array( 'warning', 'نامک «' . rawurldecode( $slug ) . '» قبلاً استفاده شده؛ وردپرس عددی به انتهای آن اضافه می‌کند.' );
 		}
 
@@ -357,6 +424,9 @@ final class ImportService {
 					'removed_links'  => array_values( array_map( static fn( $l ) => $l['url'], $bad ) ),
 					'new_tags'       => $new_tags,
 					'reverse_links'  => $reverse,
+					'rewrite_id'     => $rewrite ? $rewrite->ID : null,
+					'rewrite_type'   => $rewrite ? $rewrite->post_type : null,
+					'rewrite_title'  => $rewrite ? html_entity_decode( get_the_title( $rewrite ), ENT_QUOTES, 'UTF-8' ) : null,
 				)
 			),
 			$checks
@@ -446,17 +516,19 @@ final class ImportService {
 		// wp_kses_post() strips the tags but keeps their text; drop executable/embedded blocks entirely.
 		$html = (string) preg_replace( '#<(script|style|iframe|noscript|object|embed|form)\b[^>]*>.*?</\1\s*>#isu', '', $html );
 
+		$type    = empty( $article['rewrite_id'] ) ? 'post' : (string) $article['rewrite_type'];
 		$post_id = wp_insert_post(
 			array(
-				'post_type'     => 'post',
+				'post_type'     => $type,
 				'post_status'   => 'draft',
 				'post_title'    => $article['title'],
-				'post_name'     => sanitize_title( $article['slug'] ),
+				// A rewrite keeps the original's address; the draft gets none of its own.
+				'post_name'     => empty( $article['rewrite_id'] ) ? sanitize_title( $article['slug'] ) : '',
 				'post_content'  => wp_kses_post( $html ),
 				'post_excerpt'  => sanitize_textarea_field( $article['excerpt'] ),
 				'post_author'   => $article['author_id'] ?? get_current_user_id(),
-				'post_category' => null === $article['category_id'] ? array() : array( (int) $article['category_id'] ),
-				'tags_input'    => $article['tags'],
+				'post_category' => null === $article['category_id'] || 'post' !== $type ? array() : array( (int) $article['category_id'] ),
+				'tags_input'    => 'post' === $type ? $article['tags'] : array(),
 			),
 			true
 		);
@@ -476,6 +548,9 @@ final class ImportService {
 		}
 
 		update_post_meta( $post_id, self::META_IMPORT, $import_id );
+		if ( ! empty( $article['rewrite_id'] ) ) {
+			update_post_meta( $post_id, Rewrites::META_OF, (int) $article['rewrite_id'] );
+		}
 		if ( '' !== $article['image_prompt'] ) {
 			update_post_meta( $post_id, self::META_PROMPT, sanitize_textarea_field( $article['image_prompt'] ) );
 		}
@@ -497,6 +572,151 @@ final class ImportService {
 		}
 
 		return (int) $post_id;
+	}
+
+	/**
+	 * Checks a term description.
+	 *
+	 * @param int   $index Index.
+	 * @param array $t     Parsed item.
+	 */
+	private function check_term( int $index, array $t ): array {
+		$term = null;
+		if ( null !== $t['term_id'] ) {
+			$found = get_term( (int) $t['term_id'], $t['taxonomy'] );
+			$term  = $found instanceof \WP_Term ? $found : null;
+		}
+		if ( null === $term && '' !== $t['name'] ) {
+			$found = get_term_by( 'name', $t['name'], $t['taxonomy'] );
+			$term  = $found instanceof \WP_Term ? $found : null;
+		}
+		$checks = array();
+		if ( null === $term ) {
+			$checks[] = array( 'error', '«' . $t['name'] . '» در سایت پیدا نشد.' );
+		} elseif ( ! current_user_can( 'manage_categories' ) ) {
+			$checks[] = array( 'error', 'اجازه ویرایش دسته‌ها را ندارید.' );
+		} elseif ( '' !== trim( (string) $term->description ) ) {
+			$checks[] = array( 'warning', 'متن فعلی جایگزین می‌شود؛ نسخه قبلی برای بازگرداندن ذخیره می‌ماند.' );
+		}
+
+		return $this->with_checks(
+			$t + array(
+				'index'       => $index,
+				'term_id'     => $term ? (int) $term->term_id : null,
+				'name'        => $term ? html_entity_decode( $term->name, ENT_QUOTES, 'UTF-8' ) : $t['name'],
+				'current'     => $term ? mb_substr( self::plain( (string) $term->description ), 0, 300 ) : '',
+				'new_preview' => mb_substr( self::plain( $t['description'] ), 0, 400 ),
+				'words'       => PersianNormalizer::word_count( self::plain( $t['description'] ) ),
+			),
+			$checks
+		);
+	}
+
+	/**
+	 * Checks an SEO title / meta description update.
+	 *
+	 * @param int   $index Index.
+	 * @param array $u     Parsed item.
+	 */
+	private function check_seo( int $index, array $u ): array {
+		$target = $this->resolve_url( $u['url'] );
+		$checks = array();
+		$id     = 'ok' === $target['state'] ? $target['id'] : null;
+		if ( null === $id ) {
+			$checks[] = array( 'error', 'صفحه پیدا نشد: ' . rawurldecode( $u['url'] ) );
+		} elseif ( ! current_user_can( 'edit_post', $id ) ) {
+			$checks[] = array( 'error', 'اجازه ویرایش این صفحه را ندارید.' );
+		} elseif ( 'none' === SeoDetector::adapter()->key() ) {
+			$checks[] = array( 'error', 'هیچ افزونه سئوی پشتیبانی‌شده‌ای (Rank Math، Yoast، AIOSEO) فعال نیست؛ متن را دستی در قالب یا افزونه سئو وارد کنید.' );
+		}
+		if ( mb_strlen( $u['seo_title'] ) > 60 ) {
+			$checks[] = array( 'warning', 'عنوان سئو بیش از ۶۰ نویسه است و ممکن است در گوگل کوتاه شود.' );
+		}
+		if ( mb_strlen( $u['meta_description'] ) > 160 ) {
+			$checks[] = array( 'warning', 'توضیحات متا بیش از ۱۶۰ نویسه است.' );
+		}
+		$current = null === $id ? array() : SeoDetector::adapter()->post( (int) $id );
+
+		return $this->with_checks(
+			$u + array(
+				'index'            => $index,
+				'post_id'          => $id,
+				'title'            => $target['title'],
+				'current_title'    => (string) ( $current['seo_title'] ?? '' ),
+				'current_description' => (string) ( $current['meta_description'] ?? '' ),
+			),
+			$checks
+		);
+	}
+
+	/**
+	 * Saves a term description (previous text kept in term meta).
+	 *
+	 * @param array $t Checked item.
+	 * @return true|string True or an error message.
+	 */
+	private function apply_term( array $t ) {
+		$term = get_term( (int) $t['term_id'], $t['taxonomy'] );
+		if ( ! $term instanceof \WP_Term || ! current_user_can( 'manage_categories' ) ) {
+			return '«' . $t['name'] . '»: دسته پیدا نشد یا اجازه ویرایش ندارید.';
+		}
+		$html = (string) preg_replace( '#<(script|style|iframe|noscript|object|embed|form)\b[^>]*>.*?</\1\s*>#isu', '', $t['description'] );
+		$html = wp_kses_post( $html );
+		update_term_meta( $term->term_id, '_paydarpress_prev_description', (string) $term->description );
+
+		// Term descriptions normally pass a strict filter that removes paragraphs and headings
+		// for users without unfiltered_html; the text was already cleaned with wp_kses_post.
+		$kses = false !== has_filter( 'pre_term_description', 'wp_filter_kses' );
+		if ( $kses ) {
+			remove_filter( 'pre_term_description', 'wp_filter_kses' );
+		}
+		$r = wp_update_term( $term->term_id, $term->taxonomy, array( 'description' => $html ) );
+		if ( $kses ) {
+			add_filter( 'pre_term_description', 'wp_filter_kses' );
+		}
+		if ( is_wp_error( $r ) ) {
+			return '«' . $t['name'] . '»: ' . $r->get_error_message();
+		}
+		Activity::log( 'import.term_description', 'متن معرفی «' . $t['name'] . '» به‌روز شد.', 'term', (int) $term->term_id );
+		return true;
+	}
+
+	/**
+	 * Saves a new SEO title / description through the SEO plugin (previous values kept).
+	 *
+	 * @param array $u Checked item.
+	 * @return true|string True or an error message.
+	 */
+	private function apply_seo( array $u ) {
+		$id = (int) $u['post_id'];
+		if ( $id <= 0 || ! current_user_can( 'edit_post', $id ) ) {
+			return '«' . $u['title'] . '»: اجازه ویرایش ندارید.';
+		}
+		$adapter = SeoDetector::adapter();
+		$before  = $adapter->post( $id );
+		$ok      = $adapter->write_post(
+			$id,
+			array_filter(
+				array(
+					'title'            => $u['seo_title'],
+					'meta_description' => $u['meta_description'],
+				)
+			)
+		);
+		if ( ! $ok ) {
+			return '«' . $u['title'] . '»: افزونه سئوی فعال از نوشتن پشتیبانی نمی‌کند.';
+		}
+		update_post_meta(
+			$id,
+			'_paydarpress_prev_seo',
+			array(
+				'title'            => (string) ( $before['seo_title'] ?? '' ),
+				'meta_description' => (string) ( $before['meta_description'] ?? '' ),
+				'changed_at'       => gmdate( 'c' ),
+			)
+		);
+		Activity::log( 'import.seo_update', 'عنوان و توضیحات متای «' . $u['title'] . '» به‌روز شد.', 'post', $id );
+		return true;
 	}
 
 	/**

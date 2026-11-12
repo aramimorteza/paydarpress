@@ -460,6 +460,7 @@ final class AuditController {
 
 			$items[] = array(
 				'id'           => $id,
+				'type'         => (string) get_post_type( $id ),
 				'title'        => html_entity_decode( get_the_title( $id ), ENT_QUOTES, 'UTF-8' ),
 				'url'          => $row['url'],
 				'edit_url'     => (string) get_edit_post_link( $id, 'raw' ),

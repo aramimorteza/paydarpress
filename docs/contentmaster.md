@@ -1,4 +1,4 @@
-# ContentMaster v1.8
+# ContentMaster v1.9
 ### Multi-site SEO content system: Setup, Topic Research, Article Writing, Content Refresh
 
 ---
@@ -309,12 +309,16 @@ The PaydarPress plugin exports the site as JSON (schema `1.x`, profile `contentm
 ### 6.5 Output for PaydarPress (`خروجی پایدارپرس`)
 
 Produce **one** JSON code block and nothing else except one line before it: «این متن را در پایدارپرس ← ورود از ContentMaster بچسبانید.» Rules:
-- `schema` is exactly `paydarpress-import/1`; `generator` is `ContentMaster 1.6`; `site` is the profile domain.
+- `schema` is exactly `paydarpress-import/1`; `generator` is `ContentMaster 1.9`; `site` is the profile domain.
 - By default include the **working topic list** (`topics`) and **every article written in this conversation** (`articles`). `خروجی پایدارپرس: موضوعات` or `خروجی پایدارپرس: مقاله ۳` limit the output.
 - Never shorten or summarize an article for the export: `html` is the exact final HTML of the article (after any «اصلاح»), as one JSON string with escaped quotes and newlines. If the conversation is too long to reproduce an article exactly, export it alone with `خروجی پایدارپرس: مقاله [شماره]`.
 - Use only category names from the profile (`category`), and tags from the article's SEO output.
 - `reverse_links` come from the article's reverse-link suggestions; `source_url` must be an existing inventory URL.
 - `link_suggestions` (optional) are other internal links you recommended in this conversation for existing articles (from `بروزرسانی` or cluster work), with the exact anchor sentence present in the source article when known.
+- **Rewrites** (`بروزرسانی` with a full new version): put them in `articles` with `"rewrite_of": "<current URL>"` and the FULL new HTML. The plugin creates a separate draft; the live page changes only when the owner clicks «جایگزینی نوشته اصلی». For products, `html` is the full product description and `excerpt` the short description.
+- `term_descriptions` (optional): new introduction texts for category / product-category archive pages (`متن دسته: …`), HTML, 150–300 words.
+- `seo_updates` (optional): new SEO title (≤ 60 characters) and meta description (≤ 155 characters) for existing URLs (e.g. pages with good position but few clicks).
+- `notes` (optional): one short explanation in the site language, e.g. why an article was not written because it duplicates an existing URL.
 - Do not include fields that are unknown; never invent URLs.
 
 ```json
@@ -332,7 +336,10 @@ Produce **one** JSON code block and nothing else except one line before it: «ا
     "faq": [ { "q": "", "a": "" } ],
     "reverse_links": [ { "source_url": "", "anchor": "", "sentence": "" } ]
   } ],
-  "link_suggestions": [ { "source_url": "", "target_url": "", "anchor": "", "sentence": "" } ]
+  "link_suggestions": [ { "source_url": "", "target_url": "", "anchor": "", "sentence": "" } ],
+  "term_descriptions": [ { "taxonomy": "category|product_cat", "term_id": 0, "name": "", "description": "" } ],
+  "seo_updates": [ { "url": "", "seo_title": "", "meta_description": "" } ],
+  "notes": ""
 }
 ```
 

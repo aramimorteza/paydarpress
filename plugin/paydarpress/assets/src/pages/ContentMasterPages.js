@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from '@wordpress/element';
 import { Button, CheckboxControl, Notice, Spinner, TextareaControl } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
 import Page from '../components/Page';
+import AiButton from '../components/AiButton';
+import { topicsCommand, topicArticleCommand } from '../lib/aiCommands';
 import EmptyState from '../components/EmptyState';
 import { get, post, errorMessage } from '../lib/api';
 import { num, ago } from '../lib/format';
@@ -46,6 +48,8 @@ function Checks( { checks } ) {
 /**
  * Import from ContentMaster: paste or upload, preview, select, commit.
  */
+const SECTIONS = [ 'topics', 'articles', 'link_suggestions', 'term_descriptions', 'seo_updates' ];
+
 export function ImportPage() {
 	const canManage = !! ( config.caps && config.caps.manage );
 	const fileInput = useRef( null );
@@ -58,7 +62,7 @@ export function ImportPage() {
 
 	if ( ! canManage ) {
 		return (
-			<Page title="ورود از ContentMaster" helpKey="cm_import">
+			<Page title="ورود مقالات نوشته‌شده" helpKey="cm_import">
 				<div className="pp-card"><EmptyState title="دسترسی ندارید" text="ورود محتوا فقط برای مدیر سایت مجاز است." /></div>
 			</Page>
 		);
@@ -73,8 +77,8 @@ export function ImportPage() {
 				setPreview( p );
 				// Default selection: everything that is neither a duplicate nor blocked.
 				const sel = {};
-				[ 'topics', 'articles', 'link_suggestions' ].forEach( ( s ) => {
-					sel[ s ] = p[ s ].filter( ( i ) => ! i.duplicate && ! i.blocked ).map( ( i ) => i.index );
+				SECTIONS.forEach( ( s ) => {
+					sel[ s ] = ( p[ s ] || [] ).filter( ( i ) => ! i.duplicate && ! i.blocked ).map( ( i ) => i.index );
 				} );
 				setPicked( sel );
 			} )
@@ -110,10 +114,12 @@ export function ImportPage() {
 	};
 
 	const count = ( s ) => ( picked[ s ] || [] ).length;
-	const total = count( 'topics' ) + count( 'articles' ) + count( 'link_suggestions' );
+	const total = SECTIONS.reduce( ( sum, s ) => sum + count( s ), 0 );
+	const terms = preview ? preview.term_descriptions || [] : [];
+	const seoUpdates = preview ? preview.seo_updates || [] : [];
 
 	return (
-		<Page title="ورود از ContentMaster" helpKey="cm_import">
+		<Page title="ورود مقالات نوشته‌شده" helpKey="cm_import">
 			{ error && <Notice status="error" isDismissible={ false }>{ error }</Notice> }
 
 			{ result && (
@@ -121,12 +127,14 @@ export function ImportPage() {
 					<h2 className="pp-card__title">ورود انجام شد</h2>
 					<p>
 						{ num( result.topics ) } موضوع به «موضوعات پیشنهادی» و { num( result.articles.length ) } مقاله به‌صورت پیش‌نویس اضافه شد
-						{ result.link_suggestions ? `؛ ${ num( result.link_suggestions ) } پیشنهاد لینک در صف تأیید قرار گرفت` : '' }.
+						{ result.link_suggestions ? `؛ ${ num( result.link_suggestions ) } پیشنهاد لینک در صف تأیید قرار گرفت` : '' }
+						{ result.terms ? `؛ متن ${ num( result.terms ) } دسته به‌روز شد` : '' }
+						{ result.seo ? `؛ عنوان و توضیحات متای ${ num( result.seo ) } صفحه به‌روز شد` : '' }.
 					</p>
 					{ result.articles.length > 0 && (
 						<ul className="pp-mini-list">
 							{ result.articles.map( ( a ) => (
-								<li key={ a.id }><a href={ a.edit_url }>{ a.title }</a> <span className="pp-muted">(پیش‌نویس — بازبینی و انتشار با شما)</span></li>
+								<li key={ a.id }><a href={ a.edit_url }>{ a.title }</a> <span className="pp-muted">{ a.rewrite ? '(پیش‌نویس بازنویسی — در ویرایشگر بخوانید و «جایگزینی نوشته اصلی» را بزنید)' : '(پیش‌نویس — بازبینی و انتشار با شما)' }</span></li>
 							) ) }
 						</ul>
 					) }
@@ -143,13 +151,13 @@ export function ImportPage() {
 				<section className="pp-card pp-card--section">
 					<h2 className="pp-card__title">متن خروجی را بچسبانید</h2>
 					<ol className="pp-howto">
-						<li>در گفتگوی ContentMaster همین سایت، فرمان <strong>«خروجی پایدارپرس»</strong> را بفرستید.</li>
-						<li>دکمه کپی بلوک کد را بزنید و متن را اینجا بچسبانید (یا فایل ‎.json را انتخاب کنید).</li>
+						<li>پاسخ JSON هوش مصنوعی را کپی کنید: اگر از دکمه‌های «تولید با هوش مصنوعی» و «کپی پرامپت کامل» استفاده کرده‌اید، پاسخ ChatGPT، Claude یا Gemini همان بلوک JSON است؛ در گفتگوی ContentMaster هم فرمان <strong>«خروجی پایدارپرس»</strong> را بفرستید.</li>
+						<li>متن را اینجا بچسبانید (یا فایل ‎.json را انتخاب کنید).</li>
 						<li>پیش‌نمایش را بررسی کنید و موارد دلخواه را وارد کنید. مقالات فقط پیش‌نویس می‌شوند.</li>
 					</ol>
 					<TextareaControl
 						__nextHasNoMarginBottom
-						label="متن خروجی ContentMaster"
+						label="پاسخ هوش مصنوعی یا خروجی ContentMaster"
 						hideLabelFromVision
 						className="pp-paste"
 						rows={ 10 }
@@ -182,20 +190,21 @@ export function ImportPage() {
 					{ preview.articles.length > 0 && (
 						<section className="pp-card pp-card--section">
 							<h2 className="pp-card__title">مقالات ({ num( preview.articles.length ) }) — به‌صورت پیش‌نویس</h2>
+							{ preview.articles.some( ( a ) => a.rewrite_id ) && <p className="pp-muted">بازنویسی‌ها پیش‌نویس جدا می‌شوند؛ نوشته منتشرشده فقط وقتی تغییر می‌کند که در ویرایشگر «جایگزینی نوشته اصلی» را بزنید.</p> }
 							{ preview.articles.map( ( a ) => (
 								<div key={ a.index } className={ `pp-import-item${ a.duplicate ? ' is-duplicate' : '' }` }>
 									<CheckboxControl
 										__nextHasNoMarginBottom
-										label={ a.title }
+										label={ a.rewrite_id ? `بازنویسی: ${ a.title }` : a.title }
 										checked={ ( picked.articles || [] ).includes( a.index ) }
 										disabled={ a.blocked }
 										onChange={ ( on ) => toggle( 'articles', a.index, on ) }
 									/>
 									<div className="pp-import-meta">
-										<span>{ a.category_name || 'دسته پیش‌فرض' }</span>
+										{ a.rewrite_id ? <span>جایگزین «{ a.rewrite_title }»</span> : <span>{ a.category_name || 'دسته پیش‌فرض' }</span> }
 										<span>{ num( a.words ) } کلمه</span>
 										<span>{ num( a.internal_links ) } لینک داخلی</span>
-										<span>نویسنده: { a.author_name }</span>
+										{ ! a.rewrite_id && <span>نویسنده: { a.author_name }</span> }
 										{ a.seo.focus_keyword && <span>کلمه کلیدی: { a.seo.focus_keyword }</span> }
 										{ a.faq.length > 0 && <span>{ num( a.faq.length ) } پرسش متداول</span> }
 										{ a.reverse_links.length > 0 && <span>{ num( a.reverse_links.filter( ( r ) => r.source_id ).length ) } پیشنهاد لینک به این مقاله</span> }
@@ -249,9 +258,44 @@ export function ImportPage() {
 						</section>
 					) }
 
+					{ terms.length > 0 && (
+						<section className="pp-card pp-card--section">
+							<h2 className="pp-card__title">متن معرفی دسته‌ها ({ num( terms.length ) })</h2>
+							<p className="pp-muted">با ورود، متن بالای صفحه این دسته‌ها عوض می‌شود. متن قبلی ذخیره می‌ماند.</p>
+							{ terms.map( ( t ) => (
+								<div key={ t.index } className="pp-import-item">
+									<CheckboxControl __nextHasNoMarginBottom label={ `«${ t.name }» — ${ num( t.words ) } کلمه` } checked={ ( picked.term_descriptions || [] ).includes( t.index ) } disabled={ t.blocked } onChange={ ( on ) => toggle( 'term_descriptions', t.index, on ) } />
+									{ t.current && <p className="pp-muted pp-import-excerpt"><strong>فعلی:</strong> { t.current }</p> }
+									<p className="pp-import-excerpt"><strong>جدید:</strong> { t.new_preview }…</p>
+									<Checks checks={ t.checks } />
+								</div>
+							) ) }
+						</section>
+					) }
+
+					{ seoUpdates.length > 0 && (
+						<section className="pp-card pp-card--section">
+							<h2 className="pp-card__title">عنوان و توضیحات متا ({ num( seoUpdates.length ) })</h2>
+							<p className="pp-muted">در افزونه سئوی سایت ذخیره می‌شود؛ مقدار قبلی نگه داشته می‌شود.</p>
+							{ seoUpdates.map( ( u ) => (
+								<div key={ u.index } className="pp-import-item">
+									<CheckboxControl __nextHasNoMarginBottom label={ u.title || u.url } checked={ ( picked.seo_updates || [] ).includes( u.index ) } disabled={ u.blocked } onChange={ ( on ) => toggle( 'seo_updates', u.index, on ) } />
+									<table className="pp-table pp-table--compact pp-seo-diff">
+										<thead><tr><th></th><th>فعلی</th><th>جدید</th></tr></thead>
+										<tbody>
+											<tr><th>عنوان</th><td>{ u.current_title || '—' }</td><td>{ u.seo_title || '(بدون تغییر)' } <span className="pp-muted">({ num( ( u.seo_title || '' ).length ) } نویسه)</span></td></tr>
+											<tr><th>توضیحات</th><td>{ u.current_description || '—' }</td><td>{ u.meta_description || '(بدون تغییر)' } <span className="pp-muted">({ num( ( u.meta_description || '' ).length ) } نویسه)</span></td></tr>
+										</tbody>
+									</table>
+									<Checks checks={ u.checks } />
+								</div>
+							) ) }
+						</section>
+					) }
+
 					<div className="pp-sticky-actions">
 						<span className="pp-muted">
-							{ num( count( 'articles' ) ) } مقاله، { num( count( 'topics' ) ) } موضوع و { num( count( 'link_suggestions' ) ) } پیشنهاد لینک انتخاب شده است.
+							{ num( total ) } مورد انتخاب شده است.
 						</span>
 						<div className="pp-sticky-actions__buttons">
 							<Button variant="tertiary" onClick={ () => setPreview( null ) } disabled={ busy }>انصراف</Button>
@@ -280,8 +324,6 @@ export function TopicsPage() {
 	const [ status, setStatus ] = useState( '' );
 	const [ page, setPage ] = useState( 1 );
 	const [ data, setData ] = useState( null );
-	const [ copied, setCopied ] = useState( null );
-
 	const load = () => get( '/topics', { status, page, per_page: 30 } ).then( setData ).catch( () => {} );
 	useEffect( () => {
 		setData( null );
@@ -294,18 +336,19 @@ export function TopicsPage() {
 		post( path, 'delete' === action ? {} : { status: action } ).then( load );
 	};
 
-	const copy = ( topic ) => {
-		const command = `مقاله: ${ topic.title }`;
-		if ( window.navigator.clipboard ) {
-			window.navigator.clipboard.writeText( command ).then( () => {
-				setCopied( topic.id );
-				setTimeout( () => setCopied( null ), 1500 );
-			} );
-		}
-	};
-
 	return (
-		<Page title="موضوعات پیشنهادی" helpKey="topics" actions={ canManage && <Button variant="primary" href="#/cm-import">ورود از ContentMaster</Button> }>
+		<Page
+			title="موضوعات پیشنهادی"
+			helpKey="topics"
+			actions={
+				canManage && (
+					<>
+						<AiButton command={ topicsCommand() } small={ false } variant="primary" />
+						<Button variant="secondary" href="#/cm-import">ورود پاسخ هوش مصنوعی</Button>
+					</>
+				)
+			}
+		>
 			<div className="pp-tabs" role="tablist" aria-label="وضعیت موضوع">
 				{ STATUS_TABS.map( ( t ) => (
 					<button
@@ -331,8 +374,8 @@ export function TopicsPage() {
 				<div className="pp-card">
 					<EmptyState
 						title="موضوعی ثبت نشده است"
-						text="در ContentMaster با «موضوع جدید» فهرست موضوع بگیرید، سپس با «خروجی پایدارپرس» آن را اینجا وارد کنید."
-						action={ canManage && <a className="button button-primary" href="#/cm-import">ورود از ContentMaster</a> }
+						text="با «پیشنهاد موضوع با هوش مصنوعی» یک پرامپت آماده برای ChatGPT، Claude یا Gemini بگیرید و پاسخ را در «ورود مقالات نوشته‌شده» بچسبانید. از «جست‌وجوهای بی‌مقاله» سرچ کنسول هم می‌توانید موضوع اضافه کنید."
+						action={ canManage && <AiButton command={ topicsCommand() } small={ false } variant="primary" /> }
 					/>
 				</div>
 			) }
@@ -364,11 +407,7 @@ export function TopicsPage() {
 										{ t.post && <div><a href={ t.post.edit_url }>{ 'publish' === t.post.status ? 'مشاهده نوشته' : 'ویرایش پیش‌نویس' }</a></div> }
 									</td>
 									<td className="pp-actions">
-										{ 'written' !== t.status && (
-											<Button variant="secondary" size="small" onClick={ () => copy( t ) } title="فرمان را در ContentMaster بچسبانید">
-												{ copied === t.id ? 'کپی شد' : 'کپی فرمان مقاله' }
-											</Button>
-										) }
+										{ 'written' !== t.status && 'rejected' !== t.status && <AiButton command={ topicArticleCommand( t ) } /> }
 										{ canManage && 'new' === t.status && <Button variant="tertiary" size="small" onClick={ () => act( t.id, 'accepted' ) }>پذیرفتن</Button> }
 										{ canManage && [ 'new', 'accepted' ].includes( t.status ) && <Button variant="tertiary" size="small" onClick={ () => act( t.id, 'rejected' ) }>رد</Button> }
 										{ canManage && 'rejected' === t.status && <Button variant="tertiary" size="small" onClick={ () => act( t.id, 'new' ) }>بازگرداندن</Button> }

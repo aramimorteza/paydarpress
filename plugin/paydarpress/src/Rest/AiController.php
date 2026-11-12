@@ -9,6 +9,7 @@ namespace PaydarWP\PaydarPress\Rest;
 
 use PaydarWP\PaydarPress\Ai\AiClient;
 use PaydarWP\PaydarPress\Ai\Credentials;
+use PaydarWP\PaydarPress\Ai\PromptBuilder;
 use PaydarWP\PaydarPress\Ai\Usage;
 use PaydarWP\PaydarPress\Core\Activity;
 use PaydarWP\PaydarPress\Core\Capabilities;
@@ -56,6 +57,26 @@ final class AiController {
 		);
 		register_rest_route( $ns, '/ai/test', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'test' ), 'permission_callback' => $manage ) );
 		register_rest_route( $ns, '/ai/models', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'models' ), 'permission_callback' => $manage ) );
+		register_rest_route(
+			$ns,
+			'/prompt',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'prompt' ),
+				'permission_callback' => static fn() => current_user_can( Capabilities::EXPORT ),
+				'args'                => array(
+					'task' => array(
+						'type'     => 'string',
+						'required' => true,
+						'enum'     => PromptBuilder::TASKS,
+					),
+					'args' => array(
+						'type'    => 'object',
+						'default' => array(),
+					),
+				),
+			)
+		);
 		register_rest_route( $ns, '/ai/clear-key', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'clear_key' ), 'permission_callback' => $manage ) );
 	}
 
@@ -130,6 +151,28 @@ final class AiController {
 		} catch ( RuntimeException $e ) {
 			return new WP_Error( 'paydarpress_ai_failed', $e->getMessage(), array( 'status' => 502 ) );
 		}
+	}
+
+	/**
+	 * Builds a ready prompt (manual mode) and the short ContentMaster command for a task.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 */
+	public function prompt( WP_REST_Request $request ) {
+		try {
+			$p = PromptBuilder::build( (string) $request->get_param( 'task' ), (array) $request->get_param( 'args' ) );
+		} catch ( RuntimeException $e ) {
+			return new WP_Error( 'paydarpress_prompt', $e->getMessage(), array( 'status' => 400 ) );
+		}
+		return new WP_REST_Response(
+			array(
+				'title'    => $p['title'],
+				'prompt'   => $p['full'],
+				'command'  => $p['command'],
+				'chars'    => $p['chars'],
+				'ai_ready' => current_user_can( Capabilities::MANAGE ) && null !== Credentials::connection(),
+			)
+		);
 	}
 
 	/**

@@ -58,6 +58,8 @@ final class ImportParser {
 		$topics   = self::items( $data['topics'] ?? array(), self::MAX_TOPICS, 'topics', $notices );
 		$articles = self::items( $data['articles'] ?? array(), self::MAX_ARTICLES, 'articles', $notices );
 		$links    = self::items( $data['link_suggestions'] ?? array(), self::MAX_SUGGESTIONS, 'link_suggestions', $notices );
+		$terms    = self::items( $data['term_descriptions'] ?? array(), 50, 'term_descriptions', $notices );
+		$seo      = self::items( $data['seo_updates'] ?? array(), 100, 'seo_updates', $notices );
 
 		$out = array(
 			'meta'             => array(
@@ -67,6 +69,9 @@ final class ImportParser {
 			'topics'           => array_values( array_filter( array_map( array( self::class, 'topic' ), $topics ) ) ),
 			'articles'         => array(),
 			'link_suggestions' => array_values( array_filter( array_map( array( self::class, 'suggestion' ), $links ) ) ),
+			'term_descriptions' => array_values( array_filter( array_map( array( self::class, 'term_description' ), $terms ) ) ),
+			'seo_updates'      => array_values( array_filter( array_map( array( self::class, 'seo_update' ), $seo ) ) ),
+			'notes'            => self::str( $data['notes'] ?? '', 3000 ),
 			'notices'          => $notices,
 		);
 
@@ -82,7 +87,10 @@ final class ImportParser {
 			$out['articles'][] = $article;
 		}
 
-		if ( array() === $out['topics'] && array() === $out['articles'] && array() === $out['link_suggestions'] ) {
+		if ( array() === $out['topics'] && array() === $out['articles'] && array() === $out['link_suggestions'] && array() === $out['term_descriptions'] && array() === $out['seo_updates'] ) {
+			if ( '' !== $out['notes'] ) {
+				throw new RuntimeException( 'هوش مصنوعی چیزی برای ورود نساخت و این توضیح را داد: ' . $out['notes'] );
+			}
 			throw new RuntimeException( 'متن معتبر است اما موضوع، مقاله یا پیشنهاد لینکی در آن نیست.' );
 		}
 
@@ -251,6 +259,7 @@ final class ImportParser {
 		$html = (string) preg_replace( '#^\s*<h1[^>]*>.*?</h1>\s*#isu', '', $html );
 
 		return array(
+			'rewrite_of'    => self::str( $raw['rewrite_of'] ?? '', 2000 ),
 			'title'         => $title,
 			'slug'          => self::str( $raw['slug'] ?? '', 190 ),
 			'html'          => $html,
@@ -268,6 +277,47 @@ final class ImportParser {
 			'image_alt'     => self::str( $image['alt'] ?? '', 255 ),
 			'faq'           => $faq,
 			'reverse_links' => $reverse,
+		);
+	}
+
+	/**
+	 * New description of a category, tag or product category.
+	 *
+	 * @param array $raw Raw.
+	 */
+	private static function term_description( array $raw ): ?array {
+		$html = is_string( $raw['description'] ?? null ) ? trim( $raw['description'] ) : '';
+		$name = self::str( $raw['name'] ?? $raw['term'] ?? '', 200 );
+		$id   = self::int( $raw['term_id'] ?? null );
+		if ( '' === $html || ( '' === $name && null === $id ) ) {
+			return null;
+		}
+		$tax = (string) preg_replace( '/[^a-z_]/', '', strtolower( self::str( $raw['taxonomy'] ?? 'category', 32 ) ) );
+
+		return array(
+			'taxonomy'    => in_array( $tax, array( 'category', 'post_tag', 'product_cat', 'product_tag' ), true ) ? $tax : 'category',
+			'term_id'     => $id,
+			'name'        => $name,
+			'description' => mb_substr( $html, 0, 20000 ),
+		);
+	}
+
+	/**
+	 * New SEO title / meta description of an existing page.
+	 *
+	 * @param array $raw Raw.
+	 */
+	private static function seo_update( array $raw ): ?array {
+		$url   = self::str( $raw['url'] ?? '', 2000 );
+		$title = self::str( $raw['seo_title'] ?? $raw['title'] ?? '', 255 );
+		$desc  = self::str( $raw['meta_description'] ?? $raw['description'] ?? '', 500 );
+		if ( '' === $url || ( '' === $title && '' === $desc ) ) {
+			return null;
+		}
+		return array(
+			'url'              => $url,
+			'seo_title'        => $title,
+			'meta_description' => $desc,
 		);
 	}
 

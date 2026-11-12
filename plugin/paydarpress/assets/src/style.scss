@@ -1860,3 +1860,51 @@ button.pp-chip {
 	line-height: 1;
 }
 .pp-table--compact td, .pp-table--compact th { padding: 6px 8px; font-size: 13px; }
+
+/* AI dialog: complete prompt for any assistant + ContentMaster command */
+
+.pp-ai-modal {
+	max-width: 720px;
+
+	h3 {
+		font-size: 14px;
+		margin: 0 0 var(--pwp-space-2, 8px);
+	}
+}
+
+.pp-ai-modal__block {
+	padding: var(--pwp-space-3, 12px);
+	margin-block-end: var(--pwp-space-3, 12px);
+	border: 1px solid var(--pwp-border, #e2e5ea);
+	border-radius: var(--pwp-radius-sm, 6px);
+}
+
+.pp-ai-steps {
+	margin: 0;
+	padding-inline-start: 20px;
+
+	li {
+		margin-block-end: var(--pwp-space-3, 12px);
+	}
+}
+
+.pp-ai-modal__row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--pwp-space-2, 8px);
+	margin-block-start: var(--pwp-space-2, 8px);
+}
+
+.pp-ai-modal__prompt textarea {
+	direction: rtl;
+	font-size: 12px;
+}
+
+.pp-seo-diff {
+	margin-block: var(--pwp-space-2, 8px);
+
+	th {
+		width: 80px;
+	}
+}
