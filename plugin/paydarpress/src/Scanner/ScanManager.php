@@ -197,6 +197,10 @@ final class ScanManager {
 
 			$resolver->recount_inbound();
 
+			// Refresh detected/inferred profile values (confirmed fields are never overwritten),
+			// then audit, so key pages are known to the WEAK_INBOUND rule.
+			\PaydarWP\PaydarPress\Profile\ProfileInference::run();
+
 			// The audit runs inside the scan so a completed scan always has fresh findings.
 			Queue::cancel( self::ACTION_AUDIT );
 			( new AuditEngine() )->run( true );
@@ -289,6 +293,7 @@ final class ScanManager {
 	 */
 	public function run_daily(): void {
 		Activity::prune();
+		\PaydarWP\PaydarPress\Export\InventoryExporter::cleanup();
 	}
 
 	/**

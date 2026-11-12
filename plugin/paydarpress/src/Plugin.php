@@ -11,7 +11,9 @@ namespace PaydarWP\PaydarPress;
 
 use PaydarWP\PaydarPress\Admin\AdminPage;
 use PaydarWP\PaydarPress\Database\Installer;
+use PaydarWP\PaydarPress\Profile\ProfileRepository;
 use PaydarWP\PaydarPress\Rest\AuditController;
+use PaydarWP\PaydarPress\Rest\ProfileController;
 use PaydarWP\PaydarPress\Rest\InventoryController;
 use PaydarWP\PaydarPress\Rest\ScanController;
 use PaydarWP\PaydarPress\Rest\UserPrefsController;
@@ -64,6 +66,10 @@ final class Plugin {
 		( new ScanController( $scans ) )->register();
 		( new InventoryController() )->register();
 		( new AuditController( $scans ) )->register();
+		( new ProfileController( $scans ) )->register();
+
+		// Key pages from the profile feed the WEAK_INBOUND audit rule.
+		add_filter( 'paydarpress/key_page_ids', static fn() => ProfileRepository::key_page_ids() );
 
 		if ( is_admin() ) {
 			( new AdminPage() )->register();

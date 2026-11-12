@@ -140,6 +140,8 @@ final class Installer {
 			'paydarpress_profile',
 			'paydarpress_stats',
 			'paydarpress_onboarding',
+			'paydarpress_last_export',
+			'paydarpress_crawlers',
 		);
 
 		foreach ( $options as $option ) {
@@ -148,6 +150,17 @@ final class Installer {
 
 		delete_metadata( 'user', 0, 'paydarpress_dismissed_help', '', true );
 		delete_metadata( 'user', 0, 'paydarpress_ui_mode', '', true );
+
+		// Export files.
+		$uploads = wp_upload_dir( null, false );
+		$dir     = trailingslashit( $uploads['basedir'] ) . 'paydarpress';
+		if ( is_dir( $dir ) ) {
+			$files = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $dir, \FilesystemIterator::SKIP_DOTS ), \RecursiveIteratorIterator::CHILD_FIRST );
+			foreach ( $files as $file ) {
+				$file->isDir() ? rmdir( $file->getPathname() ) : wp_delete_file( $file->getPathname() ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+			}
+			rmdir( $dir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+		}
 
 		Capabilities::remove();
 	}

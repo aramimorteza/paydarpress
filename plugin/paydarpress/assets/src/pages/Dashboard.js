@@ -32,11 +32,13 @@ function healthLevel( score ) {
 export default function Dashboard() {
 	const scan = useScan();
 	const [ data, setData ] = useState( null );
+	const [ onboarding, setOnboarding ] = useState( null );
 	const scanStatus = scan.scan ? scan.scan.status : null;
 
 	useEffect( () => {
 		if ( 'running' !== scanStatus ) {
 			get( '/dashboard' ).then( setData ).catch( () => {} );
+			get( '/onboarding' ).then( setOnboarding ).catch( () => {} );
 		}
 	}, [ scanStatus ] );
 
@@ -60,6 +62,20 @@ export default function Dashboard() {
 	return (
 		<Page title="پیشخوان" helpKey="dashboard">
 			{ ! data && <Spinner /> }
+
+			{ onboarding && onboarding.done < onboarding.total && (
+				<section className="pp-card pp-card--section pp-onboarding">
+					<h2 className="pp-card__title">شروع کار ({ num( onboarding.done ) } از { num( onboarding.total ) })</h2>
+					<ol className="pp-checklist">
+						{ onboarding.steps.map( ( s ) => (
+							<li key={ s.key } className={ s.done ? 'is-done' : '' }>
+								<span className="pp-checklist__mark">{ s.done ? '✓' : '' }</span>
+								{ s.done ? s.title : <a href={ s.link }>{ s.title }</a> }
+							</li>
+						) ) }
+					</ol>
+				</section>
+			) }
 
 			<div className="pp-dash">
 				<section className="pp-card pp-health">
@@ -103,6 +119,13 @@ export default function Dashboard() {
 			</div>
 
 			<div className="pp-grid">
+				<section className="pp-card">
+					<h2 className="pp-card__title">تکمیل پروفایل</h2>
+					<div className="pp-big">{ onboarding ? `${ num( onboarding.completion.percent ) }٪` : '—' }</div>
+					<div className="pp-bar"><span style={ { width: `${ onboarding ? Math.max( 3, onboarding.completion.percent ) : 0 }%` } } /></div>
+					<p className="pp-muted">پروفایل کامل یعنی محتوای دقیق‌تر در ContentMaster.</p>
+					<a href="#/profile">مشاهده پروفایل ←</a>
+				</section>
 				<section className="pp-card">
 					<h2 className="pp-card__title">محتوای یتیم</h2>
 					<div className="pp-big">{ stats ? num( stats.orphans ) : '—' }</div>

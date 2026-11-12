@@ -30,7 +30,7 @@ export default function Welcome() {
 			</ol>
 			<div className="pp-card">
 				<h2 className="pp-card__title">قدم اول: اسکن سایت</h2>
-				<ScanPanel state={ scan } />
+				<ScanPanel state={ scan } doneLink="#/wizard" doneLabel="قدم بعد: تکمیل پروفایل سایت" />
 			</div>
 		</Page>
 	);

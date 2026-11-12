@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard';
 import Welcome from './pages/Welcome';
 import Placeholder from './pages/Placeholder';
 import Inventory from './pages/Inventory';
+import { WizardPage, ProfilePage, ExportPage } from './pages/ProfilePages';
 import { AuditPage, ImagesPage, OrphansPage, RefreshPage, TaxonomiesPage, VisibilityPage } from './pages/AuditPages';
 import { ROUTES } from './routes';
 
@@ -65,6 +66,12 @@ export default function App() {
 		page = <TaxonomiesPage />;
 	} else if ( '/visibility' === path ) {
 		page = <VisibilityPage />;
+	} else if ( '/wizard' === path ) {
+		page = <WizardPage />;
+	} else if ( '/profile' === path ) {
+		page = <ProfilePage />;
+	} else if ( '/export' === path ) {
+		page = <ExportPage />;
 	} else {
 		const route = ROUTES.find( ( item ) => item.path === path );
 		page = <Placeholder key={ path } title={ route ? route.label : '' } helpKey={ HELP_KEYS[ path ] } />;

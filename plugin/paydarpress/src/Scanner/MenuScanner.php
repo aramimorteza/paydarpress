@@ -81,6 +81,16 @@ final class MenuScanner {
 			}
 		}
 
-		return null;
+		// No assigned location (e.g. block themes): use the menu with the most items.
+		$best  = null;
+		$count = 0;
+		foreach ( (array) wp_get_nav_menus() as $menu ) {
+			if ( (int) $menu->count > $count ) {
+				$best  = (int) $menu->term_id;
+				$count = (int) $menu->count;
+			}
+		}
+
+		return $best;
 	}
 }
