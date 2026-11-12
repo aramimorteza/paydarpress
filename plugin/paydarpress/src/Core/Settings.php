@@ -54,6 +54,13 @@ final class Settings {
 				'edit_cooldown_days' => 30,
 				'require_review'     => true,
 			),
+			'images'      => array(
+				'convert_webp'    => true,
+				'delete_original' => true,
+				'max_dimension'   => 1920,
+				'webp_quality'    => 80,
+				'min_kb'          => 30,
+			),
 			'ai'          => array(
 				'monthly_articles' => 30,
 				'monthly_requests' => 300,
@@ -145,6 +152,9 @@ final class Settings {
 		'policy.links_per_week'            => array( 1, 500 ),
 		'policy.words_per_link'            => array( 50, 1000 ),
 		'policy.edit_cooldown_days'        => array( 0, 365 ),
+		'images.max_dimension'             => array( 800, 4000 ),
+		'images.webp_quality'              => array( 50, 95 ),
+		'images.min_kb'                    => array( 0, 2000 ),
 		'ai.monthly_articles'              => array( 0, 1000 ),
 		'ai.monthly_requests'              => array( 0, 10000 ),
 		'ai.max_output_tokens'             => array( 1000, 64000 ),

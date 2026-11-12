@@ -60,13 +60,7 @@ export function AuditPage() {
 /**
  * Image findings.
  */
-export function ImagesPage() {
-	return (
-		<Page title="سلامت تصاویر" helpKey="images">
-			<FindingsList fixedGroup="images" />
-		</Page>
-	);
-}
+export { default as ImagesPage } from './ImagesPage';
 
 /**
  * Orphan content with link suggestions.

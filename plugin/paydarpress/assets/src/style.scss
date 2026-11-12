@@ -2035,3 +2035,32 @@ button.pp-chip {
 	gap: 6px;
 	flex: 0 0 auto;
 }
+
+/* Images page */
+.pp-dupes__group {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	padding: 8px;
+	margin-block-end: 8px;
+	border: 1px dashed var(--pwp-warning, #b26a00);
+	border-radius: var(--pwp-radius-sm, 6px);
+
+	img {
+		width: 72px;
+		height: 72px;
+		object-fit: cover;
+		border-radius: 4px;
+		display: block;
+	}
+}
+
+.pp-bulk-verify {
+	margin-block-start: 12px;
+	padding: 12px;
+	background: #fff7e6;
+	border: 1px solid #f0c36d;
+	border-radius: var(--pwp-radius-sm, 6px);
+}
+
+.pp-card .pp-ok { color: #1e7e34; }

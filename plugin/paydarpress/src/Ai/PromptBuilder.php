@@ -35,7 +35,7 @@ final class PromptBuilder {
 	private const REWRITE_MAX_CHARS = 40000;
 
 	/** Profile fields that are not useful to the writer. */
-	private const SKIP_FIELDS = array( 'seo_plugin', 'page_builder', 'woocommerce', 'key_pages', 'cta_options', 'categories_scope', 'competitors' );
+	private const SKIP_FIELDS = array( 'visual_style', 'seo_plugin', 'page_builder', 'woocommerce', 'key_pages', 'cta_options', 'categories_scope', 'competitors' );
 
 	/**
 	 * Builds the prompt for a task.
@@ -101,6 +101,46 @@ final class PromptBuilder {
 - Existing articles waiting for a refresh: {$p['refresh_waiting']}. Quality over volume: never propose a new article whose intent an existing article could cover after a refresh; say so in `notes` instead."
 			. ( $p['over'] ? "
 - The monthly budget is used up: only propose what is clearly missing, and mention in `notes` that the owner may prefer refreshing existing content." : '' );
+	}
+
+	/**
+	 * Visual style and recent image concepts (same category first) to avoid look-alike images.
+	 *
+	 * @param int $category_id Category.
+	 */
+	private static function images_text( int $category_id ): string {
+		$style = trim( (string) ProfileRepository::value( 'visual_style' ) );
+		$args  = array(
+			'post_type'      => array( 'post', 'page' ),
+			'post_status'    => array( 'publish', 'draft', 'future', 'pending' ),
+			'posts_per_page' => 12,
+			'meta_key'       => '_paydarpress_image_prompt', // phpcs:ignore WordPress.DB.SlowDBQuery
+			'fields'         => 'ids',
+			'no_found_rows'  => true,
+		);
+		if ( $category_id > 0 ) {
+			$args['cat'] = $category_id;
+		}
+		$ids = get_posts( $args );
+		if ( $category_id > 0 && count( $ids ) < 6 ) {
+			unset( $args['cat'] );
+			$ids = array_values( array_unique( array_merge( $ids, get_posts( $args ) ) ) );
+		}
+		$recent = array();
+		foreach ( array_slice( $ids, 0, 12 ) as $id ) {
+			$p = self::text( get_post_meta( $id, '_paydarpress_image_prompt', true ), 140 );
+			if ( '' !== $p ) {
+				$recent[] = '- ' . $p;
+			}
+		}
+		return "## VISUAL STYLE (same for every image of the site; only the subject changes)
+"
+			. ( '' !== $style ? $style : 'Not set: choose one clean, realistic style that suits the audience; no text in images.' )
+			. ( $recent ? "
+
+## RECENT IMAGES (do not repeat these concepts or compositions)
+" . implode( "
+", $recent ) : '' );
 	}
 
 	/**
@@ -196,6 +236,7 @@ final class PromptBuilder {
 			'output'      => self::output( 'article' ),
 			'with_gsc'    => true,
 			'with_policy' => true,
+			'with_images' => true,
 			'object_id'   => $link_to ? $link_to->ID : null,
 		);
 	}
@@ -250,6 +291,7 @@ final class PromptBuilder {
 			'exclude'     => array( $post->ID ),
 			'rules'       => self::rules_article() . "\n" . self::rules_rewrite(),
 			'output'      => self::output( 'rewrite', array( 'url' => $url, 'product' => $is_product ) ),
+			'with_images' => ! $is_product,
 			'extra'       => $extra,
 			'with_gsc'    => true,
 			'object_id'   => $post->ID,
@@ -392,7 +434,7 @@ final class PromptBuilder {
 				'- FAQ: 3–6 real follow-up questions go ONLY in `faq` (short, direct answers, plain text). Do NOT write a FAQ section inside `html`; the plugin adds it at the end of the article as an accordion with structured data.',
 				'- SEO: title ≤ 60 characters, meta description ≤ 155 characters, short English slug based on intent, tags from the approved tags when given.',
 				'- reverse_links: 2–3 EXISTING CONTENT items that should link to this new article, with an anchor and the sentence where it fits.',
-				'- featured_image.prompt in English (photographic or illustrative scene, no text in the image); alt in the site language.',
+				'- featured_image: a UNIQUE image brief for THIS article. `prompt` in English: one concrete scene taken from the article\'s own situation (who, where, what is happening, one telling detail), in the VISUAL STYLE below; vary subject, setting, angle and composition; never a generic stock concept (handshake, gavel on desk, laptop on table, person thinking) and never one of the RECENT IMAGES listed; no text, logos or watermarks. `alt` in the site language describes what is actually shown.',
 			)
 		);
 	}
@@ -471,6 +513,9 @@ final class PromptBuilder {
 		$parts[] = "## CATEGORIES\n" . self::categories_text();
 		if ( ! empty( $spec['with_policy'] ) ) {
 			$parts[] = self::policy_text();
+		}
+		if ( ! empty( $spec['with_images'] ) ) {
+			$parts[] = self::images_text( (int) ( $spec['category_id'] ?? 0 ) );
 		}
 
 		if ( empty( $spec['no_related'] ) ) {

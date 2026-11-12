@@ -88,9 +88,15 @@ final class Plugin {
 				( new LinksController( $links ) )->routes();
 				( new AiController() )->routes();
 				( new \PaydarWP\PaydarPress\Rest\TasksController() )->routes();
+				( new \PaydarWP\PaydarPress\Rest\ImagesController() )->routes();
 				( new \PaydarWP\PaydarPress\Policy\ReviewGate() )->register();
 			}
 		);
+
+		// Images: WebP on upload, duplicate detection, background conversion of old images.
+		( new \PaydarWP\PaydarPress\Images\WebpConverter() )->register();
+		( new \PaydarWP\PaydarPress\Images\ImageHash() )->register();
+		( new \PaydarWP\PaydarPress\Images\BulkConverter() )->register();
 
 		// FAQ structured data for imported articles (single views only; reads cached post meta).
 		( new \PaydarWP\PaydarPress\Content\Faq() )->register();
