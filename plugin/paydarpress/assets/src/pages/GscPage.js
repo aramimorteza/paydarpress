@@ -36,7 +36,7 @@ export default function GscPage() {
 	const canManage = !! ( config.caps && config.caps.manage );
 	const [ data, setData ] = useState( null );
 	const [ error, setError ] = useState( '' );
-	const [ tab, setTab ] = useState( 'near' );
+	const [ tab, setTab ] = useState( () => ( window.location.hash.match( /[?&]tab=([a-z]+)/ ) || [] )[ 1 ] || 'near' );
 
 	const load = () => get( '/gsc' ).then( setData ).catch( ( e ) => setError( errorMessage( e ) ) );
 	useEffect( () => {

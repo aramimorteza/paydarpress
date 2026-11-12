@@ -1936,3 +1936,102 @@ button.pp-chip {
 		width: 80px;
 	}
 }
+
+/* Default value next to each setting */
+.pp-default {
+	display: inline-block;
+	margin-inline-start: 8px;
+	padding: 0 6px;
+	border-radius: 10px;
+	background: var(--pwp-bg, #f6f7f9);
+	border: 1px solid var(--pwp-border, #e2e5ea);
+	color: var(--pwp-text-muted, #5b6475);
+	font-size: 11px;
+	font-weight: 400;
+
+	&.is-changed {
+		border-color: var(--pwp-warning, #b26a00);
+		color: var(--pwp-warning, #b26a00);
+	}
+}
+
+/* This week's tasks */
+.pp-task-summary {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--pwp-space-4, 16px);
+	margin-block-end: var(--pwp-space-3, 12px);
+	font-weight: 600;
+
+	.pp-ok { color: #1e7e34; }
+}
+
+.pp-tasks {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.pp-task {
+	display: flex;
+	gap: var(--pwp-space-3, 12px);
+	background: var(--pwp-surface, #fff);
+	border: 1px solid var(--pwp-border, #e2e5ea);
+	border-radius: var(--pwp-radius, 10px);
+	padding: var(--pwp-space-4, 16px);
+	margin-block-end: var(--pwp-space-3, 12px);
+
+	&.is-next {
+		border-color: var(--pwp-primary, #0f6e6e);
+		box-shadow: inset 3px 0 0 var(--pwp-primary, #0f6e6e);
+	}
+}
+
+.pp-task__num {
+	flex: 0 0 28px;
+	height: 28px;
+	border-radius: 50%;
+	background: var(--pwp-primary-soft, #e3f2f1);
+	color: var(--pwp-primary, #0f6e6e);
+	font-weight: 700;
+	text-align: center;
+	line-height: 28px;
+}
+
+.pp-task__body { flex: 1 1 auto; min-width: 0; }
+
+.pp-task__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--pwp-space-2, 8px);
+}
+
+.pp-task__why { margin: 6px 0; color: var(--pwp-text-muted, #5b6475); }
+
+.pp-task__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--pwp-space-2, 8px);
+}
+
+.pp-next-task {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: var(--pwp-space-4, 16px);
+	border-inline-start: 4px solid var(--pwp-primary, #0f6e6e);
+
+	p { margin: 4px 0 0; }
+}
+
+.pp-next-task__title { font-size: 16px; }
+
+.pp-next-task__actions {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 6px;
+	flex: 0 0 auto;
+}

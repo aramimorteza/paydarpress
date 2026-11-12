@@ -8,6 +8,7 @@ import GscPage from './pages/GscPage';
 import { ImportPage, TopicsPage } from './pages/ContentMasterPages';
 import LinksPage from './pages/LinksPage';
 import AutoPage from './pages/AutoPage';
+import TasksPage from './pages/TasksPage';
 import Inventory from './pages/Inventory';
 import { WizardPage, ProfilePage, ExportPage } from './pages/ProfilePages';
 import { AuditPage, ImagesPage, OrphansPage, RefreshPage, TaxonomiesPage, VisibilityPage } from './pages/AuditPages';
@@ -68,6 +69,8 @@ export default function App() {
 		page = <LinksPage key={ window.location.hash.split( '?' )[ 0 ] } />;
 	} else if ( '/topics' === path ) {
 		page = <TopicsPage />;
+	} else if ( '/tasks' === path ) {
+		page = <TasksPage />;
 	} else if ( '/auto' === path ) {
 		page = <AutoPage />;
 	} else if ( '/cm-import' === path ) {

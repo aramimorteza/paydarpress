@@ -79,6 +79,7 @@ class ComposerStaticInitfb42b83d6c8d640da5884eda2eaeec31
         'PaydarWP\\PaydarPress\\Rest\\ProfileController' => __DIR__ . '/../..' . '/src/Rest/ProfileController.php',
         'PaydarWP\\PaydarPress\\Rest\\ScanController' => __DIR__ . '/../..' . '/src/Rest/ScanController.php',
         'PaydarWP\\PaydarPress\\Rest\\SettingsController' => __DIR__ . '/../..' . '/src/Rest/SettingsController.php',
+        'PaydarWP\\PaydarPress\\Rest\\TasksController' => __DIR__ . '/../..' . '/src/Rest/TasksController.php',
         'PaydarWP\\PaydarPress\\Rest\\UserPrefsController' => __DIR__ . '/../..' . '/src/Rest/UserPrefsController.php',
         'PaydarWP\\PaydarPress\\Scanner\\ContentScanner' => __DIR__ . '/../..' . '/src/Scanner/ContentScanner.php',
         'PaydarWP\\PaydarPress\\Scanner\\MenuScanner' => __DIR__ . '/../..' . '/src/Scanner/MenuScanner.php',
@@ -90,6 +91,7 @@ class ComposerStaticInitfb42b83d6c8d640da5884eda2eaeec31
         'PaydarWP\\PaydarPress\\Seo\\SeoAdapter' => __DIR__ . '/../..' . '/src/Seo/SeoAdapter.php',
         'PaydarWP\\PaydarPress\\Seo\\SeoDetector' => __DIR__ . '/../..' . '/src/Seo/SeoDetector.php',
         'PaydarWP\\PaydarPress\\Seo\\YoastAdapter' => __DIR__ . '/../..' . '/src/Seo/YoastAdapter.php',
+        'PaydarWP\\PaydarPress\\Tasks\\TaskBoard' => __DIR__ . '/../..' . '/src/Tasks/TaskBoard.php',
         'PaydarWP\\PaydarPress\\Text\\PersianNormalizer' => __DIR__ . '/../..' . '/src/Text/PersianNormalizer.php',
         'PaydarWP\\PaydarPress\\Text\\YearDetector' => __DIR__ . '/../..' . '/src/Text/YearDetector.php',
     );

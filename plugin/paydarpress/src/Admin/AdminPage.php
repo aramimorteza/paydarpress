@@ -207,6 +207,7 @@ final class AdminPage {
 			'links'   => \PaydarWP\PaydarPress\Import\LinkSuggestionRepository::pending_count(),
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			'topics'  => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$topics} WHERE status = 'new'" ),
+			'tasks'   => \PaydarWP\PaydarPress\Tasks\TaskBoard::count(),
 		);
 	}
 

@@ -91,7 +91,7 @@ export default function Sidebar( { current } ) {
 									title={ entry.hint }
 									onClick={ () => ! hasCurrent && toggle( entry.id ) }
 								>
-									<span className="pp-nav__step">{ num( index ) }</span>
+									<span className="pp-nav__step">{ num( NAV.filter( ( e, i ) => e.items && i <= index ).length ) }</span>
 									<span className="pp-nav__group-label">{ entry.group }</span>
 									{ ! open && total > 0 && <span className="pp-nav__dot" aria-label={ `${ num( total ) } مورد در انتظار` } /> }
 									<Dashicon icon={ open ? 'arrow-up-alt2' : 'arrow-down-alt2' } className="pp-nav__chevron" />

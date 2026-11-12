@@ -64,6 +64,7 @@ return array(
     'PaydarWP\\PaydarPress\\Rest\\ProfileController' => $baseDir . '/src/Rest/ProfileController.php',
     'PaydarWP\\PaydarPress\\Rest\\ScanController' => $baseDir . '/src/Rest/ScanController.php',
     'PaydarWP\\PaydarPress\\Rest\\SettingsController' => $baseDir . '/src/Rest/SettingsController.php',
+    'PaydarWP\\PaydarPress\\Rest\\TasksController' => $baseDir . '/src/Rest/TasksController.php',
     'PaydarWP\\PaydarPress\\Rest\\UserPrefsController' => $baseDir . '/src/Rest/UserPrefsController.php',
     'PaydarWP\\PaydarPress\\Scanner\\ContentScanner' => $baseDir . '/src/Scanner/ContentScanner.php',
     'PaydarWP\\PaydarPress\\Scanner\\MenuScanner' => $baseDir . '/src/Scanner/MenuScanner.php',
@@ -75,6 +76,7 @@ return array(
     'PaydarWP\\PaydarPress\\Seo\\SeoAdapter' => $baseDir . '/src/Seo/SeoAdapter.php',
     'PaydarWP\\PaydarPress\\Seo\\SeoDetector' => $baseDir . '/src/Seo/SeoDetector.php',
     'PaydarWP\\PaydarPress\\Seo\\YoastAdapter' => $baseDir . '/src/Seo/YoastAdapter.php',
+    'PaydarWP\\PaydarPress\\Tasks\\TaskBoard' => $baseDir . '/src/Tasks/TaskBoard.php',
     'PaydarWP\\PaydarPress\\Text\\PersianNormalizer' => $baseDir . '/src/Text/PersianNormalizer.php',
     'PaydarWP\\PaydarPress\\Text\\YearDetector' => $baseDir . '/src/Text/YearDetector.php',
 );

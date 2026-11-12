@@ -1,6 +1,7 @@
 import { useEffect, useState } from '@wordpress/element';
 import { Spinner } from '@wordpress/components';
 import Page from '../components/Page';
+import { TaskAction } from './TasksPage';
 import EmptyState from '../components/EmptyState';
 import ScanPanel from '../components/ScanPanel';
 import { SeverityBadge } from '../components/FindingCard';
@@ -35,6 +36,7 @@ export default function Dashboard() {
 	const [ onboarding, setOnboarding ] = useState( null );
 	const [ gsc, setGsc ] = useState( null );
 	const [ pendingLinks, setPendingLinks ] = useState( 0 );
+	const [ tasks, setTasks ] = useState( null );
 	const scanStatus = scan.scan ? scan.scan.status : null;
 
 	useEffect( () => {
@@ -42,6 +44,7 @@ export default function Dashboard() {
 			get( '/dashboard' ).then( setData ).catch( () => {} );
 			get( '/onboarding' ).then( setOnboarding ).catch( () => {} );
 			get( '/gsc' ).then( setGsc ).catch( () => {} );
+			get( '/tasks' ).then( setTasks ).catch( () => {} );
 			get( '/links', { status: 'pending', per_page: 1 } ).then( ( d ) => setPendingLinks( d.counts.pending ) ).catch( () => {} );
 		}
 	}, [ scanStatus ] );
@@ -66,6 +69,20 @@ export default function Dashboard() {
 	return (
 		<Page title="پیشخوان" helpKey="dashboard">
 			{ ! data && <Spinner /> }
+
+			{ tasks && tasks.week.length > 0 && (
+				<section className="pp-card pp-next-task">
+					<div>
+						<div className="pp-muted">کار بعدی شما</div>
+						<strong className="pp-next-task__title">{ tasks.week[ 0 ].title }</strong>
+						<p className="pp-muted">{ tasks.week[ 0 ].why }</p>
+					</div>
+					<div className="pp-next-task__actions">
+						<TaskAction action={ tasks.week[ 0 ].action } variant="primary" />
+						<a href="#/tasks">همه کارهای این هفته ({ num( tasks.week.length ) })</a>
+					</div>
+				</section>
+			) }
 
 			{ onboarding && onboarding.done < onboarding.total && (
 				<section className="pp-card pp-card--section pp-onboarding">

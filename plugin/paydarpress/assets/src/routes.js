@@ -5,6 +5,7 @@
  */
 export const NAV = [
 	{ path: '/', label: 'پیشخوان', icon: 'dashboard' },
+	{ path: '/tasks', label: 'کارهای این هفته', icon: 'yes-alt', badge: 'tasks', badgeTitle: 'کار این هفته', accent: true },
 	{
 		id: 'know',
 		group: 'شناخت سایت',

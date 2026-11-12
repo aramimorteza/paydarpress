@@ -87,6 +87,7 @@ final class Plugin {
 				( new ContentMasterController() )->routes();
 				( new LinksController( $links ) )->routes();
 				( new AiController() )->routes();
+				( new \PaydarWP\PaydarPress\Rest\TasksController() )->routes();
 				( new \PaydarWP\PaydarPress\Policy\ReviewGate() )->register();
 			}
 		);

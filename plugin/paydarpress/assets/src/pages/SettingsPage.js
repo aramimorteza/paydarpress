@@ -250,6 +250,23 @@ export default function SettingsPage() {
  */
 function SettingField( { field, value, defaultValue, limit, disabled, onChange } ) {
 	const isDefault = JSON.stringify( value ) === JSON.stringify( defaultValue );
+	let defaultText = '';
+	if ( 'toggle' === field.type ) {
+		defaultText = defaultValue ? 'روشن' : 'خاموش';
+	} else if ( 'hour' === field.type ) {
+		defaultText = `ساعت ${ num( defaultValue ) }`;
+	} else if ( Array.isArray( defaultValue ) ) {
+		defaultText = defaultValue.length ? defaultValue.join( '، ' ) : 'خالی';
+	} else if ( undefined !== defaultValue ) {
+		defaultText = `${ num( defaultValue ) }${ field.suffix ? ` ${ field.suffix }` : '' }`;
+	}
+	// The default is always visible next to the label, so changed values can be compared.
+	const label = (
+		<span className="pp-setting__label">
+			{ field.label }
+			{ defaultText && <span className={ `pp-default${ isDefault ? '' : ' is-changed' }` }>پیش‌فرض: { defaultText }</span> }
+		</span>
+	);
 	const reset = ! isDefault && 'toggle' !== field.type && (
 		<Button variant="link" className="pp-reset" onClick={ () => onChange( defaultValue ) }>
 			بازگشت به پیش‌فرض ({ Array.isArray( defaultValue ) ? 'خالی' : num( defaultValue ) })
@@ -259,7 +276,7 @@ function SettingField( { field, value, defaultValue, limit, disabled, onChange }
 	if ( 'toggle' === field.type ) {
 		return (
 			<div className={ `pp-setting${ field.danger && value ? ' pp-setting--danger' : '' }` }>
-				<ToggleControl __nextHasNoMarginBottom label={ field.label } help={ field.help } checked={ !! value } onChange={ onChange } />
+				<ToggleControl __nextHasNoMarginBottom label={ label } help={ field.help } checked={ !! value } onChange={ onChange } />
 			</div>
 		);
 	}
@@ -267,7 +284,7 @@ function SettingField( { field, value, defaultValue, limit, disabled, onChange }
 	if ( 'hour' === field.type ) {
 		return (
 			<div className="pp-setting">
-				<SelectControl __nextHasNoMarginBottom __next40pxDefaultSize label={ field.label } help={ field.help } value={ String( value ) } options={ HOURS } onChange={ ( v ) => onChange( parseInt( v, 10 ) ) } />
+				<SelectControl __nextHasNoMarginBottom __next40pxDefaultSize label={ label } help={ field.help } value={ String( value ) } options={ HOURS } onChange={ ( v ) => onChange( parseInt( v, 10 ) ) } />
 			</div>
 		);
 	}
@@ -278,7 +295,7 @@ function SettingField( { field, value, defaultValue, limit, disabled, onChange }
 				<TextControl
 					__nextHasNoMarginBottom
 					__next40pxDefaultSize
-					label={ field.label }
+					label={ label }
 					help={ field.help }
 					dir="ltr"
 					value={ ( value || [] ).join( ', ' ) }
@@ -303,7 +320,7 @@ function SettingField( { field, value, defaultValue, limit, disabled, onChange }
 				__nextHasNoMarginBottom
 				__next40pxDefaultSize
 				type="number"
-				label={ field.label }
+				label={ label }
 				help={ help }
 				value={ String( value ) }
 				min={ limit ? limit.min : undefined }
