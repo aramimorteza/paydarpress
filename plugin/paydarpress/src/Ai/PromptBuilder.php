@@ -26,7 +26,7 @@ defined( 'ABSPATH' ) || exit;
  */
 final class PromptBuilder {
 
-	public const TASKS = array( 'topics', 'article', 'rewrite', 'term', 'meta' );
+	public const TASKS = array( 'topics', 'article', 'rewrite', 'term', 'meta', 'structure' );
 
 	/** Existing items listed for duplicate checks and internal links. */
 	private const RELATED_LIMIT = 60;
@@ -381,6 +381,64 @@ final class PromptBuilder {
 	}
 
 	/**
+	 * Review of the category structure (suggestions only; the owner decides).
+	 *
+	 * @param array $args Unused.
+	 */
+	private static function task_structure( array $args ): array {
+		unset( $args );
+		$lines = array();
+		foreach ( \PaydarWP\PaydarPress\Strategy\Structure::categories() as $c ) {
+			$titles  = get_posts(
+				array(
+					'cat'            => $c['id'],
+					'posts_per_page' => 8,
+					'post_status'    => 'publish',
+					'fields'         => 'ids',
+					'no_found_rows'  => true,
+				)
+			);
+			$lines[] = '- [category #' . $c['id'] . '] ' . $c['name'] . ' | ' . $c['count'] . ' posts | importance ' . $c['importance'] . ' | Google impressions ' . $c['impressions']
+				. ( $titles ? "\n  sample titles: " . implode( ' / ', array_map( array( self::class, 'title' ), $titles ) ) : '' );
+		}
+		if ( \PaydarWP\PaydarPress\Strategy\ShopStrategy::active() ) {
+			foreach ( (array) get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false, 'number' => 150 ) ) as $t ) {
+				if ( $t instanceof WP_Term && 'uncategorized' !== $t->slug ) {
+					$parent  = $t->parent ? get_term( $t->parent ) : null;
+					$sample  = get_posts(
+						array(
+							'post_type'      => 'product',
+							'posts_per_page' => 5,
+							'fields'         => 'ids',
+							'no_found_rows'  => true,
+							'tax_query'      => array( array( 'taxonomy' => 'product_cat', 'terms' => $t->term_id ) ), // phpcs:ignore WordPress.DB.SlowDBQuery
+						)
+					);
+					$lines[] = '- [product_cat #' . $t->term_id . '] ' . $t->name . ' | ' . $t->count . ' products' . ( $parent instanceof WP_Term ? ' | parent: ' . $parent->name : '' )
+						. ( $sample ? "\n  sample products: " . implode( ' / ', array_map( array( self::class, 'title' ), $sample ) ) : '' );
+				}
+			}
+		}
+		$tags = wp_count_terms( array( 'taxonomy' => 'post_tag', 'hide_empty' => false ) );
+
+		$task = "Review this site's category structure and suggest ONLY the changes that clearly help readers and search: categories to merge (overlapping intent), split (too broad, covering several distinct intents), create (a main keyword or service with no home), rename (unclear name — the display name only), noindex (thin archives that should not be in Google), or keep.\n"
+			. "Be conservative: a stable structure is valuable; every change costs work and can lose rankings. At most 12 suggestions, most important first. Never suggest changing a category's URL slug. A merge always means moving the posts and a 301 redirect from the old category.\n"
+			. 'Tags on this site: ' . ( is_wp_error( $tags ) ? 0 : (int) $tags ) . ".\n\n## CURRENT STRUCTURE\n" . implode( "\n", $lines );
+
+		return array(
+			'title'      => 'پیشنهاد ساختار دسته‌بندی',
+			'command'    => "بررسی ساختار دسته‌بندی سایت\nفقط تغییرات لازم (ادغام، تقسیم، دسته تازه، تغییر نام نمایشی، noindex) را با دلیل بده و در «خروجی پایدارپرس» در بخش structure_suggestions قرار بده.",
+			'task'       => $task,
+			'subject'    => '',
+			'rules'      => self::rules_short() . "\n- Base every suggestion on the profile (main keywords, services, audience), the sample titles and the Google data; say which in `reason`.",
+			'output'     => self::output( 'structure' ),
+			'no_related' => true,
+			'with_gsc'   => true,
+			'object_id'  => null,
+		);
+	}
+
+	/**
 	 * Fixed instructions.
 	 *
 	 * @param string $rules  Task rules.
@@ -488,6 +546,8 @@ final class PromptBuilder {
 					. ( empty( $ctx['product'] ) ? '' : ' For a product, `html` is the full product description and `excerpt` is the new short description; leave category and tags empty.' );
 			case 'term':
 				return $head . 'with "term_descriptions": [{"taxonomy": "' . $ctx['taxonomy'] . '", "term_id": ' . (int) $ctx['term_id'] . ', "name": ' . wp_json_encode( $ctx['name'], JSON_UNESCAPED_UNICODE ) . ', "description": "<HTML>"}]';
+			case 'structure':
+				return $head . 'with "structure_suggestions": [{"action": "merge|split|create|rename|noindex|keep", "taxonomy": "category|product_cat", "term_id": 0, "name": "<current name>", "new_name": "<new display name, for create/rename/split>", "into_term_id": 0, "into_name": "<target category, for merge>", "reason": "<one or two sentences in the site language>", "priority": "high|medium|low"}] and "notes": "<short overall assessment in the site language>".';
 			case 'meta':
 				return $head . 'with "seo_updates": [{"url": "' . $ctx['url'] . '", "seo_title": "", "meta_description": ""}] and "notes": "<2 alternative titles and 2 alternative descriptions>".';
 		}
@@ -511,6 +571,10 @@ final class PromptBuilder {
 			$parts[] = "## CTA OPTIONS\n{$cta}";
 		}
 		$parts[] = "## CATEGORIES\n" . self::categories_text();
+		$shop    = \PaydarWP\PaydarPress\Strategy\ShopStrategy::info();
+		if ( ! empty( $shop['active'] ) ) {
+			$parts[] = "## SHOP STRATEGY\nFocus: {$shop['focus']} — " . $shop['reason'] . ' ' . $shop['advice'];
+		}
 		if ( ! empty( $spec['with_policy'] ) ) {
 			$parts[] = self::policy_text();
 		}

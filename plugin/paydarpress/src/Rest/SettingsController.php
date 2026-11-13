@@ -71,6 +71,34 @@ final class SettingsController {
 				),
 			)
 		);
+		register_rest_route(
+			self::NAMESPACE,
+			'/structure/plan',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'permission_callback' => $view,
+					'callback'            => static fn() => new WP_REST_Response(
+						array(
+							'items' => \PaydarWP\PaydarPress\Strategy\StructurePlan::view(),
+							'shop'  => \PaydarWP\PaydarPress\Strategy\ShopStrategy::info(),
+						)
+					),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'permission_callback' => $manage,
+					'args'                => array(
+						'id'     => array( 'type' => 'string', 'required' => true ),
+						'status' => array( 'type' => 'string', 'required' => true, 'enum' => array( 'open', 'done', 'rejected' ) ),
+					),
+					'callback'            => static function ( WP_REST_Request $r ) {
+						\PaydarWP\PaydarPress\Strategy\StructurePlan::set( sanitize_key( (string) $r['id'] ), (string) $r['status'] );
+						return new WP_REST_Response( array( 'items' => \PaydarWP\PaydarPress\Strategy\StructurePlan::view() ) );
+					},
+				),
+			)
+		);
 		register_rest_route( self::NAMESPACE, '/policy/stage', array( 'methods' => WP_REST_Server::READABLE, 'callback' => static fn() => new WP_REST_Response( \PaydarWP\PaydarPress\Policy\SiteStage::info() ), 'permission_callback' => $view ) );
 		register_rest_route(
 			self::NAMESPACE,

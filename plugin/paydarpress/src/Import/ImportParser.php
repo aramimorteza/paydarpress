@@ -60,6 +60,7 @@ final class ImportParser {
 		$links    = self::items( $data['link_suggestions'] ?? array(), self::MAX_SUGGESTIONS, 'link_suggestions', $notices );
 		$terms    = self::items( $data['term_descriptions'] ?? array(), 50, 'term_descriptions', $notices );
 		$seo      = self::items( $data['seo_updates'] ?? array(), 100, 'seo_updates', $notices );
+		$struct   = self::items( $data['structure_suggestions'] ?? array(), 30, 'structure_suggestions', $notices );
 
 		$out = array(
 			'meta'             => array(
@@ -71,6 +72,7 @@ final class ImportParser {
 			'link_suggestions' => array_values( array_filter( array_map( array( self::class, 'suggestion' ), $links ) ) ),
 			'term_descriptions' => array_values( array_filter( array_map( array( self::class, 'term_description' ), $terms ) ) ),
 			'seo_updates'      => array_values( array_filter( array_map( array( self::class, 'seo_update' ), $seo ) ) ),
+			'structure_suggestions' => array_values( array_filter( array_map( array( self::class, 'structure_suggestion' ), $struct ) ) ),
 			'notes'            => self::str( $data['notes'] ?? '', 3000 ),
 			'notices'          => $notices,
 		);
@@ -87,7 +89,7 @@ final class ImportParser {
 			$out['articles'][] = $article;
 		}
 
-		if ( array() === $out['topics'] && array() === $out['articles'] && array() === $out['link_suggestions'] && array() === $out['term_descriptions'] && array() === $out['seo_updates'] ) {
+		if ( array() === $out['topics'] && array() === $out['articles'] && array() === $out['link_suggestions'] && array() === $out['term_descriptions'] && array() === $out['seo_updates'] && array() === $out['structure_suggestions'] ) {
 			if ( '' !== $out['notes'] ) {
 				throw new RuntimeException( 'هوش مصنوعی چیزی برای ورود نساخت و این توضیح را داد: ' . $out['notes'] );
 			}
@@ -299,6 +301,32 @@ final class ImportParser {
 			'term_id'     => $id,
 			'name'        => $name,
 			'description' => mb_substr( $html, 0, 20000 ),
+		);
+	}
+
+	/**
+	 * One category-structure suggestion.
+	 *
+	 * @param array $raw Raw.
+	 */
+	public static function structure_suggestion( array $raw ): ?array {
+		$action = strtolower( self::str( $raw['action'] ?? '', 20 ) );
+		if ( ! in_array( $action, array( 'merge', 'split', 'create', 'rename', 'noindex', 'keep' ), true ) ) {
+			return null;
+		}
+		$reason = self::str( $raw['reason'] ?? '', 600 );
+		$tax    = in_array( $raw['taxonomy'] ?? '', array( 'category', 'product_cat' ), true ) ? $raw['taxonomy'] : 'category';
+		$prio   = in_array( $raw['priority'] ?? '', array( 'high', 'medium', 'low' ), true ) ? $raw['priority'] : 'medium';
+		return array(
+			'action'       => $action,
+			'taxonomy'     => $tax,
+			'term_id'      => self::int( $raw['term_id'] ?? null ),
+			'name'         => self::str( $raw['name'] ?? '', 200 ),
+			'new_name'     => self::str( $raw['new_name'] ?? '', 200 ),
+			'into_term_id' => self::int( $raw['into_term_id'] ?? null ),
+			'into_name'    => self::str( $raw['into_name'] ?? '', 200 ),
+			'reason'       => $reason,
+			'priority'     => $prio,
 		);
 	}
 

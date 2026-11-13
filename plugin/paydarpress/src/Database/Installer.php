@@ -149,6 +149,10 @@ final class Installer {
 			'paydarpress_scan_cursor',
 			'paydarpress_ai',
 			'paydarpress_settling',
+			'paydarpress_structure_plan',
+			'paydarpress_tasks',
+			'paydarpress_webp_stats',
+			'paydarpress_webp_bulk',
 		);
 
 		foreach ( $options as $option ) {

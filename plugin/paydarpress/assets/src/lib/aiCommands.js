@@ -187,3 +187,16 @@ function safeDecode( url ) {
 		return url;
 	}
 }
+
+/**
+ * Review of the category structure (suggestions only).
+ */
+export function structureCommand() {
+	return {
+		label: 'پیشنهاد ساختار دسته‌بندی با هوش مصنوعی',
+		summary: 'بررسی ساختار دسته‌بندی سایت',
+		command: 'بررسی ساختار دسته‌بندی سایت\nفقط تغییرات لازم (ادغام، تقسیم، دسته تازه، تغییر نام نمایشی، noindex) را با دلیل بده و در «خروجی پایدارپرس» در بخش structure_suggestions قرار بده.',
+		prompt: { task: 'structure', args: {} },
+		hint: 'پیشنهادها فقط به فهرست «پیشنهادهای ساختار» در همین صفحه اضافه می‌شوند؛ هیچ دسته‌ای خودکار تغییر نمی‌کند و تصمیم با شماست.',
+	};
+}

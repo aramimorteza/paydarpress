@@ -9,6 +9,7 @@ const SECTIONS = [
 	[ 'term_descriptions', 'متن دسته' ],
 	[ 'seo_updates', 'عنوان و متا' ],
 	[ 'link_suggestions', 'پیشنهاد لینک' ],
+	[ 'structure_suggestions', 'پیشنهاد ساختار' ],
 ];
 
 const LEVEL = { duplicate: 'pp-check--duplicate', error: 'pp-check--error', warning: 'pp-check--warning', info: 'pp-check--info' };
@@ -31,6 +32,9 @@ function itemTitle( section, item ) {
 	}
 	if ( 'link_suggestions' === section ) {
 		return `لینک از «${ item.source_title || item.source_url }» به «${ item.target_title || item.target_url }»`;
+	}
+	if ( 'structure_suggestions' === section ) {
+		return `${ { merge: 'ادغام', split: 'تقسیم', create: 'دسته تازه', rename: 'تغییر نام', noindex: 'noindex', keep: 'بدون تغییر' }[ item.action ] || item.action } «${ item.name || item.new_name }»${ item.into_name ? ` ← «${ item.into_name }»` : '' }${ item.new_name && item.name ? ` ← «${ item.new_name }»` : '' } — ${ item.reason }`;
 	}
 	return item.title;
 }
@@ -91,6 +95,7 @@ export default function InlineImport() {
 						result.terms ? `${ num( result.terms ) } متن دسته` : '',
 						result.seo ? `${ num( result.seo ) } متا` : '',
 						result.link_suggestions ? `${ num( result.link_suggestions ) } پیشنهاد لینک` : '',
+						result.structure ? `${ num( result.structure ) } پیشنهاد ساختار (در «دسته‌ها و برچسب‌ها»)` : '',
 					].filter( Boolean ).join( '، ' ) || 'موردی' }.
 				</Notice>
 				{ result.articles.length > 0 && (

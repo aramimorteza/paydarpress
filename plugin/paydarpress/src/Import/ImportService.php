@@ -138,6 +138,10 @@ final class ImportService {
 		foreach ( $parsed['seo_updates'] as $i => $u ) {
 			$seo_items[] = $this->check_seo( $i, $u );
 		}
+		$struct_items = array();
+		foreach ( $parsed['structure_suggestions'] as $i => $st ) {
+			$struct_items[] = $this->check_structure( $i, $st );
+		}
 		if ( '' !== $parsed['notes'] ) {
 			$warnings[] = 'توضیح هوش مصنوعی: ' . $parsed['notes'];
 		}
@@ -153,6 +157,7 @@ final class ImportService {
 			'link_suggestions' => $suggestions,
 			'term_descriptions' => $term_items,
 			'seo_updates'      => $seo_items,
+			'structure_suggestions' => $struct_items,
 		);
 
 		set_transient( $this->transient_key( $token ), $payload, self::TTL );
@@ -215,6 +220,7 @@ final class ImportService {
 		$preview += array(
 			'term_descriptions' => array(),
 			'seo_updates'       => array(),
+			'structure_suggestions' => array(),
 		);
 
 		foreach ( $pick( 'topics' ) as $topic ) {
@@ -278,6 +284,8 @@ final class ImportService {
 				$result['errors'][] = $done;
 			}
 		}
+
+		$result['structure'] = \PaydarWP\PaydarPress\Strategy\StructurePlan::add( $pick( 'structure_suggestions' ) );
 
 		foreach ( $pick( 'link_suggestions' ) as $s ) {
 			LinkSuggestionRepository::insert( (int) $s['source_id'], (int) $s['target_id'], $s['anchor'], $s['sentence'], 'contentmaster', $import_id );
@@ -579,6 +587,43 @@ final class ImportService {
 		}
 
 		return (int) $post_id;
+	}
+
+	/**
+	 * Checks a structure suggestion: the categories it names must exist.
+	 *
+	 * @param int   $index Index.
+	 * @param array $st    Parsed suggestion.
+	 */
+	private function check_structure( int $index, array $st ): array {
+		$checks = array();
+		$find   = static function ( ?int $id, string $name, string $tax ) {
+			$t = $id ? get_term( $id, $tax ) : null;
+			if ( ! $t instanceof \WP_Term && '' !== $name ) {
+				$t = get_term_by( 'name', $name, $tax );
+			}
+			return $t instanceof \WP_Term ? $t : null;
+		};
+		if ( in_array( $st['action'], array( 'merge', 'split', 'rename', 'noindex', 'keep' ), true ) ) {
+			$term = $find( $st['term_id'], $st['name'], $st['taxonomy'] );
+			if ( null === $term ) {
+				$checks[] = array( 'error', 'دسته «' . $st['name'] . '» در سایت پیدا نشد.' );
+			} else {
+				$st['term_id'] = (int) $term->term_id;
+				$st['name']    = html_entity_decode( $term->name, ENT_QUOTES, 'UTF-8' );
+			}
+		}
+		if ( 'merge' === $st['action'] ) {
+			$into = $find( $st['into_term_id'], $st['into_name'], $st['taxonomy'] );
+			if ( null === $into ) {
+				$checks[] = array( 'error', 'دسته مقصد ادغام «' . $st['into_name'] . '» پیدا نشد.' );
+			} else {
+				$st['into_term_id'] = (int) $into->term_id;
+				$st['into_name']    = html_entity_decode( $into->name, ENT_QUOTES, 'UTF-8' );
+			}
+		}
+		$checks[] = array( 'info', 'فقط به فهرست پیشنهادهای ساختار اضافه می‌شود؛ هیچ دسته‌ای خودکار تغییر نمی‌کند.' );
+		return $this->with_checks( $st + array( 'index' => $index ), $checks );
 	}
 
 	/**

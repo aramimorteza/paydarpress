@@ -5,6 +5,7 @@ import EmptyState from '../components/EmptyState';
 import FindingsList from '../components/FindingsList';
 import FindingCard from '../components/FindingCard';
 import AiButton from '../components/AiButton';
+import StructurePanel from '../components/StructurePanel';
 import { refreshCommand, termCommand, termTextCommand } from '../lib/aiCommands';
 import { get, post, errorMessage } from '../lib/api';
 import { num, date, ago } from '../lib/format';
@@ -309,6 +310,7 @@ export function TaxonomiesPage() {
 			{ loading && <Spinner /> }
 			{ data && (
 				<>
+					<StructurePanel />
 					<h2 className="pp-section-title">دسته‌بندی‌ها ({ num( data.categories.length ) })</h2>
 					<p className="pp-muted">«هدف» تعداد مطلب مناسب هر دسته است و از مرحله سایت و اهمیت دسته می‌آید. اهمیت هر دسته را در <a href="#/profile">پروفایل ← محدوده موضوعی دسته‌ها</a> تعیین کنید.</p>
 					{ table( data.categories, 'دسته‌بندی‌ای وجود ندارد.', 'category' ) }

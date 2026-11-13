@@ -48,7 +48,7 @@ function Checks( { checks } ) {
 /**
  * Import from ContentMaster: paste or upload, preview, select, commit.
  */
-const SECTIONS = [ 'topics', 'articles', 'link_suggestions', 'term_descriptions', 'seo_updates' ];
+const SECTIONS = [ 'topics', 'articles', 'link_suggestions', 'term_descriptions', 'seo_updates', 'structure_suggestions' ];
 
 export function ImportPage() {
 	const canManage = !! ( config.caps && config.caps.manage );
@@ -129,7 +129,8 @@ export function ImportPage() {
 						{ num( result.topics ) } موضوع به «موضوعات پیشنهادی» و { num( result.articles.length ) } مقاله به‌صورت پیش‌نویس اضافه شد
 						{ result.link_suggestions ? `؛ ${ num( result.link_suggestions ) } پیشنهاد لینک در صف تأیید قرار گرفت` : '' }
 						{ result.terms ? `؛ متن ${ num( result.terms ) } دسته به‌روز شد` : '' }
-						{ result.seo ? `؛ عنوان و توضیحات متای ${ num( result.seo ) } صفحه به‌روز شد` : '' }.
+						{ result.seo ? `؛ عنوان و توضیحات متای ${ num( result.seo ) } صفحه به‌روز شد` : '' }
+						{ result.structure ? `؛ ${ num( result.structure ) } پیشنهاد ساختار به «دسته‌ها و برچسب‌ها» اضافه شد` : '' }.
 					</p>
 					{ result.articles.length > 0 && (
 						<ul className="pp-mini-list">
@@ -268,6 +269,20 @@ export function ImportPage() {
 									{ t.current && <p className="pp-muted pp-import-excerpt"><strong>فعلی:</strong> { t.current }</p> }
 									<p className="pp-import-excerpt"><strong>جدید:</strong> { t.new_preview }…</p>
 									<Checks checks={ t.checks } />
+								</div>
+							) ) }
+						</section>
+					) }
+
+					{ ( preview.structure_suggestions || [] ).length > 0 && (
+						<section className="pp-card pp-card--section">
+							<h2 className="pp-card__title">پیشنهادهای ساختار دسته‌بندی ({ num( preview.structure_suggestions.length ) })</h2>
+							<p className="pp-muted">فقط به فهرست پیشنهادها در «دسته‌ها و برچسب‌ها» اضافه می‌شوند؛ هیچ دسته‌ای خودکار تغییر نمی‌کند.</p>
+							{ preview.structure_suggestions.map( ( st ) => (
+								<div key={ st.index } className="pp-import-item">
+									<CheckboxControl __nextHasNoMarginBottom label={ `${ st.action }: ${ st.name || st.new_name }${ st.into_name ? ` ← ${ st.into_name }` : '' }` } checked={ ( picked.structure_suggestions || [] ).includes( st.index ) } disabled={ st.blocked } onChange={ ( on ) => toggle( 'structure_suggestions', st.index, on ) } />
+									<p className="pp-import-excerpt">{ st.reason }</p>
+									<Checks checks={ st.checks } />
 								</div>
 							) ) }
 						</section>

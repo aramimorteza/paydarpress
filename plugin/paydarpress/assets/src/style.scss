@@ -2138,3 +2138,29 @@ button.pp-chip {
 
 	&.is-short { background: #fff7e6; }
 }
+
+.pp-plan {
+	list-style: none;
+	margin: 12px 0 0;
+	padding: 0;
+}
+
+.pp-plan__item {
+	padding: 10px 0;
+	border-block-start: 1px solid var(--pwp-border, #e2e5ea);
+
+	p { margin: 4px 0; }
+}
+
+.pp-plan__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+
+.pp-plan__actions {
+	display: flex;
+	gap: 6px;
+	margin-block-start: 6px;
+}

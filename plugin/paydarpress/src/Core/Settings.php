@@ -54,6 +54,7 @@ final class Settings {
 				'edit_cooldown_days' => 30,
 				'require_review'     => true,
 				'site_stage'         => 'auto',
+				'shop_focus'         => 'auto',
 			),
 			'images'      => array(
 				'convert_webp'    => true,
@@ -164,6 +165,7 @@ final class Settings {
 	/** Allowed values of text settings: path => list. */
 	public const CHOICES = array(
 		'policy.site_stage' => array( 'auto', 'new', 'growing', 'mature' ),
+		'policy.shop_focus' => array( 'auto', 'product', 'category', 'mixed' ),
 	);
 
 	/**

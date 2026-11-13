@@ -76,6 +76,7 @@ final class ContentMasterController {
 					'link_suggestions' => $ids,
 					'term_descriptions' => $ids,
 					'seo_updates'      => $ids,
+					'structure_suggestions' => $ids,
 				),
 			)
 		);
@@ -169,6 +170,7 @@ final class ContentMasterController {
 					'link_suggestions' => (array) $request->get_param( 'link_suggestions' ),
 					'term_descriptions' => (array) $request->get_param( 'term_descriptions' ),
 					'seo_updates'      => (array) $request->get_param( 'seo_updates' ),
+					'structure_suggestions' => (array) $request->get_param( 'structure_suggestions' ),
 				)
 			);
 		} catch ( Throwable $e ) {

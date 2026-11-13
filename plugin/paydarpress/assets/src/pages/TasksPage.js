@@ -5,7 +5,7 @@ import EmptyState from '../components/EmptyState';
 import AiButton from '../components/AiButton';
 import { get, post, errorMessage } from '../lib/api';
 import { num } from '../lib/format';
-import { refreshCommand, metaCommand, supportCommand, topicArticleCommand, topicsCommand, termCommand } from '../lib/aiCommands';
+import { refreshCommand, metaCommand, supportCommand, topicArticleCommand, topicsCommand, termCommand, termTextCommand } from '../lib/aiCommands';
 
 const config = window.paydarpress || {};
 
@@ -42,6 +42,8 @@ export function aiFor( ai ) {
 			return topicsCommand();
 		case 'category':
 			return termCommand( ai.title, 'category', ai.id );
+		case 'termtext':
+			return termTextCommand( ai.title, ai.id );
 	}
 	return null;
 }

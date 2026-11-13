@@ -230,6 +230,11 @@ final class TaskBoard {
 			}
 		}
 
+		// 8b. Shops: product pages or product category pages first, by shop size.
+		foreach ( self::shop_tasks() as $t ) {
+			$tasks[] = $t;
+		}
+
 		// 9. Batch fixes.
 		$alt = (int) ( $stats['by_code']['IMG_MISSING_ALT'] ?? 0 );
 		if ( $alt > 0 ) {
@@ -241,6 +246,48 @@ final class TaskBoard {
 		}
 
 		return $tasks;
+	}
+
+	/**
+	 * WooCommerce tasks following the shop focus.
+	 */
+	private static function shop_tasks(): array {
+		if ( ! \PaydarWP\PaydarPress\Strategy\ShopStrategy::active() ) {
+			return array();
+		}
+		global $wpdb;
+		$focus = \PaydarWP\PaydarPress\Strategy\ShopStrategy::current();
+		$out   = array();
+
+		$cats = 'product' === $focus ? 1 : 2;
+		$terms = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => true, 'orderby' => 'count', 'order' => 'DESC', 'number' => 30 ) );
+		foreach ( (array) $terms as $t ) {
+			if ( count( $out ) >= $cats ) {
+				break;
+			}
+			if ( $t instanceof \WP_Term && 'uncategorized' !== $t->slug && mb_strlen( trim( wp_strip_all_tags( (string) $t->description ) ) ) < 300 ) {
+				$name  = html_entity_decode( $t->name, ENT_QUOTES, 'UTF-8' );
+				$out[] = self::task( 'shopcat:' . $t->term_id, 'write', 'متن معرفی دسته محصول «' . $name . '»', sprintf( '%s محصول در این دسته است و صفحه دسته متن معرفی کافی ندارد. %s', PersianNormalizer::fa_number( (int) $t->count ), 'category' === $focus ? 'در فروشگاه شما صفحه دسته مهم‌ترین صفحه برای جست‌وجوهای خرید است.' : 'متن کوتاه و مفید کافی است.' ), 'category' === $focus ? 62 : 42, 15, array( 'url' => (string) get_edit_term_link( $t->term_id, 'product_cat' ), 'label' => 'ویرایش دسته' ), array( 'kind' => 'termtext', 'id' => (int) $t->term_id, 'title' => $name ) );
+			}
+		}
+
+		$prods = 'category' === $focus ? 1 : 3;
+		$inv   = Schema::table( 'inventory' );
+		$added = 0;
+		foreach ( \PaydarWP\PaydarPress\Strategy\ShopStrategy::top_products( 40 ) as $id ) {
+			if ( $added >= $prods ) {
+				break;
+			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$words = (int) $wpdb->get_var( $wpdb->prepare( "SELECT word_count FROM {$inv} WHERE object_id = %d", $id ) );
+			if ( $words >= 150 ) {
+				continue;
+			}
+			$name  = html_entity_decode( get_the_title( $id ), ENT_QUOTES, 'UTF-8' );
+			$out[] = self::task( 'product:' . $id, 'refresh', 'توضیحات محصول «' . $name . '» را کامل کنید', sprintf( 'از محصولات پرفروش است اما توضیحاتش %s کلمه است. توضیح کامل (کاربرد، مشخصات موجود، نگهداری، پرسش‌های خرید) هم فروش و هم دیده‌شدن را بهتر می‌کند.', PersianNormalizer::fa_number( $words ) ), 'product' === $focus ? 64 : 44, 25, array( 'url' => (string) get_edit_post_link( $id, 'raw' ), 'label' => 'ویرایش محصول' ), array( 'kind' => 'refresh', 'id' => $id, 'title' => $name, 'url' => (string) get_permalink( $id ), 'type' => 'product', 'reasons' => array( 'توضیحات کوتاه محصول پرفروش' ) ) );
+			++$added;
+		}
+		return $out;
 	}
 
 	/**
