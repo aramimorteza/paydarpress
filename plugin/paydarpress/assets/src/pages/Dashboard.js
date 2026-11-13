@@ -51,7 +51,7 @@ export default function Dashboard() {
 
 	if ( scan.loaded && ! scan.scan ) {
 		return (
-			<Page title="پیشخوان" helpKey="dashboard">
+			<Page title="نمای کلی" helpKey="dashboard">
 				<div className="pp-card pp-card--highlight">
 					<EmptyState
 						title="هنوز سایت اسکن نشده است"
@@ -67,7 +67,7 @@ export default function Dashboard() {
 	const [ level, levelLabel ] = healthLevel( stats ? stats.health_score : null );
 
 	return (
-		<Page title="پیشخوان" helpKey="dashboard">
+		<Page title="نمای کلی" helpKey="dashboard">
 			{ ! data && <Spinner /> }
 
 			{ tasks && tasks.week.length > 0 && (

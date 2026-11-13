@@ -2064,3 +2064,46 @@ button.pp-chip {
 }
 
 .pp-card .pp-ok { color: #1e7e34; }
+
+/* Section tabs (pages of the current menu section) */
+.pp-section-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 2px;
+	margin: calc(-1 * var(--pwp-space-2, 8px)) 0 var(--pwp-space-4, 16px);
+	border-block-end: 1px solid var(--pwp-border, #e2e5ea);
+}
+
+.pp-section-tabs__tab {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 10px 14px;
+	color: var(--pwp-text-muted, #5b6475);
+	text-decoration: none;
+	border-block-end: 3px solid transparent;
+	margin-block-end: -1px;
+	font-weight: 600;
+
+	&:hover,
+	&:focus {
+		color: var(--pwp-primary, #0f6e6e);
+		box-shadow: none;
+	}
+
+	&.is-active {
+		color: var(--pwp-primary, #0f6e6e);
+		border-block-end-color: var(--pwp-primary, #0f6e6e);
+	}
+}
+
+.pp-tab--link {
+	text-decoration: none;
+	color: var(--pwp-text-muted, #5b6475);
+}
+
+/* Six-item menu: roomier links */
+.pp-nav__list > li > .pp-nav__link {
+	padding-block: 12px;
+	font-size: 14px;
+}

@@ -53,7 +53,7 @@ export default function AutoPage() {
 						<>
 							<strong>هنوز به سرویس هوش مصنوعی وصل نشده‌اید.</strong> در «تنظیمات ← هوش مصنوعی» آدرس سرویس، کلید API و مدل را وارد کنید و «آزمایش اتصال» را بزنید.{ ' ' }
 							<a className="button button-primary" href="#/settings?tab=ai">تنظیم اتصال</a>
-							<p className="pp-muted">تا آن موقع، حالت دستی کامل کار می‌کند: «خروجی سایت» را در ContentMaster بدهید و مقالات را با «ورود مقالات نوشته‌شده» برگردانید.</p>
+							<p className="pp-muted">تا آن موقع، حالت دستی کامل کار می‌کند: «خروجی سایت» را در ContentMaster بدهید و مقالات را با «ورود پاسخ هوش مصنوعی» برگردانید.</p>
 						</>
 					) }
 				</section>

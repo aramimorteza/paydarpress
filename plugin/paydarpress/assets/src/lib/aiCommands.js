@@ -17,7 +17,7 @@ const TERM_CODES = [ 'WEAK_CATEGORY', 'EMPTY_CATEGORY', 'THIN_TAG', 'EMPTY_TAG',
 /** Taxonomy codes about the archive text itself. */
 const TERM_TEXT_CODES = [ 'EMPTY_CATEGORY_DESC' ];
 
-const IMPORT_HINT = 'پاسخ هوش مصنوعی یک بلوک JSON است؛ آن را در «ورود مقالات نوشته‌شده» بچسبانید. همه‌چیز پیش‌نویس یا پیش‌نمایش می‌شود و بدون تأیید شما چیزی منتشر نمی‌شود.';
+const IMPORT_HINT = 'پاسخ هوش مصنوعی یک بلوک JSON است؛ آن را در «ورود پاسخ هوش مصنوعی» بچسبانید. همه‌چیز پیش‌نویس یا پیش‌نمایش می‌شود و بدون تأیید شما چیزی منتشر نمی‌شود.';
 
 /**
  * Builds the action for a finding, or null when AI cannot help with it.

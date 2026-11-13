@@ -51,8 +51,8 @@ function useLoad( path, query = {}, deps = [] ) {
  */
 export function AuditPage() {
 	return (
-		<Page title="ممیزی سلامت محتوا" helpKey="audit">
-			<FindingsList initialCode={ hashParam( 'code' ) } />
+		<Page title="مشکلات محتوا" helpKey="audit">
+			<FindingsList initialCode={ hashParam( 'code' ) } homes={ { images: '/images', gsc: '/gsc' } } />
 		</Page>
 	);
 }
@@ -88,7 +88,7 @@ export function OrphansPage() {
 	};
 
 	return (
-		<Page title="محتوای یتیم و لینک‌های داخلی" helpKey="orphans">
+		<Page title="محتوای یتیم" helpKey="orphans">
 			{ error && <Notice status="error" isDismissible={ false }>{ error }</Notice> }
 			{ loading && ! data && <Spinner /> }
 			{ data && 0 === data.total && (
@@ -178,7 +178,7 @@ export function RefreshPage() {
 	const { data, error, loading } = useLoad( '/refresh-candidates', { page, per_page: 20 }, [ page ] );
 
 	return (
-		<Page title="پیشنهاد بازنویسی" helpKey="refresh">
+		<Page title="نیازمند بازنویسی" helpKey="refresh">
 			{ error && <Notice status="error" isDismissible={ false }>{ error }</Notice> }
 			{ loading && ! data && <Spinner /> }
 			{ data && 0 === data.total && (
@@ -288,7 +288,7 @@ export function TaxonomiesPage() {
 		);
 
 	return (
-		<Page title="دسته‌بندی‌ها و برچسب‌ها" helpKey="taxonomies">
+		<Page title="دسته‌ها و برچسب‌ها" helpKey="taxonomies">
 			{ error && <Notice status="error" isDismissible={ false }>{ error }</Notice> }
 			{ loading && <Spinner /> }
 			{ data && (
@@ -329,7 +329,7 @@ export function VisibilityPage() {
 
 	return (
 		<Page
-			title="دیده‌شدن در گوگل و هوش مصنوعی"
+			title="دسترسی خزنده‌ها"
 			helpKey="visibility"
 			actions={ canManage && <Button variant="secondary" onClick={ check } isBusy={ checking } disabled={ checking }>بررسی مجدد</Button> }
 		>

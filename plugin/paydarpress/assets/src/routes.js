@@ -1,74 +1,90 @@
 /**
- * Internal navigation, grouped by the order of work: know the site → fix what exists →
- * connect it with links → see it through Google's eyes → produce new content.
+ * Navigation: six sections. Each section opens its first page; its other pages are tabs at
+ * the top of the page (SectionTabs). Every finding has one home page; other pages only link
+ * to it, so nothing is listed twice.
  * `badge` names a count from window.paydarpress.badges.
  */
-export const NAV = [
-	{ path: '/', label: 'پیشخوان', icon: 'dashboard' },
-	{ path: '/tasks', label: 'کارهای این هفته', icon: 'yes-alt', badge: 'tasks', badgeTitle: 'کار این هفته', accent: true },
+export const SECTIONS = [
 	{
-		id: 'know',
-		group: 'شناخت سایت',
-		hint: 'اول: سایت و کسب‌وکار را به پایدارپرس معرفی کنید.',
-		items: [
-			{ path: '/profile', label: 'پروفایل سایت', icon: 'id' },
-			{ path: '/inventory', label: 'فهرست محتوا', icon: 'list-view' },
-			{ path: '/taxonomies', label: 'دسته‌ها و برچسب‌ها', icon: 'category' },
+		id: 'today',
+		label: 'امروز',
+		icon: 'yes-alt',
+		hint: 'کار بعدی شما و وضعیت کلی سایت',
+		pages: [
+			{ path: '/tasks', label: 'کارهای این هفته', badge: 'tasks', accent: true },
+			{ path: '/', label: 'نمای کلی' },
 		],
 	},
 	{
-		id: 'improve',
-		group: 'بهبود محتوای موجود',
-		hint: 'مشکلات محتوای فعلی و نوشته‌هایی که باید بازنویسی شوند.',
-		items: [
-			{ path: '/audit', label: 'ممیزی و مشکلات', icon: 'shield', badge: 'audit', badgeTitle: 'مشکل مهم' },
-			{ path: '/refresh', label: 'پیشنهاد بازنویسی', icon: 'update', badge: 'refresh', badgeTitle: 'نوشته نیازمند بازنویسی' },
-			{ path: '/images', label: 'سلامت تصاویر', icon: 'format-image' },
+		id: 'content',
+		label: 'محتوا',
+		icon: 'media-document',
+		hint: 'همه مطالب، مشکلات، بازنویسی، محتوای یتیم، تصاویر و دسته‌ها',
+		pages: [
+			{ path: '/inventory', label: 'همه مطالب' },
+			{ path: '/audit', label: 'مشکلات', badge: 'audit' },
+			{ path: '/refresh', label: 'نیازمند بازنویسی', badge: 'refresh' },
+			{ path: '/orphans', label: 'محتوای یتیم', badge: 'orphans' },
+			{ path: '/images', label: 'تصاویر' },
+			{ path: '/taxonomies', label: 'دسته‌ها و برچسب‌ها' },
 		],
 	},
 	{
 		id: 'links',
-		group: 'لینک‌سازی داخلی',
-		hint: 'نوشته‌های بی‌لینک را پیدا کنید و لینک‌ها را با تأیید شما درج کنید.',
-		items: [
-			{ path: '/orphans', label: 'محتوای یتیم', icon: 'admin-links', badge: 'orphans', badgeTitle: 'محتوای بدون لینک ورودی' },
-			{ path: '/links', label: 'صف لینک داخلی', icon: 'randomize', badge: 'links', badgeTitle: 'لینک در انتظار تأیید', accent: true },
+		label: 'لینک‌ها',
+		icon: 'admin-links',
+		hint: 'صف تأیید لینک داخلی',
+		pages: [ { path: '/links', label: 'صف لینک داخلی', badge: 'links', accent: true } ],
+	},
+	{
+		id: 'create',
+		label: 'تولید محتوا',
+		icon: 'edit-page',
+		hint: 'موضوعات، تولید خودکار با API و روش دستی با ContentMaster',
+		pages: [
+			{ path: '/topics', label: 'موضوعات', badge: 'topics' },
+			{ path: '/auto', label: 'تولید خودکار' },
+			{ path: '/cm-import', label: 'ورود پاسخ هوش مصنوعی' },
+			{ path: '/export', label: 'خروجی سایت (JSON)' },
 		],
 	},
 	{
 		id: 'google',
-		group: 'گوگل و هوش مصنوعی',
-		hint: 'داده‌های سرچ کنسول و دسترسی خزنده‌ها.',
-		items: [
-			{ path: '/gsc', label: 'سرچ کنسول', icon: 'chart-line' },
-			{ path: '/visibility', label: 'دسترسی خزنده‌ها', icon: 'visibility' },
+		label: 'گوگل',
+		icon: 'chart-line',
+		hint: 'سرچ کنسول و دسترسی خزنده‌ها',
+		pages: [
+			{ path: '/gsc', label: 'سرچ کنسول' },
+			{ path: '/visibility', label: 'دسترسی خزنده‌ها' },
 		],
 	},
 	{
-		id: 'create',
-		group: 'تولید محتوا',
-		hint: 'خودکار: افزونه با کلید API خودش می‌نویسد. دستی: در ContentMaster می‌نویسید و نتیجه را وارد می‌کنید. هر دو پیش‌نویس می‌سازند.',
-		items: [
-			{ path: '/topics', label: 'موضوعات پیشنهادی', icon: 'lightbulb', badge: 'topics', badgeTitle: 'موضوع جدید' },
-			{ path: '/auto', label: 'تولید خودکار', icon: 'superhero-alt', section: 'خودکار با API' },
-			{ path: '/export', label: 'خروجی سایت (JSON)', icon: 'download', section: 'دستی با ContentMaster' },
-			{ path: '/cm-import', label: 'ورود مقالات نوشته‌شده', icon: 'upload', section: 'دستی با ContentMaster' },
+		id: 'site',
+		label: 'سایت من',
+		icon: 'admin-home',
+		hint: 'پروفایل، صفحات کلیدی، تنظیمات و گزارش فعالیت',
+		pages: [
+			{ path: '/profile', label: 'پروفایل و صفحات کلیدی' },
+			{ path: '/settings', label: 'تنظیمات' },
+			{ path: '/activity', label: 'گزارش فعالیت' },
 		],
 	},
 ];
 
-/** Utility links at the bottom of the sidebar. */
-export const NAV_FOOTER = [
-	{ path: '/activity', label: 'گزارش فعالیت', icon: 'backup' },
-	{ path: '/settings', label: 'تنظیمات', icon: 'admin-generic' },
-];
+/**
+ * Section a path belongs to.
+ *
+ * @param {string} path Route.
+ */
+export function sectionOf( path ) {
+	return SECTIONS.find( ( s ) => s.pages.some( ( p ) => p.path === path ) ) || null;
+}
 
 /**
  * Flat list of all routes (including hidden ones such as /welcome).
  */
 export const ROUTES = [
-	...NAV.flatMap( ( entry ) => ( entry.items ? entry.items : [ entry ] ) ),
-	...NAV_FOOTER,
+	...SECTIONS.flatMap( ( s ) => s.pages ),
 	{ path: '/welcome', label: 'خوش آمدید', hidden: true },
 	{ path: '/wizard', label: 'راه‌اندازی پروفایل', hidden: true },
 ];

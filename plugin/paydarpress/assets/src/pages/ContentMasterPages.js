@@ -62,7 +62,7 @@ export function ImportPage() {
 
 	if ( ! canManage ) {
 		return (
-			<Page title="ورود مقالات نوشته‌شده" helpKey="cm_import">
+			<Page title="ورود پاسخ هوش مصنوعی" helpKey="cm_import">
 				<div className="pp-card"><EmptyState title="دسترسی ندارید" text="ورود محتوا فقط برای مدیر سایت مجاز است." /></div>
 			</Page>
 		);
@@ -119,7 +119,7 @@ export function ImportPage() {
 	const seoUpdates = preview ? preview.seo_updates || [] : [];
 
 	return (
-		<Page title="ورود مقالات نوشته‌شده" helpKey="cm_import">
+		<Page title="ورود پاسخ هوش مصنوعی" helpKey="cm_import">
 			{ error && <Notice status="error" isDismissible={ false }>{ error }</Notice> }
 
 			{ result && (
@@ -338,7 +338,7 @@ export function TopicsPage() {
 
 	return (
 		<Page
-			title="موضوعات پیشنهادی"
+			title="موضوعات"
 			helpKey="topics"
 			actions={
 				canManage && (
@@ -374,7 +374,7 @@ export function TopicsPage() {
 				<div className="pp-card">
 					<EmptyState
 						title="موضوعی ثبت نشده است"
-						text="با «پیشنهاد موضوع با هوش مصنوعی» یک پرامپت آماده برای ChatGPT، Claude یا Gemini بگیرید و پاسخ را در «ورود مقالات نوشته‌شده» بچسبانید. از «جست‌وجوهای بی‌مقاله» سرچ کنسول هم می‌توانید موضوع اضافه کنید."
+						text="با «پیشنهاد موضوع با هوش مصنوعی» یک پرامپت آماده برای ChatGPT، Claude یا Gemini بگیرید و پاسخ را در «ورود پاسخ هوش مصنوعی» بچسبانید. از «جست‌وجوهای بی‌مقاله» سرچ کنسول هم می‌توانید موضوع اضافه کنید."
 						action={ canManage && <AiButton command={ topicsCommand() } small={ false } variant="primary" /> }
 					/>
 				</div>

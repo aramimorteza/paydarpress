@@ -55,7 +55,7 @@ final class PromptBuilder {
 		$user   = implode( "\n\n", array_filter( array( "## TASK\n" . $spec['task'], self::site_context( $spec ), $spec['extra'] ?? '' ) ) );
 
 		$full = "# دستور کار تولید محتوا — ساخته‌شده در افزونه پایدارپرس برای سایت «" . self::site_name() . "»\n"
-			. "(این متن را کامل در ChatGPT، Claude، Gemini یا هر دستیار دیگری بچسبانید. پاسخ را که یک بلوک JSON است، در پایدارپرس ← «ورود مقالات نوشته‌شده» بچسبانید.)\n\n"
+			. "(این متن را کامل در ChatGPT، Claude، Gemini یا هر دستیار دیگری بچسبانید. پاسخ را که یک بلوک JSON است، در پایدارپرس ← «ورود پاسخ هوش مصنوعی» بچسبانید.)\n\n"
 			. $system . "\n\n" . $user;
 
 		return array(

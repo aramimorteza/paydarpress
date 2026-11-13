@@ -45,7 +45,7 @@ export function copyText( text ) {
  * - a complete prompt (rules + site profile + related content + task + JSON format) for any
  *   chat assistant, built by the server for exactly this item;
  * - the short command for users who keep a ContentMaster conversation.
- * The reply (a JSON block) goes to «ورود مقالات نوشته‌شده».
+ * The reply (a JSON block) goes to «ورود پاسخ هوش مصنوعی».
  *
  * @param {Object}  props
  * @param {Object}  props.command Action from lib/aiCommands.
@@ -129,7 +129,7 @@ export default function AiButton( { command, small = true, variant = 'secondary'
 									</div>
 								</li>
 								<li>
-									<strong>پاسخ را (یک بلوک JSON) کپی کنید</strong> و در <a href="#/cm-import" onClick={ () => setOpen( false ) }>«ورود مقالات نوشته‌شده»</a> بچسبانید. پیش از ذخیره، پیش‌نمایش و بررسی‌ها را می‌بینید.
+									<strong>پاسخ را (یک بلوک JSON) کپی کنید</strong> و در <a href="#/cm-import" onClick={ () => setOpen( false ) }>«ورود پاسخ هوش مصنوعی»</a> بچسبانید. پیش از ذخیره، پیش‌نمایش و بررسی‌ها را می‌بینید.
 								</li>
 							</ol>
 						</section>

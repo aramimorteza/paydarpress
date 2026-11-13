@@ -77,6 +77,7 @@ final class AuditController {
 				'permission_callback' => $view,
 				'args'                => array(
 					'group'    => array( 'type' => 'string', 'default' => '' ),
+					'exclude'  => array( 'type' => 'string', 'default' => '' ),
 					'code'     => array( 'type' => 'string', 'default' => '' ),
 					'severity' => array( 'type' => 'string', 'default' => '', 'enum' => array( '', 'high', 'medium', 'low' ) ),
 					'state'    => array( 'type' => 'string', 'default' => 'open', 'enum' => array( 'open', 'reviewed', 'ignored', 'resolved', 'active' ) ),
@@ -203,6 +204,15 @@ final class AuditController {
 			foreach ( Catalog::rules() as $code => $rule ) {
 				if ( $rule[0] === $group ) {
 					$codes[] = $code;
+				}
+			}
+		}
+		// Groups that have their own page (images, Search Console) are left out of "all".
+		$exclude = array_filter( explode( ',', (string) $request->get_param( 'exclude' ) ) );
+		if ( '' === $group && $exclude ) {
+			foreach ( Catalog::rules() as $c => $rule ) {
+				if ( ! in_array( $rule[0], $exclude, true ) ) {
+					$codes[] = $c;
 				}
 			}
 		}

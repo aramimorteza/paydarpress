@@ -1,5 +1,5 @@
 import { useEffect, useState } from '@wordpress/element';
-import Sidebar from './components/Sidebar';
+import Sidebar, { SectionTabs, useBadges } from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Welcome from './pages/Welcome';
 import ActivityPage from './pages/ActivityPage';
@@ -19,7 +19,8 @@ import { ROUTES } from './routes';
  */
 function currentPath() {
 	const hash = window.location.hash.replace( /^#/, '' );
-	const path = hash.split( '?' )[ 0 ] || '/';
+	// Without a route, the plugin opens on "today" (this week's tasks).
+	const path = hash.split( '?' )[ 0 ] || '/tasks';
 	return ROUTES.some( ( route ) => route.path === path ) ? path : '/';
 }
 
@@ -28,6 +29,7 @@ function currentPath() {
  */
 export default function App() {
 	const [ path, setPath ] = useState( currentPath() );
+	const badges = useBadges( path );
 
 	useEffect( () => {
 		const onChange = () => {
@@ -85,8 +87,11 @@ export default function App() {
 
 	return (
 		<div className="pp-layout" dir="rtl">
-			<Sidebar current={ path } />
-			<main className="pp-main">{ page }</main>
+			<Sidebar current={ path } badges={ badges } />
+			<main className="pp-main">
+				<SectionTabs current={ path } badges={ badges } />
+				{ page }
+			</main>
 		</div>
 	);
 }

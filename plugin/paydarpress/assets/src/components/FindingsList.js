@@ -25,8 +25,10 @@ const SEVERITIES = [
  * @param {Object} props
  * @param {string} props.fixedGroup Show only this group (no group tabs).
  * @param {string} props.initialCode Optional code filter (from dashboard links).
+ * @param {Object} props.homes       Groups that live on their own page: group → route. Their tab
+ *                                   links there and "all" leaves them out (one home per finding).
  */
-export default function FindingsList( { fixedGroup = '', initialCode = '' } ) {
+export default function FindingsList( { fixedGroup = '', initialCode = '', homes = {} } ) {
 	const [ group, setGroup ] = useState( fixedGroup );
 	const [ code, setCode ] = useState( initialCode );
 	const [ severity, setSeverity ] = useState( '' );
@@ -43,7 +45,7 @@ export default function FindingsList( { fixedGroup = '', initialCode = '' } ) {
 
 	useEffect( () => {
 		setLoading( true );
-		get( '/findings', { group: code ? '' : group, code, severity, state, page, per_page: 20 } )
+		get( '/findings', { group: code ? '' : group, exclude: Object.keys( homes ).join( ',' ), code, severity, state, page, per_page: 20 } )
 			.then( ( result ) => {
 				setData( result );
 				setError( '' );
@@ -54,7 +56,7 @@ export default function FindingsList( { fixedGroup = '', initialCode = '' } ) {
 
 	const groups = ( data && data.groups ) || {};
 	const byGroup = ( stats && stats.by_group ) || {};
-	const totalOpen = Object.values( byGroup ).reduce( ( a, b ) => a + b, 0 );
+	const totalOpen = Object.keys( byGroup ).filter( ( g ) => ! homes[ g ] ).reduce( ( a, g ) => a + byGroup[ g ], 0 );
 
 	const reset = ( fn ) => ( value ) => {
 		fn( value );
@@ -70,7 +72,11 @@ export default function FindingsList( { fixedGroup = '', initialCode = '' } ) {
 					<button type="button" role="tab" aria-selected={ '' === group && ! code } className={ `pp-tab${ '' === group && ! code ? ' is-active' : '' }` } onClick={ () => { setCode( '' ); reset( setGroup )( '' ); } }>
 						همه <span className="pp-tab__count">{ num( totalOpen ) }</span>
 					</button>
-					{ Object.keys( groups ).map( ( key ) => (
+					{ Object.keys( groups ).map( ( key ) => homes[ key ] ? (
+						<a key={ key } className="pp-tab pp-tab--link" href={ `#${ homes[ key ] }` } title="این مشکلات صفحه خودشان را دارند">
+							{ groups[ key ] } <span className="pp-tab__count">{ num( byGroup[ key ] ) }</span> ↖
+						</a>
+					) : (
 						<button key={ key } type="button" role="tab" aria-selected={ group === key && ! code } className={ `pp-tab${ group === key && ! code ? ' is-active' : '' }` } onClick={ () => { setCode( '' ); reset( setGroup )( key ); } }>
 							{ groups[ key ] } <span className="pp-tab__count">{ num( byGroup[ key ] ) }</span>
 						</button>

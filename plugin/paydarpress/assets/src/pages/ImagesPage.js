@@ -62,7 +62,7 @@ export default function ImagesPage() {
 	const st = bulk ? bulk.state : {};
 
 	return (
-		<Page title="سلامت تصاویر" helpKey="images">
+		<Page title="تصاویر" helpKey="images">
 			{ error && <Notice status="error" onRemove={ () => setError( '' ) }>{ error }</Notice> }
 			{ ! data && ! error && <Spinner /> }
 

@@ -67,7 +67,7 @@ export default function Inventory() {
 	const showGsc = 'pro' === mode && !! data && data.items.some( ( item ) => item.gsc );
 
 	return (
-		<Page title="فهرست محتوا" helpKey="inventory">
+		<Page title="همه مطالب" helpKey="inventory">
 			{ error && (
 				<Notice status="error" isDismissible={ false }>
 					{ error }

@@ -307,7 +307,7 @@ export function ProfilePage() {
 
 	if ( ! data ) {
 		return (
-			<Page title="پروفایل سایت" helpKey="profile">
+			<Page title="پروفایل و صفحات کلیدی" helpKey="profile">
 				{ error ? <Notice status="error" isDismissible={ false }>{ error }</Notice> : <Spinner /> }
 			</Page>
 		);
@@ -318,7 +318,7 @@ export function ProfilePage() {
 
 	return (
 		<Page
-			title="پروفایل سایت"
+			title="پروفایل و صفحات کلیدی"
 			helpKey="profile"
 			actions={
 				canManage() && (
@@ -399,7 +399,7 @@ export function ExportPage() {
 
 	if ( ! canExport ) {
 		return (
-			<Page title="خروجی JSON" helpKey="export">
+			<Page title="خروجی سایت (JSON)" helpKey="export">
 				<div className="pp-card"><EmptyState title="دسترسی ندارید" text="ساخت خروجی فقط برای مدیر سایت مجاز است." /></div>
 			</Page>
 		);
@@ -411,7 +411,7 @@ export function ExportPage() {
 	const useCompact = null === compact ? suggestCompact : compact;
 
 	return (
-		<Page title="خروجی JSON برای ContentMaster" helpKey="export">
+		<Page title="خروجی سایت (JSON)" helpKey="export">
 			{ error && <Notice status="error" isDismissible={ false }>{ error }</Notice> }
 			{ ! data && <Spinner /> }
 
