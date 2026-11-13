@@ -102,6 +102,9 @@ final class Plugin {
 		// Automatic mode: AI requests run in the background (Action Scheduler).
 		( new \PaydarWP\PaydarPress\Ai\AiJobs() )->register();
 
+		// Content clusters: missing pillar/member links go to the link queue when posts publish.
+		( new \PaydarWP\PaydarPress\Strategy\Clusters() )->register();
+
 		// 301 redirects of merged/deleted content (runs only on 404 requests).
 		( new \PaydarWP\PaydarPress\Strategy\Redirects() )->register();
 

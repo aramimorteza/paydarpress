@@ -226,3 +226,18 @@ export function classifyCommand( kind, scope, label ) {
 		hint: 'هر پرامپت ۲۵ مطلب بعدی را دارد (عنوان، سرتیترها و ۳۰۰ کلمه اول) همراه دسته‌ها و برچسب‌های فعال. پس از ورود، دسته بعدی آماده می‌شود. فقط افزودن انجام می‌شود؛ هیچ دسته یا برچسبی حذف نمی‌شود.',
 	};
 }
+
+/**
+ * Cluster map (pillar + subtopics) around a main keyword, or completion of an existing cluster.
+ *
+ * @param {string} name Keyword or cluster name.
+ * @param {Object} args { keyword, category_id } or { cluster_id }.
+ */
+export function clusterCommand( name, args ) {
+	return {
+		label: args.cluster_id ? 'تکمیل نقشه خوشه با هوش مصنوعی' : 'ساخت نقشه خوشه با هوش مصنوعی',
+		summary: `نقشه خوشه «${ name }»`,
+		prompt: { task: 'cluster', args },
+		hint: 'هوش مصنوعی مقاله ستون و ۸ تا ۱۵ زیرموضوع پیشنهاد می‌دهد و مقاله‌های موجود را به زیرموضوع‌ها نگاشت می‌کند. با ورود، خوشه ساخته یا تکمیل می‌شود، مقاله‌های موجود عضو می‌شوند و برای جاهای خالی موضوع (با دسته، برچسب و خوشه) ثبت می‌شود.',
+	};
+}

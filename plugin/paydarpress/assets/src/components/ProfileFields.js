@@ -296,7 +296,7 @@ function KeyPagesEditor( { label, help, ex, value, pages, categories, onChange }
 						</div>
 						{ clusters[ page.id ] && (
 							<div className={ `pp-cluster${ clusters[ page.id ].gap > 0 ? ' is-short' : '' }` }>
-								خوشه: { num( clusters[ page.id ].supports ) } مقاله پشتیبان به این صفحه لینک می‌دهند (هدف { num( clusters[ page.id ].target ) }).
+								مقاله پشتیبان: { num( clusters[ page.id ].supports ) } مقاله به این صفحه لینک می‌دهند (هدف { num( clusters[ page.id ].target ) }).
 								{ clusters[ page.id ].gap > 0 && ' کمبود در «کارهای این هفته» پیشنهاد می‌شود.' }
 							</div>
 						) }

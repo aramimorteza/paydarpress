@@ -31,6 +31,57 @@ final class StrategyController {
 		$view   = static fn() => current_user_can( Capabilities::VIEW );
 		$manage = static fn() => current_user_can( Capabilities::MANAGE );
 
+		$cl = \PaydarWP\PaydarPress\Strategy\Clusters::class;
+		$wrap = static function ( callable $fn ) {
+			return static function ( $request ) use ( $fn ) {
+				try {
+					return new WP_REST_Response( $fn( $request ) );
+				} catch ( \RuntimeException $e ) {
+					return new \WP_Error( 'paydarpress_cluster', $e->getMessage(), array( 'status' => 400 ) );
+				}
+			};
+		};
+		register_rest_route(
+			$ns,
+			'/clusters',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'permission_callback' => $view,
+					'callback'            => static function () use ( $cl ) {
+						$cats = array();
+						foreach ( (array) get_terms( array( 'taxonomy' => 'category', 'hide_empty' => false, 'number' => 300 ) ) as $t ) {
+							if ( $t instanceof \WP_Term ) {
+								$cats[] = array( 'id' => (int) $t->term_id, 'name' => html_entity_decode( $t->name, ENT_QUOTES, 'UTF-8' ) );
+							}
+						}
+						$pages = array();
+						foreach ( \PaydarWP\PaydarPress\Profile\ProfileRepository::key_page_ids() as $pid ) {
+							$pages[] = array( 'id' => $pid, 'title' => html_entity_decode( get_the_title( $pid ), ENT_QUOTES, 'UTF-8' ) );
+						}
+						return new WP_REST_Response(
+							array(
+								'items'       => $cl::all(),
+								'suggestions' => $cl::suggestions(),
+								'categories'  => $cats,
+								'key_pages'   => $pages,
+							)
+						);
+					},
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'permission_callback' => $manage,
+					'callback'            => $wrap( static fn( $r ) => $cl::get( $cl::save( (array) $r->get_json_params() ) ) ),
+				),
+			)
+		);
+		register_rest_route( $ns, '/clusters/accept', array( 'methods' => WP_REST_Server::CREATABLE, 'permission_callback' => $manage, 'callback' => $wrap( static fn( $r ) => $cl::get( $cl::accept( (array) $r->get_json_params() ) ) ) ) );
+		register_rest_route( $ns, '/clusters/(?P<id>\\d+)/delete', array( 'methods' => WP_REST_Server::CREATABLE, 'permission_callback' => $manage, 'callback' => $wrap( static function ( $r ) use ( $cl ) { $cl::delete( (int) $r['id'] ); return array( 'ok' => true ); } ) ) );
+		register_rest_route( $ns, '/clusters/(?P<id>\\d+)/posts', array( 'methods' => WP_REST_Server::CREATABLE, 'permission_callback' => $manage, 'callback' => $wrap( static function ( $r ) use ( $cl ) { $cl::add_post( (int) $r['id'], (int) $r->get_param( 'post_id' ), (string) $r->get_param( 'subtopic' ) ); return $cl::get( (int) $r['id'] ); } ) ) );
+		register_rest_route( $ns, '/clusters/(?P<id>\\d+)/pillar', array( 'methods' => WP_REST_Server::CREATABLE, 'permission_callback' => $manage, 'callback' => $wrap( static function ( $r ) use ( $cl ) { $cl::set_pillar( (int) $r['id'], (int) $r->get_param( 'post_id' ) ); return $cl::get( (int) $r['id'] ); } ) ) );
+		register_rest_route( $ns, '/clusters/(?P<id>\\d+)/links', array( 'methods' => WP_REST_Server::CREATABLE, 'permission_callback' => $manage, 'callback' => $wrap( static fn( $r ) => array( 'queued' => $cl::queue_links( (int) $r['id'] ) ) ) ) );
+		register_rest_route( $ns, '/clusters/remove-post/(?P<post>\\d+)', array( 'methods' => WP_REST_Server::CREATABLE, 'permission_callback' => $manage, 'callback' => $wrap( static function ( $r ) use ( $cl ) { $cl::remove_post( (int) $r['post'] ); return array( 'ok' => true ); } ) ) );
 		register_rest_route(
 			$ns,
 			'/classify',

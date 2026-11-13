@@ -2327,3 +2327,27 @@ button.pp-chip {
 		transition: width 0.4s;
 	}
 }
+
+/* Clusters (0.26.0) */
+
+.pp-cluster__head {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--pwp-space-2, 8px);
+	align-items: center;
+
+	.pp-card__title {
+		margin: 0;
+	}
+}
+
+.pp-topic-plan {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin: 4px 0;
+
+	.pp-badge {
+		margin: 0;
+	}
+}

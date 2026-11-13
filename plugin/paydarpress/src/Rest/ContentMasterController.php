@@ -80,6 +80,7 @@ final class ContentMasterController {
 					'image_alts'       => $ids,
 					'new_terms'        => $ids,
 					'classifications'  => $ids,
+					'cluster_plans'    => $ids,
 				),
 			)
 		);
@@ -195,6 +196,7 @@ final class ContentMasterController {
 					'image_alts'       => (array) $request->get_param( 'image_alts' ),
 					'new_terms'        => (array) $request->get_param( 'new_terms' ),
 					'classifications'  => (array) $request->get_param( 'classifications' ),
+					'cluster_plans'    => (array) $request->get_param( 'cluster_plans' ),
 				)
 			);
 		} catch ( Throwable $e ) {

@@ -50,6 +50,9 @@ final class TopicRepository {
 				'notes'         => (string) ( $topic['notes'] ?? '' ),
 				'status'        => 'new',
 				'import_id'     => (int) ( $topic['import_id'] ?? 0 ),
+				'cluster_id'    => ! empty( $topic['cluster_id'] ) ? (int) $topic['cluster_id'] : null,
+				'tags'          => ! empty( $topic['tags'] ) ? wp_json_encode( array_values( (array) $topic['tags'] ), JSON_UNESCAPED_UNICODE ) : null,
+				'link_plan'     => ! empty( $topic['link_plan'] ) ? wp_json_encode( $topic['link_plan'], JSON_UNESCAPED_UNICODE ) : null,
 				'created_at'    => $now,
 				'updated_at'    => $now,
 			)
@@ -90,8 +93,34 @@ final class TopicRepository {
 		foreach ( self::all_titles() as $topic ) {
 			if ( in_array( $topic['status'], array( 'new', 'accepted' ), true ) && ImportParser::similar_titles( $title, $topic['title'] ) ) {
 				self::update( $topic['id'], array( 'status' => 'written', 'post_id' => $post_id ) );
+				self::attach_cluster( (int) $topic['id'], $post_id );
 				return;
 			}
+		}
+	}
+
+	/**
+	 * A written article of a cluster topic joins the cluster (as pillar when planned so).
+	 *
+	 * @param int $topic_id Topic.
+	 * @param int $post_id  Article.
+	 */
+	public static function attach_cluster( int $topic_id, int $post_id ): void {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT title, cluster_id, link_plan FROM ' . Schema::table( 'topics' ) . ' WHERE id = %d', $topic_id ), ARRAY_A );
+		if ( ! $row || empty( $row['cluster_id'] ) || 'post' !== get_post_type( $post_id ) ) {
+			return;
+		}
+		$plan = json_decode( (string) $row['link_plan'], true );
+		try {
+			if ( is_array( $plan ) && 'pillar' === ( $plan['role'] ?? '' ) ) {
+				\PaydarWP\PaydarPress\Strategy\Clusters::set_pillar( (int) $row['cluster_id'], $post_id );
+			} else {
+				\PaydarWP\PaydarPress\Strategy\Clusters::add_post( (int) $row['cluster_id'], $post_id, (string) $row['title'] );
+			}
+		} catch ( \RuntimeException $e ) {
+			return;
 		}
 	}
 
@@ -162,6 +191,10 @@ final class TopicRepository {
 				'focus_keyword' => (string) $row['focus_keyword'],
 				'intent'        => $row['intent'],
 				'notes'         => (string) $row['notes'],
+				'tags'          => array_values( (array) json_decode( (string) ( $row['tags'] ?? '' ), true ) ),
+				'link_plan'     => json_decode( (string) ( $row['link_plan'] ?? '' ), true ) ?: null,
+				'cluster'       => ! empty( $row['cluster_id'] ) ? self::cluster_name( (int) $row['cluster_id'] ) : '',
+				'cluster_id'    => ! empty( $row['cluster_id'] ) ? (int) $row['cluster_id'] : null,
 				'status'        => $row['status'],
 				'status_label'  => self::STATUS_LABELS[ $row['status'] ] ?? $row['status'],
 				'post'          => null === $post_id || ! get_post( $post_id ) ? null : array(
@@ -178,5 +211,21 @@ final class TopicRepository {
 			'total'  => $total,
 			'counts' => $by_status,
 		);
+	}
+
+	/**
+	 * Cluster name (cached per request).
+	 *
+	 * @param int $id Cluster.
+	 */
+	private static function cluster_name( int $id ): string {
+		static $names = null;
+		if ( null === $names ) {
+			$names = array();
+			foreach ( \PaydarWP\PaydarPress\Strategy\Clusters::all() as $c ) {
+				$names[ $c['id'] ] = $c['name'];
+			}
+		}
+		return (string) ( $names[ $id ] ?? '' );
 	}
 }

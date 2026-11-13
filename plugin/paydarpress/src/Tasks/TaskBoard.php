@@ -253,7 +253,8 @@ final class TaskBoard {
 			$week_new = max( 1, (int) ceil( $policy['budget'] / 4 ) );
 			$topics   = self::topics( min( $left, $week_new ) );
 			foreach ( $topics as $t ) {
-				$tasks[] = self::task( 'topic:' . $t['id'], 'write', 'نوشتن مقاله «' . $t['title'] . '»', sprintf( 'موضوع %s. سهمیه این ماه: %s از %s مقاله.', 'accepted' === $t['status'] ? 'پذیرفته‌شده' : 'پیشنهادی', PersianNormalizer::fa_number( $policy['published'] ), PersianNormalizer::fa_number( $policy['budget'] ) ), 'accepted' === $t['status'] ? 48 : 40, 60, array( 'route' => '/topics', 'label' => 'موضوعات پیشنهادی' ), array( 'kind' => 'topic', 'id' => $t['id'], 'title' => $t['title'] ) );
+				$in_cluster = ! empty( $t['cluster_id'] );
+				$tasks[]    = self::task( 'topic:' . $t['id'], 'write', 'نوشتن مقاله «' . $t['title'] . '»', sprintf( 'موضوع %s%s. سهمیه این ماه: %s از %s مقاله.', 'accepted' === $t['status'] ? 'پذیرفته‌شده' : 'پیشنهادی', $in_cluster ? '، یک زیرموضوع خوشه محتوایی' : '', PersianNormalizer::fa_number( $policy['published'] ), PersianNormalizer::fa_number( $policy['budget'] ) ), ( 'accepted' === $t['status'] ? 48 : 40 ) + ( $in_cluster ? 4 : 0 ), 60, array( 'route' => '/topics', 'label' => 'موضوعات پیشنهادی' ), array( 'kind' => 'topic', 'id' => $t['id'], 'title' => $t['title'] ) );
 			}
 			// Money pages without enough supporting articles come first.
 			foreach ( array_slice( array_filter( \PaydarWP\PaydarPress\Strategy\Structure::clusters(), static fn( $c ) => $c['gap'] > 0 ), 0, 2 ) as $c ) {
@@ -268,6 +269,15 @@ final class TaskBoard {
 			}
 			if ( ! $topics && empty( $gap ) ) {
 				$tasks[] = self::task( 'topics:new', 'write', 'موضوع تازه انتخاب کنید', sprintf( 'از سهمیه این ماه %s مقاله باقی است و موضوع پذیرفته‌شده‌ای ندارید. از جست‌وجوهای بی‌مقاله سرچ کنسول یا «پیشنهاد موضوع» شروع کنید.', PersianNormalizer::fa_number( $left ) ), 35, 10, array( 'route' => GscRepository::has_data() ? '/gsc?tab=gaps' : '/topics', 'label' => GscRepository::has_data() ? 'جست‌وجوهای بی‌مقاله' : 'موضوعات پیشنهادی' ), array( 'kind' => 'topics' ) );
+			}
+		}
+
+		// Content clusters: a pillar first, then the pillar ↔ member links.
+		foreach ( \PaydarWP\PaydarPress\Strategy\Clusters::all() as $c ) {
+			if ( ! $c['pillar_ok'] && $c['published'] >= 2 ) {
+				$tasks[] = self::task( 'cl:pillar:' . $c['id'], 'links', 'خوشه «' . $c['name'] . '» مقاله ستون ندارد', sprintf( '%s مقاله در این خوشه است ولی راهنمای جامعی که همه را به هم وصل کند ندارد. یک مقاله موجود را ستون کنید یا با «تکمیل نقشه با هوش مصنوعی» ستون تازه بگیرید.', PersianNormalizer::fa_number( $c['published'] ) ), 50, 10, array( 'route' => '/clusters', 'label' => 'خوشه‌ها' ) );
+			} elseif ( $c['pillar_ok'] && $c['link_gaps'] > 0 ) {
+				$tasks[] = self::task( 'cl:links:' . $c['id'], 'links', sprintf( 'خوشه «%s»: %s مقاله با ستون لینک دوطرفه ندارد', $c['name'], PersianNormalizer::fa_number( $c['link_gaps'] ) ), 'لینک ستون به زیرموضوع‌ها و برعکس، قدرت کل خوشه را بالا می‌برد. «ارسال به صف لینک» را بزنید و پیشنهادها را تأیید کنید.', 44, 5, array( 'route' => '/clusters', 'label' => 'خوشه‌ها' ) );
 			}
 		}
 
@@ -471,6 +481,7 @@ final class TaskBoard {
 		global $wpdb;
 		$table = Schema::table( 'topics' );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		return (array) $wpdb->get_results( $wpdb->prepare( "SELECT id, title, status FROM {$table} WHERE status IN ('accepted','new') ORDER BY CASE status WHEN 'accepted' THEN 0 ELSE 1 END, id LIMIT %d", max( 1, $limit ) ), ARRAY_A );
+		// Cluster subtopics (pillars first) come before loose topics: they complete a structure.
+		return (array) $wpdb->get_results( $wpdb->prepare( "SELECT id, title, status, cluster_id, link_plan FROM {$table} WHERE status IN ('accepted','new') ORDER BY CASE WHEN link_plan LIKE '%%pillar%%' AND cluster_id IS NOT NULL THEN 0 WHEN cluster_id IS NOT NULL THEN 1 ELSE 2 END, CASE status WHEN 'accepted' THEN 0 ELSE 1 END, id LIMIT %d", max( 1, $limit ) ), ARRAY_A );
 	}
 }

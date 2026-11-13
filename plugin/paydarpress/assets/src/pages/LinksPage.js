@@ -15,7 +15,7 @@ const TABS = [
 	{ key: 'rejected', label: 'ردشده' },
 ];
 
-const ORIGIN = { contentmaster: 'هوش مصنوعی', paydarpress: 'پایدارپرس' };
+const ORIGIN = { contentmaster: 'هوش مصنوعی', paydarpress: 'پایدارپرس', cluster: 'خوشه محتوایی' };
 
 function initialStatus() {
 	const m = window.location.hash.match( /[?&]status=([a-z]+)/ );

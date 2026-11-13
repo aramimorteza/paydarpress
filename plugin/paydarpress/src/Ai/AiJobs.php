@@ -215,6 +215,7 @@ final class AiJobs {
 			'structure' => array( 'structure_suggestions' ),
 			'alt'       => array( 'image_alts' ),
 			'classify'  => array( 'classifications' ),
+			'cluster'   => array( 'cluster_plans' ),
 		);
 		$sections = $need[ $task ] ?? array();
 		foreach ( $sections as $section ) {

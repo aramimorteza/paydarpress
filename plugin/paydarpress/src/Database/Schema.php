@@ -21,9 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Schema {
 
-	public const VERSION = '1.9.0';
+	public const VERSION = '1.10.0';
 
-	public const TABLES = array( 'inventory', 'links', 'audit_findings', 'scans', 'activity', 'imports', 'gsc', 'topics', 'link_suggestions', 'ai_usage', 'changes', 'redirects', 'ai_jobs', 'notfound' );
+	public const TABLES = array( 'inventory', 'links', 'audit_findings', 'scans', 'activity', 'imports', 'gsc', 'topics', 'link_suggestions', 'ai_usage', 'changes', 'redirects', 'ai_jobs', 'notfound', 'clusters', 'cluster_posts' );
 
 	/**
 	 * Full table name for a short name, e.g. `inventory` → `wp_paydarpress_inventory`.
@@ -60,6 +60,8 @@ final class Schema {
 		$changes        = self::table( 'changes' );
 		$ai_jobs        = self::table( 'ai_jobs' );
 		$notfound       = self::table( 'notfound' );
+		$clusters       = self::table( 'clusters' );
+		$cluster_posts  = self::table( 'cluster_posts' );
 		$redirects      = self::table( 'redirects' );
 		$suggestions    = self::table( 'link_suggestions' );
 
@@ -208,10 +210,14 @@ final class Schema {
   status varchar(20) NOT NULL DEFAULT 'new',
   post_id bigint(20) unsigned DEFAULT NULL,
   import_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  cluster_id bigint(20) unsigned DEFAULT NULL,
+  tags text DEFAULT NULL,
+  link_plan text DEFAULT NULL,
   created_at datetime NOT NULL,
   updated_at datetime NOT NULL,
   PRIMARY KEY  (id),
   KEY status (status),
+  KEY cluster_id (cluster_id),
   KEY title_norm (title_norm(191))
 ) {$charset};",
 
@@ -325,6 +331,28 @@ final class Schema {
   PRIMARY KEY  (id),
   UNIQUE KEY path_hash (path_hash),
   KEY status_value (status,valuable)
+) {$charset};",
+			"CREATE TABLE {$clusters} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  name varchar(200) NOT NULL DEFAULT '',
+  main_keyword varchar(255) NOT NULL DEFAULT '',
+  category_id bigint(20) unsigned DEFAULT NULL,
+  pillar_id bigint(20) unsigned DEFAULT NULL,
+  key_page_id bigint(20) unsigned DEFAULT NULL,
+  notes text DEFAULT NULL,
+  created_at datetime NOT NULL,
+  updated_at datetime NOT NULL,
+  PRIMARY KEY  (id)
+) {$charset};",
+			"CREATE TABLE {$cluster_posts} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  cluster_id bigint(20) unsigned NOT NULL,
+  post_id bigint(20) unsigned NOT NULL,
+  subtopic varchar(255) NOT NULL DEFAULT '',
+  created_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  UNIQUE KEY post_id (post_id),
+  KEY cluster_id (cluster_id)
 ) {$charset};",
 		);
 	}

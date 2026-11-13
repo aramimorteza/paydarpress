@@ -97,8 +97,13 @@ final class ImportService {
 			if ( '' !== $topic['category'] && null === $category['id'] ) {
 				$checks[] = array( 'warning', 'دسته «' . $topic['category'] . '» در سایت نیست.' );
 			}
+			$plan     = $this->check_topic_plan( $topic, $checks );
 			$seen[]   = array( $topic['title'], $topic['focus_keyword'] );
-			$topics[] = $this->with_checks( $topic + array( 'index' => $i, 'category_name' => $category['name'] ), $checks );
+			$topics[] = $this->with_checks( $plan + array( 'index' => $i, 'category_name' => $category['name'] ), $checks );
+		}
+		$cluster_plans = array();
+		foreach ( (array) ( $parsed['cluster_plans'] ?? array() ) as $i => $cp ) {
+			$cluster_plans[] = $this->check_cluster_plan( $i, $cp, $categories, $topics_db, $seen );
 		}
 
 		$articles = array();
@@ -163,6 +168,7 @@ final class ImportService {
 			'image_alts'       => $alt_items,
 			'new_terms'        => $classes['new_terms'],
 			'classifications'  => $classes['items'],
+			'cluster_plans'    => $cluster_plans,
 		);
 
 		set_transient( $this->transient_key( $token ), $payload, self::TTL );
@@ -233,6 +239,7 @@ final class ImportService {
 			'image_alts'        => array(),
 			'new_terms'         => array(),
 			'classifications'   => array(),
+			'cluster_plans'     => array(),
 		);
 
 		foreach ( $pick( 'topics' ) as $topic ) {
@@ -244,9 +251,54 @@ final class ImportService {
 					'intent'        => $topic['intent'],
 					'notes'         => $topic['notes'],
 					'import_id'     => $import_id,
+					'cluster_id'    => $topic['cluster_id'] ?? null,
+					'tags'          => $topic['tags'] ?? array(),
+					'link_plan'     => $topic['link_plan'] ?? array(),
 				)
 			);
 			++$result['topics'];
+		}
+
+		// Cluster maps: the cluster, its pillar and existing members, and topics for the gaps.
+		$result['clusters'] = 0;
+		foreach ( $pick( 'cluster_plans' ) as $cp ) {
+			try {
+				$cid = $cp['cluster_id'] ? (int) $cp['cluster_id'] : \PaydarWP\PaydarPress\Strategy\Clusters::save(
+					array(
+						'name'         => $cp['name'],
+						'main_keyword' => $cp['main_keyword'],
+						'category_id'  => (int) $cp['category_id'],
+					)
+				);
+				foreach ( $cp['members'] as $m ) {
+					\PaydarWP\PaydarPress\Strategy\Clusters::add_post( $cid, (int) $m['post_id'], (string) $m['subtopic'] );
+				}
+				if ( $cp['pillar_id'] ) {
+					\PaydarWP\PaydarPress\Strategy\Clusters::set_pillar( $cid, (int) $cp['pillar_id'] );
+				}
+				foreach ( $cp['new_topics'] as $nt ) {
+					if ( ! empty( $nt['duplicate'] ) ) {
+						continue;
+					}
+					TopicRepository::insert(
+						array(
+							'title'         => $nt['title'],
+							'category_id'   => $cp['category_id'],
+							'focus_keyword' => $nt['focus_keyword'],
+							'intent'        => $nt['intent'],
+							'notes'         => $nt['notes'],
+							'import_id'     => $import_id,
+							'cluster_id'    => $cid,
+							'tags'          => $nt['tags'],
+							'link_plan'     => $nt['pillar'] ? array( 'role' => 'pillar' ) : array(),
+						)
+					);
+					++$result['topics'];
+				}
+				++$result['clusters'];
+			} catch ( \RuntimeException $e ) {
+				$result['errors'][] = '«' . $cp['name'] . '»: ' . $e->getMessage();
+			}
 		}
 
 		if ( current_user_can( 'edit_posts' ) ) {
@@ -831,6 +883,132 @@ final class ImportService {
 			);
 		}
 		return $out;
+	}
+
+	/**
+	 * Topic plan: cluster by name, tags (active, no category names), planned links that
+	 * resolve to published content.
+	 *
+	 * @param array $topic  Parsed topic.
+	 * @param array $checks Checks (appended).
+	 */
+	private function check_topic_plan( array $topic, array &$checks ): array {
+		$topic['cluster_id'] = null;
+		if ( '' !== ( $topic['cluster'] ?? '' ) ) {
+			$c = \PaydarWP\PaydarPress\Strategy\Clusters::find_by_name( $topic['cluster'] );
+			if ( $c ) {
+				$topic['cluster_id'] = (int) $c['id'];
+				$topic['cluster']    = $c['name'];
+			} else {
+				$checks[] = array( 'info', 'خوشه «' . $topic['cluster'] . '» وجود ندارد؛ موضوع بدون خوشه ذخیره می‌شود.' );
+				$topic['cluster'] = '';
+			}
+		}
+		$tags = array();
+		foreach ( (array) ( $topic['tags'] ?? array() ) as $tag ) {
+			$t = get_term_by( 'name', $tag, 'post_tag' );
+			if ( term_exists( $tag, 'category' ) || ( $t instanceof \WP_Term && ! in_array( \PaydarWP\PaydarPress\Profile\TaxonomyMap::role( (int) $t->term_id ), \PaydarWP\PaydarPress\Profile\TaxonomyMap::ACTIVE_ROLES, true ) ) ) {
+				continue;
+			}
+			$tags[] = $tag;
+		}
+		$topic['tags'] = array_slice( $tags, 0, \PaydarWP\PaydarPress\Profile\TaxonomyMap::MAX_TAGS );
+
+		$plan    = (array) ( $topic['link_plan'] ?? array() );
+		$dropped = 0;
+		foreach ( array( 'pillar_url', 'key_page_url' ) as $k ) {
+			if ( '' !== (string) ( $plan[ $k ] ?? '' ) && 'ok' !== $this->resolve_url( (string) $plan[ $k ] )['state'] ) {
+				$plan[ $k ] = '';
+				++$dropped;
+			}
+		}
+		$related = array();
+		foreach ( (array) ( $plan['related_urls'] ?? array() ) as $u ) {
+			if ( 'ok' === $this->resolve_url( (string) $u )['state'] ) {
+				$related[] = $u;
+			} else {
+				++$dropped;
+			}
+		}
+		$plan['related_urls'] = $related;
+		$topic['link_plan']   = array_filter( $plan );
+		if ( $dropped ) {
+			$checks[] = array( 'info', sprintf( '%s آدرس از برنامه لینک کنار گذاشته شد (در سایت نیست یا منتشر نشده).', PersianNormalizer::fa_number( $dropped ) ) );
+		}
+		return $topic;
+	}
+
+	/**
+	 * Checks a cluster map.
+	 *
+	 * @param int   $index      Index.
+	 * @param array $cp         Parsed plan.
+	 * @param array $categories Categories.
+	 * @param array $topics_db  Existing topics.
+	 * @param array $seen       Titles in this import.
+	 */
+	private function check_cluster_plan( int $index, array $cp, array $categories, array $topics_db, array $seen ): array {
+		$checks   = array();
+		$existing = \PaydarWP\PaydarPress\Strategy\Clusters::find_by_name( $cp['name'] );
+		$category = $this->resolve_category( null, $cp['category'], $categories );
+		$pillar   = 0;
+		if ( '' !== $cp['pillar_url'] ) {
+			$r = $this->resolve_url( $cp['pillar_url'] );
+			if ( 'ok' === $r['state'] && $r['id'] && 'post' === get_post_type( (int) $r['id'] ) ) {
+				$pillar = (int) $r['id'];
+			} else {
+				$checks[] = array( 'warning', 'مقاله ستون پیشنهادی در سایت پیدا نشد.' );
+			}
+		}
+		$members    = array();
+		$new_topics = array();
+		$subs       = $cp['subtopics'];
+		if ( ! $pillar && '' !== $cp['pillar_title'] ) {
+			array_unshift( $subs, array( 'title' => $cp['pillar_title'], 'focus_keyword' => $cp['main_keyword'], 'intent' => 'educational', 'existing_url' => '', 'tags' => array(), 'notes' => 'مقاله ستون خوشه: راهنمای جامع که به همه زیرموضوع‌ها لینک می‌دهد.', 'pillar' => true ) );
+		}
+		foreach ( $subs as $sub ) {
+			if ( '' !== $sub['existing_url'] ) {
+				$r = $this->resolve_url( $sub['existing_url'] );
+				if ( 'ok' === $r['state'] && $r['id'] && 'post' === get_post_type( (int) $r['id'] ) ) {
+					$members[] = array( 'post_id' => (int) $r['id'], 'title' => html_entity_decode( get_the_title( (int) $r['id'] ), ENT_QUOTES, 'UTF-8' ), 'subtopic' => '' !== $sub['title'] ? $sub['title'] : $sub['focus_keyword'] );
+					continue;
+				}
+			}
+			if ( '' === $sub['title'] ) {
+				continue;
+			}
+			$dup          = $this->duplicate_checks( $sub['title'], $sub['focus_keyword'], $topics_db, $seen );
+			$seen[]       = array( $sub['title'], $sub['focus_keyword'] );
+			$new_topics[] = array(
+				'title'         => $sub['title'],
+				'focus_keyword' => $sub['focus_keyword'],
+				'intent'        => $sub['intent'],
+				'tags'          => array_slice( $sub['tags'], 0, \PaydarWP\PaydarPress\Profile\TaxonomyMap::MAX_TAGS ),
+				'notes'         => $sub['notes'],
+				'pillar'        => ! empty( $sub['pillar'] ),
+				'duplicate'     => (bool) array_filter( $dup, static fn( $c ) => 'duplicate' === $c[0] ),
+			);
+		}
+		$dups = count( array_filter( $new_topics, static fn( $t ) => $t['duplicate'] ) );
+		$checks[] = array( 'info', sprintf( '%s %s · %s مقاله موجود عضو خوشه می‌شود · %s موضوع تازه%s · ستون: %s', $existing ? 'تکمیل خوشه موجود' : 'خوشه تازه', '«' . $cp['name'] . '»', PersianNormalizer::fa_number( count( $members ) ), PersianNormalizer::fa_number( count( $new_topics ) - $dups ), $dups ? ' (' . PersianNormalizer::fa_number( $dups ) . ' تکراری کنار گذاشته می‌شود)' : '', $pillar ? '«' . html_entity_decode( get_the_title( $pillar ), ENT_QUOTES, 'UTF-8' ) . '»' : ( '' !== $cp['pillar_title'] ? 'مقاله تازه «' . $cp['pillar_title'] . '»' : 'تعیین نشده' ) ) );
+		if ( $members ) {
+			$checks[] = array( 'info', 'مقاله‌های موجود: ' . implode( '، ', array_map( static fn( $m ) => $m['title'], array_slice( $members, 0, 10 ) ) ) );
+		}
+		if ( $new_topics ) {
+			$checks[] = array( 'info', 'موضوع‌های تازه: ' . implode( '، ', array_map( static fn( $t ) => $t['title'] . ( $t['duplicate'] ? ' (تکراری)' : '' ), $new_topics ) ) );
+		}
+		return $this->with_checks(
+			$cp + array(
+				'index'       => $index,
+				'cluster_id'  => $existing ? (int) $existing['id'] : null,
+				'category_id' => $category['id'],
+				'pillar_id'   => $pillar,
+				'members'     => $members,
+				'new_topics'  => $new_topics,
+				'title'       => $cp['name'],
+			),
+			$checks
+		);
 	}
 
 	/**

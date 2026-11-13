@@ -4,6 +4,7 @@ import { post, errorMessage } from '../lib/api';
 import { num } from '../lib/format';
 
 const SECTIONS = [
+	[ 'cluster_plans', 'نقشه خوشه' ],
 	[ 'articles', 'مقاله' ],
 	[ 'topics', 'موضوع' ],
 	[ 'term_descriptions', 'متن دسته' ],
@@ -52,6 +53,12 @@ function itemTitle( section, item ) {
 			parts.push( `+ برچسب: ${ tags.join( '، ' ) }` );
 		}
 		return `«${ item.title }» — ${ parts.length ? parts.join( ' · ' ) : 'بدون تغییر' }`;
+	}
+	if ( 'cluster_plans' === section ) {
+		return `«${ item.name }»${ item.cluster_id ? ' (تکمیل خوشه موجود)' : ' (خوشه تازه)' }`;
+	}
+	if ( 'topics' === section && ( item.cluster || ( item.tags || [] ).length ) ) {
+		return `${ item.title }${ item.cluster ? ` — خوشه: ${ item.cluster }` : '' }${ ( item.tags || [] ).length ? ` — #${ item.tags.join( ' #' ) }` : '' }`;
 	}
 	if ( 'new_terms' === section ) {
 		return `«${ item.name }» برای ${ item.count } مطلب`;
@@ -148,6 +155,7 @@ export default function InlineImport( { job = 0, batch = 0, onClosed } ) {
 						result.structure ? `${ num( result.structure ) } پیشنهاد ساختار (در «دسته‌ها و برچسب‌ها»)` : '',
 						result.alts ? `${ num( result.alts ) } متن جایگزین تصویر` : '',
 						result.classified ? `طبقه‌بندی ${ num( result.classified ) } مطلب` : '',
+						result.clusters ? `${ num( result.clusters ) } خوشه` : '',
 						result.new_terms ? `${ num( result.new_terms ) } برچسب تازه` : '',
 					].filter( Boolean ).join( '، ' ) || 'موردی' }.
 				</Notice>

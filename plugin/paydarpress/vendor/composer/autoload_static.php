@@ -104,6 +104,7 @@ class ComposerStaticInitfb42b83d6c8d640da5884eda2eaeec31
         'PaydarWP\\PaydarPress\\Seo\\YoastAdapter' => __DIR__ . '/../..' . '/src/Seo/YoastAdapter.php',
         'PaydarWP\\PaydarPress\\Strategy\\ChangeLog' => __DIR__ . '/../..' . '/src/Strategy/ChangeLog.php',
         'PaydarWP\\PaydarPress\\Strategy\\Classifier' => __DIR__ . '/../..' . '/src/Strategy/Classifier.php',
+        'PaydarWP\\PaydarPress\\Strategy\\Clusters' => __DIR__ . '/../..' . '/src/Strategy/Clusters.php',
         'PaydarWP\\PaydarPress\\Strategy\\RedirectOwner' => __DIR__ . '/../..' . '/src/Strategy/RedirectOwner.php',
         'PaydarWP\\PaydarPress\\Strategy\\Redirects' => __DIR__ . '/../..' . '/src/Strategy/Redirects.php',
         'PaydarWP\\PaydarPress\\Strategy\\ShopStrategy' => __DIR__ . '/../..' . '/src/Strategy/ShopStrategy.php',

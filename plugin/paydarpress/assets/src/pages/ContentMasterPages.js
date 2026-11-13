@@ -419,6 +419,15 @@ export function TopicsPage() {
 									<td>
 										<strong>{ t.title }</strong>
 										{ t.notes && <div className="pp-muted">{ t.notes }</div> }
+										<div className="pp-topic-plan">
+											{ t.cluster && <a className="pp-badge pp-badge--info" href="#/clusters">خوشه: { t.cluster }</a> }
+											{ ( t.tags || [] ).map( ( g ) => <span key={ g } className="pp-badge">#{ g }</span> ) }
+											{ t.link_plan && ( t.link_plan.related_urls || [] ).length + ( t.link_plan.pillar_url ? 1 : 0 ) + ( t.link_plan.key_page_url ? 1 : 0 ) > 0 && (
+												<span className="pp-muted" title={ [ t.link_plan.pillar_url, t.link_plan.key_page_url, ...( t.link_plan.related_urls || [] ) ].filter( Boolean ).join( '\n' ) }>
+													برنامه لینک: { ( t.link_plan.related_urls || [] ).length + ( t.link_plan.pillar_url ? 1 : 0 ) + ( t.link_plan.key_page_url ? 1 : 0 ) } لینک
+												</span>
+											) }
+										</div>
 										<div className="pp-muted">{ INTENT_LABELS[ t.intent ] || '' } { t.intent && '·' } { ago( t.created_at ) }</div>
 									</td>
 									<td>{ t.category || '—' }</td>

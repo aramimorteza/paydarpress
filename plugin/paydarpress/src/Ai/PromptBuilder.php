@@ -26,7 +26,7 @@ defined( 'ABSPATH' ) || exit;
  */
 final class PromptBuilder {
 
-	public const TASKS = array( 'topics', 'article', 'rewrite', 'term', 'meta', 'structure', 'merge', 'alt', 'classify' );
+	public const TASKS = array( 'topics', 'article', 'rewrite', 'term', 'meta', 'structure', 'merge', 'alt', 'classify', 'cluster' );
 
 	/** Existing items listed for duplicate checks and internal links. */
 	private const RELATED_LIMIT = 60;
@@ -161,6 +161,10 @@ final class PromptBuilder {
 			$task .= "\nStart from this real Google search that the site already appears for: «{$query}». Include it (or the best article for it) and related intents.";
 		}
 		$task .= "\nIf a strong idea is already covered by an existing item, skip it.";
+		$clusters = \PaydarWP\PaydarPress\Strategy\Clusters::overview_text();
+		if ( '' !== $clusters ) {
+			$task .= "\n\n## CONTENT CLUSTERS (article groups around one main keyword; fill their gaps first)\n" . $clusters;
+		}
 
 		return array(
 			'title'       => $category ? 'پیشنهاد موضوع برای دسته «' . $category->name . '»' : ( '' !== $query ? 'پیشنهاد موضوع از جست‌وجوی «' . $query . '»' : 'پیشنهاد موضوع تازه' ),
@@ -173,6 +177,7 @@ final class PromptBuilder {
 			'with_topics' => true,
 			'with_gsc'    => true,
 			'with_policy' => true,
+			'with_tags'   => true,
 		);
 	}
 
@@ -192,7 +197,7 @@ final class PromptBuilder {
 			global $wpdb;
 			$table = Schema::table( 'topics' );
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$topic = $wpdb->get_row( $wpdb->prepare( "SELECT title, focus_keyword, category_id, intent, notes FROM {$table} WHERE id = %d", (int) $args['topic_id'] ), ARRAY_A );
+			$topic = $wpdb->get_row( $wpdb->prepare( "SELECT id, title, focus_keyword, category_id, intent, notes, cluster_id, tags, link_plan FROM {$table} WHERE id = %d", (int) $args['topic_id'] ), ARRAY_A );
 			if ( $topic ) {
 				$title   = (string) $topic['title'];
 				$keyword = (string) $topic['focus_keyword'];
@@ -224,6 +229,31 @@ final class PromptBuilder {
 		if ( $topic && '' !== (string) $topic['notes'] ) {
 			$task .= "\nNotes from the site owner: " . self::text( $topic['notes'], 600 );
 		}
+		$cluster_text = '';
+		if ( $topic ) {
+			$tags = json_decode( (string) $topic['tags'], true );
+			if ( is_array( $tags ) && $tags ) {
+				$task .= "\nPlanned tags (use them unless one clearly does not fit): " . implode( '، ', array_map( 'strval', $tags ) ) . '.';
+			}
+			$plan = json_decode( (string) $topic['link_plan'], true );
+			$urls = array();
+			foreach ( is_array( $plan ) ? array_merge( array( $plan['pillar_url'] ?? '', $plan['key_page_url'] ?? '' ), (array) ( $plan['related_urls'] ?? array() ) ) : array() as $u ) {
+				$pid = $u ? url_to_postid( (string) $u ) : 0;
+				// The plan was made earlier: only addresses that are still published are kept.
+				if ( $pid > 0 && 'publish' === get_post_status( $pid ) ) {
+					$urls[] = self::url( $pid );
+				}
+			}
+			if ( $urls ) {
+				$task .= "\nPlanned internal links (preferred, still valid): " . implode( ' ، ', array_unique( $urls ) ) . '.';
+			}
+			if ( ! empty( $topic['cluster_id'] ) ) {
+				$cluster_text = \PaydarWP\PaydarPress\Strategy\Clusters::prompt_text( (int) $topic['cluster_id'], 0, (int) $topic['id'] );
+				if ( '' !== $cluster_text ) {
+					$task .= "\nThis article is ONE subtopic of the CONTENT CLUSTER below: cover only this subtopic in depth, do not cover the siblings' subtopics, link once (inside a body paragraph) to the PILLAR and to 1–2 PUBLISHED SIBLINGS where relevant.";
+				}
+			}
+		}
 		$task .= "\nIf this topic duplicates an existing item listed below, do NOT write it: return a JSON with an empty `articles` list and explain in `notes` which existing URL to refresh instead.";
 
 		$label = '' !== $title ? $title : ( '' !== $query ? $query : ( $link_to ? self::title( $link_to->ID ) : 'مقاله تازه' ) );
@@ -240,6 +270,7 @@ final class PromptBuilder {
 			'with_policy' => true,
 			'with_images' => true,
 			'with_tags'   => true,
+			'extra'       => $cluster_text,
 			'object_id'   => $link_to ? $link_to->ID : null,
 		);
 	}
@@ -277,13 +308,21 @@ final class PromptBuilder {
 			$task .= "\nProblems PaydarPress found: " . implode( '; ', $reasons ) . '.';
 		}
 		$task .= "\nReturn the FULL new " . ( $is_product ? 'description' : 'content' ) . ' (not only the changed parts).';
+		$cluster = $is_product ? null : \PaydarWP\PaydarPress\Strategy\Clusters::of_post( $post->ID );
+		$cluster_text = $cluster ? \PaydarWP\PaydarPress\Strategy\Clusters::prompt_text( (int) $cluster['id'], $post->ID ) : '';
+		if ( $cluster && (int) $cluster['pillar_id'] === $post->ID ) {
+			$task .= "\nThis page is the PILLAR of the CONTENT CLUSTER below: give a complete overview of every subtopic in short sections, and link (inside the text) to EVERY published sibling, plus the KEY PAGE if given. Leave the depth of each subtopic to its own article.";
+		} elseif ( $cluster ) {
+			$task .= "\nThis page is ONE subtopic of the CONTENT CLUSTER below: keep to its subtopic, link once to the PILLAR and to 1–2 siblings where relevant.";
+		}
 
 		$extra = "## CURRENT CONTENT\nTitle: {$title}\n"
 			. ( '' !== $seo['focus_keyword'] ? "Main keyword: {$seo['focus_keyword']}\n" : '' )
 			. ( '' !== $seo['title'] ? "SEO title: {$seo['title']}\n" : '' )
 			. ( '' !== $seo['meta_description'] ? "Meta description: {$seo['meta_description']}\n" : '' )
 			. ( $is_product && '' !== trim( $post->post_excerpt ) ? 'Short description: ' . self::text( wp_strip_all_tags( $post->post_excerpt ), 1000 ) . "\n" : '' )
-			. "HTML:\n```html\n{$html}\n```" . ( $cut ? "\n(The content was cut to the first " . self::REWRITE_MAX_CHARS . ' characters.)' : '' );
+			. "HTML:\n```html\n{$html}\n```" . ( $cut ? "\n(The content was cut to the first " . self::REWRITE_MAX_CHARS . ' characters.)' : '' )
+			. ( '' !== $cluster_text ? "\n\n" . $cluster_text : '' );
 
 		return array(
 			'title'       => ( $is_product ? 'بازنویسی توضیحات محصول «' : 'بازنویسی «' ) . $title . '»',
@@ -441,6 +480,43 @@ final class PromptBuilder {
 	}
 
 	/**
+	 * Cluster map: a pillar and its subtopics around one main keyword, mapped to existing
+	 * articles where they already exist.
+	 *
+	 * @param array $args cluster_id, or keyword + category_id.
+	 * @throws RuntimeException Without a keyword.
+	 */
+	private static function task_cluster( array $args ): array {
+		$cluster = ! empty( $args['cluster_id'] ) ? \PaydarWP\PaydarPress\Strategy\Clusters::get( (int) $args['cluster_id'] ) : null;
+		$keyword = $cluster ? ( '' !== $cluster['main_keyword'] ? $cluster['main_keyword'] : $cluster['name'] ) : self::text( $args['keyword'] ?? '', 200 );
+		if ( '' === $keyword ) {
+			throw new RuntimeException( 'کلمه کلیدی اصلی خوشه را بنویسید.' );
+		}
+		$cat  = self::category( (int) ( $args['category_id'] ?? ( $cluster['category_id'] ?? 0 ) ) );
+		$task = "Build a CONTENT CLUSTER (articles only) around the main keyword «{$keyword}»" . ( $cat ? " in the category «{$cat->name}»" : '' ) . ".\n"
+			. "- One PILLAR: a complete guide to the main keyword that gives an overview of every subtopic. Use an EXISTING article as the pillar when one already is (or is close to) that guide (pillar_url); otherwise give pillar_title for a new one.\n"
+			. "- 8–15 SUBTOPICS: each one distinct search intent people really have about «{$keyword}» (cost, steps, documents, mistakes, comparisons, special cases, questions…), deep enough for its own article, never overlapping each other.\n"
+			. "- Map EXISTING CONTENT: when an existing article already covers a subtopic, put its URL in existing_url (do not propose a new article for it). Only propose new subtopics for real gaps.\n"
+			. "- Tags from TAGS (exact names), 1–3 per subtopic.";
+		if ( $cluster ) {
+			$task .= "\n\nThe cluster already exists (name «{$cluster['name']}»); keep its name and complete it:\n" . \PaydarWP\PaydarPress\Strategy\Clusters::prompt_text( (int) $cluster['id'] );
+		}
+		return array(
+			'title'       => 'نقشه خوشه «' . ( $cluster ? $cluster['name'] : $keyword ) . '»',
+			'command'     => '',
+			'task'        => $task,
+			'subject'     => $keyword,
+			'category_id' => $cat ? (int) $cat->term_id : 0,
+			'rules'       => self::rules_topics(),
+			'output'      => self::output( 'cluster' ),
+			'with_topics' => true,
+			'with_gsc'    => true,
+			'with_tags'   => true,
+			'object_id'   => $cluster ? (int) $cluster['id'] : null,
+		);
+	}
+
+	/**
 	 * Categories and tags for existing posts or products (add only).
 	 *
 	 * @param array $args ids (comma-separated) or kind + scope (next chunk of candidates).
@@ -590,6 +666,7 @@ final class PromptBuilder {
 				'- Cover different intents and angles (how-to, cost, comparison, mistakes, checklist, definition, situations), not variations of one idea.',
 				'- Titles: natural to native readers, main keyword near the start, numbers only for real lists, no clickbait or stuffing.',
 				'- Respect forbidden topics and industry rules.',
+				'- Plan each topic completely: `category` (exact), `tags` (1–' . \PaydarWP\PaydarPress\Profile\TaxonomyMap::MAX_TAGS . ' from TAGS, exact names), `cluster` (the exact name of a CONTENT CLUSTER it belongs to, or empty), and `link_plan`: `pillar_url` (the cluster\'s pillar, if any), `key_page_url` (the KEY PAGE it should support, if any) and `related_urls` (2–3 EXISTING CONTENT URLs it should link to). Only use URLs listed in this prompt.',
 			)
 		);
 	}
@@ -673,7 +750,9 @@ final class PromptBuilder {
 
 		switch ( $task ) {
 			case 'topics':
-				return $head . 'with "topics": [{"title": "", "category": "<exact category name>", "focus_keyword": "", "intent": "informational|educational|how-to|commercial|support|transactional", "notes": "<one line: why this topic, which key page it can link to>"}]';
+				return $head . 'with "topics": [{"title": "", "category": "<exact category name>", "focus_keyword": "", "intent": "informational|educational|how-to|commercial|support|transactional", "tags": ["<exact tag>"], "cluster": "<exact cluster name or empty>", "link_plan": {"pillar_url": "", "key_page_url": "", "related_urls": [""]}, "notes": "<one line: why this topic, which key page it can link to>"}]';
+			case 'cluster':
+				return $head . 'with "cluster_plan": {"name": "<short cluster name>", "main_keyword": "", "category": "<exact category name>", "pillar_url": "<URL of an EXISTING article that should be the pillar, or empty>", "pillar_title": "<title of a NEW pillar article when no existing one fits, else empty>", "subtopics": [{"title": "", "focus_keyword": "", "intent": "informational|educational|how-to|commercial|support|transactional", "existing_url": "<URL of an EXISTING article that already covers this subtopic, or empty>", "tags": ["<exact tag>"], "notes": ""}]} and "notes": "".';
 			case 'article':
 				return $head . "with \"articles\": [ {$article} ] and optionally \"notes\": \"\".";
 			case 'rewrite':

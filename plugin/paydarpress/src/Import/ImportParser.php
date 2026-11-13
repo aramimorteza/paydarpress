@@ -75,6 +75,7 @@ final class ImportParser {
 			'term_descriptions' => array_values( array_filter( array_map( array( self::class, 'term_description' ), $terms ) ) ),
 			'image_alts'       => array_values( array_filter( array_map( array( self::class, 'image_alt' ), $alts ) ) ),
 			'classifications'  => array_values( array_filter( array_map( array( self::class, 'classification' ), $classes ) ) ),
+			'cluster_plans'    => array_values( array_filter( array( self::cluster_plan( $data['cluster_plan'] ?? null ) ) ) ),
 			'seo_updates'      => array_values( array_filter( array_map( array( self::class, 'seo_update' ), $seo ) ) ),
 			'structure_suggestions' => array_values( array_filter( array_map( array( self::class, 'structure_suggestion' ), $struct ) ) ),
 			'notes'            => self::str( $data['notes'] ?? '', 3000 ),
@@ -93,7 +94,7 @@ final class ImportParser {
 			$out['articles'][] = $article;
 		}
 
-		if ( array() === $out['topics'] && array() === $out['articles'] && array() === $out['link_suggestions'] && array() === $out['term_descriptions'] && array() === $out['seo_updates'] && array() === $out['structure_suggestions'] && array() === $out['image_alts'] && array() === $out['classifications'] ) {
+		if ( array() === $out['topics'] && array() === $out['articles'] && array() === $out['link_suggestions'] && array() === $out['term_descriptions'] && array() === $out['seo_updates'] && array() === $out['structure_suggestions'] && array() === $out['image_alts'] && array() === $out['classifications'] && array() === $out['cluster_plans'] ) {
 			if ( '' !== $out['notes'] ) {
 				throw new RuntimeException( 'هوش مصنوعی چیزی برای ورود نساخت و این توضیح را داد: ' . $out['notes'] );
 			}
@@ -213,6 +214,85 @@ final class ImportParser {
 			'focus_keyword' => self::str( $raw['focus_keyword'] ?? '', 255 ),
 			'intent'        => in_array( $intent, self::INTENTS, true ) ? $intent : '',
 			'notes'         => self::str( $raw['notes'] ?? '', 1000 ),
+			'tags'          => self::names( $raw['tags'] ?? array(), 5 ),
+			'cluster'       => self::str( $raw['cluster'] ?? '', 200 ),
+			'link_plan'     => self::link_plan( $raw['link_plan'] ?? null ),
+		);
+	}
+
+	/**
+	 * Planned links of a topic.
+	 *
+	 * @param mixed $raw Raw.
+	 */
+	private static function link_plan( $raw ): array {
+		$raw = is_array( $raw ) ? $raw : array();
+		$url = static fn( $v ) => is_string( $v ) && preg_match( '#^https?://#i', trim( $v ) ) ? mb_substr( trim( $v ), 0, 500 ) : '';
+		return array(
+			'pillar_url'   => $url( $raw['pillar_url'] ?? '' ),
+			'key_page_url' => $url( $raw['key_page_url'] ?? '' ),
+			'related_urls' => array_values( array_filter( array_map( $url, array_slice( is_array( $raw['related_urls'] ?? null ) ? $raw['related_urls'] : array(), 0, 5 ) ) ) ),
+		);
+	}
+
+	/**
+	 * List of short names.
+	 *
+	 * @param mixed $raw Raw.
+	 * @param int   $max Maximum.
+	 * @return string[]
+	 */
+	private static function names( $raw, int $max ): array {
+		$out = array();
+		foreach ( array_slice( is_array( $raw ) ? $raw : array(), 0, $max ) as $x ) {
+			$x = is_scalar( $x ) ? self::str( (string) $x, 100 ) : '';
+			if ( '' !== $x ) {
+				$out[] = $x;
+			}
+		}
+		return array_values( array_unique( $out ) );
+	}
+
+	/**
+	 * Cluster map.
+	 *
+	 * @param mixed $raw Raw.
+	 */
+	private static function cluster_plan( $raw ): ?array {
+		if ( ! is_array( $raw ) ) {
+			return null;
+		}
+		$subs = array();
+		foreach ( array_slice( is_array( $raw['subtopics'] ?? null ) ? $raw['subtopics'] : array(), 0, 30 ) as $sub ) {
+			if ( ! is_array( $sub ) ) {
+				continue;
+			}
+			$title = self::str( $sub['title'] ?? '', 255 );
+			$url   = is_string( $sub['existing_url'] ?? null ) && preg_match( '#^https?://#i', trim( $sub['existing_url'] ) ) ? trim( $sub['existing_url'] ) : '';
+			if ( '' === $title && '' === $url ) {
+				continue;
+			}
+			$intent = strtolower( self::str( $sub['intent'] ?? '', 30 ) );
+			$subs[] = array(
+				'title'         => $title,
+				'focus_keyword' => self::str( $sub['focus_keyword'] ?? '', 255 ),
+				'intent'        => in_array( $intent, self::INTENTS, true ) ? $intent : '',
+				'existing_url'  => mb_substr( $url, 0, 500 ),
+				'tags'          => self::names( $sub['tags'] ?? array(), 5 ),
+				'notes'         => self::str( $sub['notes'] ?? '', 500 ),
+			);
+		}
+		$name = self::str( $raw['name'] ?? '', 200 );
+		if ( '' === $name || ! $subs ) {
+			return null;
+		}
+		return array(
+			'name'         => $name,
+			'main_keyword' => self::str( $raw['main_keyword'] ?? '', 255 ),
+			'category'     => self::str( $raw['category'] ?? '', 200 ),
+			'pillar_url'   => is_string( $raw['pillar_url'] ?? null ) && preg_match( '#^https?://#i', trim( $raw['pillar_url'] ) ) ? trim( $raw['pillar_url'] ) : '',
+			'pillar_title' => self::str( $raw['pillar_title'] ?? '', 255 ),
+			'subtopics'    => $subs,
 		);
 	}
 
