@@ -53,6 +53,7 @@ return array(
     'PaydarWP\\PaydarPress\\Links\\UrlNormalizer' => $baseDir . '/src/Links/UrlNormalizer.php',
     'PaydarWP\\PaydarPress\\Plugin' => $baseDir . '/src/Plugin.php',
     'PaydarWP\\PaydarPress\\Policy\\ReviewGate' => $baseDir . '/src/Policy/ReviewGate.php',
+    'PaydarWP\\PaydarPress\\Policy\\SiteStage' => $baseDir . '/src/Policy/SiteStage.php',
     'PaydarWP\\PaydarPress\\Profile\\Fields' => $baseDir . '/src/Profile/Fields.php',
     'PaydarWP\\PaydarPress\\Profile\\Industries' => $baseDir . '/src/Profile/Industries.php',
     'PaydarWP\\PaydarPress\\Profile\\ProfileInference' => $baseDir . '/src/Profile/ProfileInference.php',

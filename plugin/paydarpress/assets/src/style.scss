@@ -2107,3 +2107,17 @@ button.pp-chip {
 	padding-block: 12px;
 	font-size: 14px;
 }
+
+.pp-inline-import {
+	margin-block-start: 8px;
+
+	.pp-paste textarea { font-size: 12px; }
+	.pp-import-item { padding: 6px 0; border-block-end: 1px solid var(--pwp-border, #e2e5ea); }
+}
+
+.pp-stage {
+	border-inline-start: 3px solid var(--pwp-primary, #0f6e6e);
+
+	tr.is-diff td:last-child { color: var(--pwp-warning, #b26a00); font-weight: 600; }
+	.pp-table { max-width: 520px; margin-block: 8px; }
+}

@@ -94,7 +94,10 @@ export default function TasksPage() {
 	const [ showLater, setShowLater ] = useState( false );
 
 	useEffect( () => {
-		get( '/tasks' ).then( setData ).catch( ( e ) => setError( errorMessage( e ) ) );
+		const load = () => get( '/tasks' ).then( setData ).catch( ( e ) => setError( errorMessage( e ) ) );
+		load();
+		window.addEventListener( 'paydarpress:imported', load );
+		return () => window.removeEventListener( 'paydarpress:imported', load );
 	}, [] );
 
 	const mark = ( key, action ) => post( '/tasks/mark', { key, action } ).then( setData ).catch( ( e ) => setError( errorMessage( e ) ) );
@@ -109,7 +112,9 @@ export default function TasksPage() {
 						<span>{ num( data.week.length ) } کار برای این هفته</span>
 						{ data.done_week > 0 && <span className="pp-ok">✓ { num( data.done_week ) } کار در ۷ روز اخیر انجام شد</span> }
 						<span className="pp-muted">مقاله جدید این ماه: { num( data.policy.published ) } از { num( data.policy.budget ) }</span>
+						{ data.stage && <a className="pp-muted" href="#/settings?tab=policy">مرحله سایت: { data.stage.label }</a> }
 					</div>
+					{ data.stage && 'new' === data.stage.stage && <Notice status="info" isDismissible={ false }>{ data.stage.advice }</Notice> }
 					{ 0 === data.week.length ? (
 						<div className="pp-card"><EmptyState title="کاری برای این هفته نمانده است" text="همه موارد مهم انجام شده یا به هفته بعد رفته‌اند. پایدارپرس پس از اسکن و ورود داده تازه، کارهای جدید را اینجا می‌آورد." /></div>
 					) : (

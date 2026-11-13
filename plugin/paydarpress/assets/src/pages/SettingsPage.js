@@ -43,13 +43,14 @@ const TABS = [
 		label: 'سیاست محتوا',
 		intro: 'این قواعد جلوی چرخه «تولید بی‌وقفه ← لینک‌سازی وصله‌ای ← تولید دوباره» را می‌گیرند. پایدارپرس در پیشنهاد موضوع، صف لینک، ممیزی و انتشار از آن‌ها پیروی می‌کند.',
 		fields: [
+			{ path: 'policy.site_stage', type: 'select', label: 'مرحله سایت', options: [ [ 'auto', 'تشخیص خودکار' ], [ 'new', 'تازه‌تأسیس' ], [ 'growing', 'در حال رشد' ], [ 'mature', 'بالغ' ] ], help: 'پایدارپرس مرحله را از تعداد مطالب منتشرشده تشخیص می‌دهد (کمتر از ۲۰ مقاله: تازه‌تأسیس، تا ۲۰۰: در حال رشد، بیشتر: بالغ). اگر تشخیص درست نیست، خودتان انتخاب کنید.' },
 			{ path: 'policy.new_per_month', type: 'number', label: 'سقف مقاله جدید در ماه', suffix: 'مقاله', help: 'پیشنهاد موضوع و نوشتن مقاله وقتی این سهمیه پر شود، به‌جای مقاله جدید، بازنویسی پیشنهاد می‌کنند.' },
 			{ path: 'policy.refresh_share', type: 'number', label: 'سهم بازنویسی از کار ماهانه', suffix: 'درصد', help: 'تا وقتی مقاله قدیمی نیازمند بازنویسی هست، این سهم از ظرفیت ماه به بهتر کردن محتوای موجود می‌رسد.' },
-			{ path: 'policy.publish_per_day', type: 'number', label: 'حداکثر انتشار در روز', suffix: 'مطلب', help: 'انتشار یکنواخت طبیعی‌تر است. بیشتر از این عدد، در ویرایشگر پیشنهاد زمان‌بندی داده می‌شود.' },
+			{ path: 'policy.publish_per_day', type: 'number', label: 'انتشار پیشنهادی در روز', suffix: 'مطلب', help: 'فقط برای انتشار مطلب جدید است و مانع نمی‌شود: بیشتر از این عدد، در ویرایشگر پیشنهاد زمان‌بندی داده می‌شود. اصلاحیه‌ها سقف ندارند.' },
 			{ path: 'policy.grace_days', type: 'number', label: 'مهلت جاافتادن مطلب تازه', suffix: 'روز', help: 'مطلب تازه‌منتشرشده در این مدت «یتیم» حساب نمی‌شود و برایش لینک ترمیمی ساخته نمی‌شود؛ لینک‌های ورودی‌اش باید همراه خودش ساخته شوند.' },
 			{ path: 'policy.require_review', type: 'toggle', label: 'بازبینی انسانی پیش از انتشار (سایت‌های حساس)', help: 'در سایت‌های حساس (حقوقی، پزشکی، مالی)، پیش‌نویسی که با هوش مصنوعی ساخته شده تا «تأیید بازبینی» در ویرایشگر زده نشود منتشر نمی‌شود.' },
 			{ path: 'policy.links_per_post_month', type: 'number', advanced: true, label: 'لینک تازه برای هر مقاله قدیمی', suffix: 'در ماه', help: 'هر مقاله قدیمی در ۳۰ روز حداکثر این تعداد لینک تازه می‌گیرد؛ تغییر پشت‌سرهم یک مقاله ارزش آن را پایین می‌آورد.' },
-			{ path: 'policy.links_per_week', type: 'number', advanced: true, label: 'سقف لینک ترمیمی در هفته (کل سایت)', suffix: 'لینک', help: 'لینک‌هایی که برای محتوای یتیم ساخته می‌شوند. لینک‌هایی که همراه مقاله جدید می‌آیند جدا حساب می‌شوند.' },
+			{ path: 'policy.links_per_week', type: 'number', advanced: true, label: 'لینک ترمیمی پیشنهادی در هفته', suffix: 'لینک', help: 'فقط برای چیدن «کارهای این هفته» است و جلوی کار شما را نمی‌گیرد. اصلاحیه‌ها (متا، متن دسته، لینک، رفع مشکل) هیچ سقف روزانه‌ای ندارند.' },
 			{ path: 'policy.words_per_link', type: 'number', advanced: true, label: 'تراکم لینک داخلی', suffix: 'کلمه برای هر لینک', help: 'مقاله‌ای که به این تراکم رسیده، لینک تازه نمی‌گیرد (حداقل ۳ لینک همیشه مجاز است).' },
 			{ path: 'policy.edit_cooldown_days', type: 'number', advanced: true, label: 'فاصله بین دو بازنویسی', suffix: 'روز', help: 'مطلبی که در این مدت ویرایش شده، دوباره برای بازنویسی پیشنهاد نمی‌شود.' },
 		],
@@ -207,6 +208,7 @@ export default function SettingsPage() {
 			{ ! values && <Spinner /> }
 
 			{ 'ai' === current.key && <AiConnection onChange={ setAiState } /> }
+			{ 'policy' === current.key && values && <StageCard key={ JSON.stringify( data.settings.policy ) } onApplied={ ( d ) => { setData( d ); setValues( d.settings ); } } /> }
 
 			{ values && current.fields.length > 0 && (
 				<section className="pp-card pp-card--section">
@@ -256,6 +258,58 @@ export default function SettingsPage() {
 }
 
 /**
+ * Detected site stage and its recommended policy values.
+ *
+ * @param {Object}   props
+ * @param {Function} props.onApplied Called with fresh settings after applying.
+ */
+function StageCard( { onApplied } ) {
+	const [ info, setInfo ] = useState( null );
+	const [ busy, setBusy ] = useState( false );
+	useEffect( () => {
+		get( '/policy/stage' ).then( setInfo ).catch( () => {} );
+	}, [] );
+	if ( ! info ) {
+		return null;
+	}
+	const LABELS = { new_per_month: 'مقاله جدید در ماه', publish_per_day: 'انتشار در روز', refresh_share: 'سهم بازنویسی (٪)', grace_days: 'مهلت جاافتادن (روز)' };
+	const apply = () => {
+		setBusy( true );
+		post( '/policy/stage/apply' )
+			.then( ( i ) => {
+				setInfo( i );
+				return get( '/settings' );
+			} )
+			.then( onApplied )
+			.finally( () => setBusy( false ) );
+	};
+	return (
+		<section className="pp-card pp-card--section pp-stage">
+			<h2 className="pp-card__title">مرحله سایت: { info.label } { 'auto' === info.chosen && <span className="pp-badge">تشخیص خودکار</span> }</h2>
+			<p className="pp-muted">{ info.reason }</p>
+			<p>{ info.advice }</p>
+			<table className="pp-table pp-table--compact">
+				<thead><tr><th></th><th>پیشنهاد این مرحله</th><th>مقدار فعلی</th></tr></thead>
+				<tbody>
+					{ Object.keys( info.recommended ).map( ( k ) => (
+						<tr key={ k } className={ info.recommended[ k ] === info.current[ k ] ? '' : 'is-diff' }>
+							<th>{ LABELS[ k ] }</th>
+							<td>{ num( info.recommended[ k ] ) }</td>
+							<td>{ num( info.current[ k ] ) }</td>
+						</tr>
+					) ) }
+				</tbody>
+			</table>
+			{ info.matches ? (
+				<p className="pp-ok">مقادیر فعلی با پیشنهاد این مرحله یکی است.</p>
+			) : (
+				<Button variant="secondary" onClick={ apply } isBusy={ busy } disabled={ busy }>اعمال مقادیر پیشنهادی این مرحله</Button>
+			) }
+		</section>
+	);
+}
+
+/**
  * One settings control.
  *
  * @param {Object} props
@@ -267,6 +321,8 @@ function SettingField( { field, value, defaultValue, limit, disabled, onChange }
 		defaultText = defaultValue ? 'روشن' : 'خاموش';
 	} else if ( 'hour' === field.type ) {
 		defaultText = `ساعت ${ num( defaultValue ) }`;
+	} else if ( 'select' === field.type ) {
+		defaultText = ( field.options.find( ( [ v ] ) => v === defaultValue ) || [ '', defaultValue ] )[ 1 ];
 	} else if ( Array.isArray( defaultValue ) ) {
 		defaultText = defaultValue.length ? defaultValue.join( '، ' ) : 'خالی';
 	} else if ( undefined !== defaultValue ) {
@@ -289,6 +345,14 @@ function SettingField( { field, value, defaultValue, limit, disabled, onChange }
 		return (
 			<div className={ `pp-setting${ field.danger && value ? ' pp-setting--danger' : '' }` }>
 				<ToggleControl __nextHasNoMarginBottom label={ label } help={ field.help } checked={ !! value } onChange={ onChange } />
+			</div>
+		);
+	}
+
+	if ( 'select' === field.type ) {
+		return (
+			<div className="pp-setting">
+				<SelectControl __nextHasNoMarginBottom __next40pxDefaultSize label={ label } help={ field.help } value={ String( value ) } options={ field.options.map( ( [ v, l ] ) => ( { value: v, label: l } ) ) } onChange={ onChange } />
 			</div>
 		);
 	}

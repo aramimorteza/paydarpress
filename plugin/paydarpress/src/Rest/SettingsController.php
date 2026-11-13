@@ -55,6 +55,20 @@ final class SettingsController {
 		$manage = static fn() => current_user_can( Capabilities::MANAGE );
 		$view   = static fn() => current_user_can( Capabilities::VIEW );
 
+		register_rest_route( self::NAMESPACE, '/policy/stage', array( 'methods' => WP_REST_Server::READABLE, 'callback' => static fn() => new WP_REST_Response( \PaydarWP\PaydarPress\Policy\SiteStage::info() ), 'permission_callback' => $view ) );
+		register_rest_route(
+			self::NAMESPACE,
+			'/policy/stage/apply',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'permission_callback' => $manage,
+				'callback'            => static function () {
+					\PaydarWP\PaydarPress\Policy\SiteStage::apply();
+					\PaydarWP\PaydarPress\Core\Activity::log( 'settings.policy_stage', 'مقادیر پیشنهادی مرحله «' . \PaydarWP\PaydarPress\Policy\SiteStage::info()['label'] . '» در سیاست محتوا اعمال شد.' );
+					return new WP_REST_Response( \PaydarWP\PaydarPress\Policy\SiteStage::info() );
+				},
+			)
+		);
 		register_rest_route(
 			self::NAMESPACE,
 			'/badges',

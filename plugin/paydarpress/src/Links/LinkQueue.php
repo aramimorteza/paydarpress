@@ -553,13 +553,9 @@ final class LinkQueue {
 			return sprintf( 'سیاست محتوا: «%s» در ۳۰ روز گذشته %s لینک تازه گرفته است (سقف %s در ماه). تغییر پشت‌سرهم یک مقاله قدیمی ارزش آن را پایین می‌آورد؛ این لینک را بعداً درج کنید یا از مقاله دیگری لینک بدهید.', $this->title( $source->ID ), PersianNormalizer::fa_number( $recent ), PersianNormalizer::fa_number( $per_post ) );
 		}
 
-		if ( $repair ) {
-			$week = max( 1, (int) Settings::get( 'policy.links_per_week', 15 ) );
-			$done = $this->count_where( "status = 'applied' AND origin = 'paydarpress' AND applied_at >= %s", array( gmdate( 'Y-m-d H:i:s', time() - 7 * DAY_IN_SECONDS ) ) );
-			if ( $done >= $week ) {
-				return sprintf( 'سیاست محتوا: سقف هفتگی %s لینک ترمیمی پر شده است. هفته بعد دوباره «درج» بزنید.', PersianNormalizer::fa_number( $week ) );
-			}
-		}
+		// The weekly site-wide number of repair links is a pace suggestion (tasks), not a block:
+		// corrections are never limited, only repeated changes to the same article.
+		unset( $repair );
 
 		$html  = (string) $source->post_content;
 		$words = PersianNormalizer::word_count( trim( (string) preg_replace( '/\s+/u', ' ', wp_strip_all_tags( $html ) ) ) );

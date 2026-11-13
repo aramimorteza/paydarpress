@@ -77,6 +77,7 @@ final class TaskBoard {
 			'later'     => array_slice( $later, 0, 30 ),
 			'done_week' => $done_week,
 			'policy'    => PromptBuilder::policy(),
+			'stage'     => \PaydarWP\PaydarPress\Policy\SiteStage::info(),
 		);
 		set_transient( self::CACHE, count( $result['week'] ), HOUR_IN_SECONDS );
 		return $result;
@@ -146,6 +147,11 @@ final class TaskBoard {
 			$tasks[] = self::task( 'setup:gsc-stale', 'setup', 'داده سرچ کنسول را تازه کنید', 'آخرین خروجی بیش از ۶۰ روز پیش وارد شده است؛ پیشنهادها بر اساس داده قدیمی هستند.', 60, 3, array( 'route' => '/gsc', 'label' => 'ورود خروجی تازه' ) );
 		}
 
+		// New sites: the pages that sell come before articles.
+		if ( 'new' === \PaydarWP\PaydarPress\Policy\SiteStage::current() && count( ProfileRepository::key_page_ids() ) < 3 ) {
+			$tasks[] = self::task( 'setup:key-pages', 'setup', 'صفحات کلیدی و صفحات خدمات/محصول را کامل کنید', 'سایت تازه است: پیش از مقاله‌نویسی، صفحه‌هایی که مشتری را به تماس یا خرید می‌رسانند (خدمات، محصول اصلی، تماس، درباره ما) باید کامل باشند و در پروفایل به‌عنوان صفحه کلیدی ثبت شوند؛ مقاله‌ها به آن‌ها لینک می‌دهند.', 92, 30, array( 'route' => '/profile', 'label' => 'صفحات کلیدی' ) );
+		}
+
 		// 2. Site-wide blockers.
 		foreach ( self::findings( array( 'CRAWLER_BLOCKED', 'SITE_NOINDEX' ), 'site', 3 ) as $f ) {
 			$tasks[] = self::task( 'site:' . $f['code'], 'fix', 'SITE_NOINDEX' === $f['code'] ? 'سایت برای موتورهای جست‌وجو بسته است' : 'خزنده‌های گوگل یا هوش مصنوعی مسدودند', 'تا این مشکل حل نشود، هیچ محتوایی در گوگل دیده نمی‌شود.', 99, 5, array( 'route' => '/visibility', 'label' => 'بررسی دسترسی' ) );
@@ -188,8 +194,9 @@ final class TaskBoard {
 
 		// 6. Refresh share of the monthly capacity.
 		$policy  = PromptBuilder::policy();
-		$per_wk  = max( 1, (int) ceil( max( 1, $policy['budget'] ) * (int) Settings::get( 'policy.refresh_share', 40 ) / 100 / 4 ) );
-		foreach ( self::refresh_candidates( $per_wk ) as $r ) {
+		$share   = (int) Settings::get( 'policy.refresh_share', 40 );
+		$per_wk  = $share > 0 ? max( 1, (int) ceil( max( 1, $policy['budget'] ) * $share / 100 / 4 ) ) : 0;
+		foreach ( $per_wk > 0 ? self::refresh_candidates( $per_wk ) : array() as $r ) {
 			$tasks[] = self::task( 'refresh:' . $r['id'], 'refresh', 'بازنویسی «' . $r['title'] . '»', $r['why'], 55 + min( 20, (int) ( $r['score'] / 5 ) ), 40, array( 'url' => $r['edit_url'], 'label' => 'ویرایش' ), array( 'kind' => 'refresh', 'id' => $r['id'], 'title' => $r['title'], 'url' => $r['url'], 'type' => 'post', 'reasons' => $r['reasons'] ) );
 		}
 

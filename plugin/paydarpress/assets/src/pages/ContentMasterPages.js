@@ -326,6 +326,12 @@ export function TopicsPage() {
 	const [ data, setData ] = useState( null );
 	const load = () => get( '/topics', { status, page, per_page: 30 } ).then( setData ).catch( () => {} );
 	useEffect( () => {
+		const onImported = () => load();
+		window.addEventListener( 'paydarpress:imported', onImported );
+		return () => window.removeEventListener( 'paydarpress:imported', onImported );
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ status, page ] );
+	useEffect( () => {
 		setData( null );
 		load();
 		// eslint-disable-next-line react-hooks/exhaustive-deps

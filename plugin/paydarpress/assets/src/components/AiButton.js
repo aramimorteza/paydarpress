@@ -2,6 +2,7 @@ import { useState } from '@wordpress/element';
 import { Button, Modal, Notice, Spinner, TextareaControl } from '@wordpress/components';
 import { post, errorMessage } from '../lib/api';
 import { num } from '../lib/format';
+import InlineImport from './InlineImport';
 
 const ASSISTANTS = [
 	{ name: 'ChatGPT', url: 'https://chatgpt.com/' },
@@ -53,6 +54,7 @@ export function copyText( text ) {
  * @param {string}  props.variant Button variant.
  */
 export default function AiButton( { command, small = true, variant = 'secondary' } ) {
+	const canImport = !! ( window.paydarpress && window.paydarpress.caps && window.paydarpress.caps.manage );
 	const [ open, setOpen ] = useState( false );
 	const [ data, setData ] = useState( null );
 	const [ error, setError ] = useState( '' );
@@ -129,7 +131,8 @@ export default function AiButton( { command, small = true, variant = 'secondary'
 									</div>
 								</li>
 								<li>
-									<strong>پاسخ را (یک بلوک JSON) کپی کنید</strong> و در <a href="#/cm-import" onClick={ () => setOpen( false ) }>«ورود پاسخ هوش مصنوعی»</a> بچسبانید. پیش از ذخیره، پیش‌نمایش و بررسی‌ها را می‌بینید.
+									<strong>پاسخ (یک بلوک JSON) را کپی کنید و همین‌جا بچسبانید.</strong> پیش از ذخیره، بررسی‌ها را می‌بینید.
+									{ canImport ? <InlineImport /> : <span className="pp-muted"> ورود فقط برای مدیر سایت ممکن است.</span> }
 								</li>
 							</ol>
 						</section>
@@ -140,6 +143,12 @@ export default function AiButton( { command, small = true, variant = 'secondary'
 						<p className="pp-muted">اگر پروژه ContentMaster با فایل خروجی سایت دارید، فقط این فرمان کوتاه کافی است؛ بعد فرمان «خروجی پایدارپرس» را بزنید.</p>
 						<TextareaControl __nextHasNoMarginBottom label="فرمان" hideLabelFromVision readOnly rows={ 3 } value={ shortCommand } onChange={ () => {} } />
 						<Button variant="secondary" onClick={ () => copy( 'cmd', shortCommand ) }>{ 'cmd' === copied ? '✓ فرمان کپی شد' : 'کپی فرمان' }</Button>
+						{ ! command.prompt && (
+							<div className="pp-ai-modal__import">
+								<p className="pp-muted">خروجی «خروجی پایدارپرس» را همین‌جا بچسبانید:</p>
+								{ canImport ? <InlineImport /> : <span className="pp-muted"> ورود فقط برای مدیر سایت ممکن است.</span> }
+							</div>
+						) }
 					</section>
 
 					{ command.hint && <p className="pp-muted">{ command.hint }</p> }

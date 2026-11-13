@@ -53,6 +53,7 @@ final class Settings {
 				'words_per_link'     => 150,
 				'edit_cooldown_days' => 30,
 				'require_review'     => true,
+				'site_stage'         => 'auto',
 			),
 			'images'      => array(
 				'convert_webp'    => true,
@@ -160,6 +161,11 @@ final class Settings {
 		'ai.max_output_tokens'             => array( 1000, 64000 ),
 	);
 
+	/** Allowed values of text settings: path => list. */
+	public const CHOICES = array(
+		'policy.site_stage' => array( 'auto', 'new', 'growing', 'mature' ),
+	);
+
 	/**
 	 * Keeps only known keys, casts each value to the default's type and clamps numbers.
 	 *
@@ -188,6 +194,9 @@ final class Settings {
 						$value = max( self::LIMITS[ $path ][0], min( self::LIMITS[ $path ][1], $value ) );
 					}
 					$out[ $group ][ $key ] = $value;
+				} elseif ( is_string( $default ) ) {
+					$value                 = sanitize_key( (string) $value );
+					$out[ $group ][ $key ] = in_array( $value, self::CHOICES[ $path ] ?? array( $default ), true ) ? $value : $default;
 				} elseif ( is_array( $default ) ) {
 					// Only list of IDs is supported (orphan_exclude_ids).
 					$ids = is_array( $value ) ? $value : preg_split( '/[\s,،]+/u', (string) $value );
