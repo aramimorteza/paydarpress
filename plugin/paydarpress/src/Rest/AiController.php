@@ -8,6 +8,7 @@
 namespace PaydarWP\PaydarPress\Rest;
 
 use PaydarWP\PaydarPress\Ai\AiClient;
+use PaydarWP\PaydarPress\Ai\AiJobs;
 use PaydarWP\PaydarPress\Ai\Credentials;
 use PaydarWP\PaydarPress\Ai\PromptBuilder;
 use PaydarWP\PaydarPress\Ai\Usage;
@@ -29,6 +30,10 @@ defined( 'ABSPATH' ) || exit;
  *  POST /ai/test        sends a tiny request
  *  POST /ai/models      lists the service's models
  *  POST /ai/clear-key
+ *  POST /ai/run                { task, args } → background job (automatic mode)
+ *  GET  /ai/jobs               recent jobs, replies waiting for review
+ *  GET  /ai/jobs/{id}          job state (runs it here when WP-Cron does not)
+ *  POST /ai/jobs/{id}/retry|discard
  */
 final class AiController {
 
@@ -77,6 +82,29 @@ final class AiController {
 				),
 			)
 		);
+		register_rest_route(
+			$ns,
+			'/ai/run',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'run' ),
+				'permission_callback' => $manage,
+				'args'                => array(
+					'task' => array(
+						'type'     => 'string',
+						'required' => true,
+						'enum'     => PromptBuilder::TASKS,
+					),
+					'args' => array(
+						'type'    => 'object',
+						'default' => array(),
+					),
+				),
+			)
+		);
+		register_rest_route( $ns, '/ai/jobs', array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'jobs' ), 'permission_callback' => $manage ) );
+		register_rest_route( $ns, '/ai/jobs/(?P<id>\\d+)', array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'job' ), 'permission_callback' => $manage ) );
+		register_rest_route( $ns, '/ai/jobs/(?P<id>\\d+)/(?P<op>retry|discard)', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'job_op' ), 'permission_callback' => $manage ) );
 		register_rest_route( $ns, '/ai/clear-key', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'clear_key' ), 'permission_callback' => $manage ) );
 	}
 
@@ -171,9 +199,72 @@ final class AiController {
 				'command'  => $p['command'],
 				'chars'    => $p['chars'],
 				'ai_ready' => current_user_can( Capabilities::MANAGE ) && null !== Credentials::connection(),
+				'ai_cost'  => array(
+					'article'  => in_array( $p['task'], AiClient::ARTICLE_TASKS, true ),
+					'month'    => Usage::month(),
+					'limits'   => array(
+						'articles' => (int) Settings::get( 'ai.monthly_articles', 30 ),
+						'requests' => (int) Settings::get( 'ai.monthly_requests', 300 ),
+					),
+				),
 				'policy'   => in_array( $p['task'], array( 'topics', 'article' ), true ) ? PromptBuilder::policy() : null,
 			)
 		);
+	}
+
+	/**
+	 * Starts an automatic job.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 */
+	public function run( WP_REST_Request $request ) {
+		try {
+			$job = AiJobs::start( (string) $request->get_param( 'task' ), (array) $request->get_param( 'args' ) );
+		} catch ( RuntimeException $e ) {
+			return new WP_Error( 'paydarpress_ai_run', $e->getMessage(), array( 'status' => 400 ) );
+		}
+		return new WP_REST_Response( $job );
+	}
+
+	/**
+	 * Recent jobs.
+	 */
+	public function jobs(): WP_REST_Response {
+		return new WP_REST_Response(
+			array(
+				'items' => AiJobs::recent( 30 ),
+				'ready' => AiJobs::ready_count(),
+				'state' => self::payload(),
+			)
+		);
+	}
+
+	/**
+	 * One job (polling).
+	 *
+	 * @param WP_REST_Request $request Request.
+	 */
+	public function job( WP_REST_Request $request ) {
+		$job = AiJobs::poll( (int) $request['id'] );
+		return null === $job ? new WP_Error( 'paydarpress_ai_job', 'کار پیدا نشد.', array( 'status' => 404 ) ) : new WP_REST_Response( $job );
+	}
+
+	/**
+	 * Retry or discard.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 */
+	public function job_op( WP_REST_Request $request ) {
+		$id = (int) $request['id'];
+		try {
+			if ( 'retry' === $request['op'] ) {
+				return new WP_REST_Response( AiJobs::retry( $id ) );
+			}
+			AiJobs::close( $id, 'discarded' );
+			return new WP_REST_Response( array( 'ok' => true ) );
+		} catch ( RuntimeException $e ) {
+			return new WP_Error( 'paydarpress_ai_job', $e->getMessage(), array( 'status' => 400 ) );
+		}
 	}
 
 	/**

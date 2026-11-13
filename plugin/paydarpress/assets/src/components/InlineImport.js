@@ -1,5 +1,5 @@
-import { useState } from '@wordpress/element';
-import { Button, CheckboxControl, Notice, TextareaControl } from '@wordpress/components';
+import { useEffect, useState } from '@wordpress/element';
+import { Button, CheckboxControl, Notice, Spinner, TextareaControl } from '@wordpress/components';
 import { post, errorMessage } from '../lib/api';
 import { num } from '../lib/format';
 
@@ -42,8 +42,14 @@ function itemTitle( section, item ) {
 /**
  * Paste the assistant's JSON reply and import it without leaving the dialog.
  * Same preview, checks and commit as the import page.
+ *
+ * With `job`, the reply of an automatic-mode job is previewed straight from the server.
+ *
+ * @param {Object}   props
+ * @param {number}   props.job       Automatic-mode job id.
+ * @param {Function} props.onClosed  Called after the job was imported or discarded.
  */
-export default function InlineImport() {
+export default function InlineImport( { job = 0, onClosed } ) {
 	const [ text, setText ] = useState( '' );
 	const [ preview, setPreview ] = useState( null );
 	const [ picked, setPicked ] = useState( {} );
@@ -54,7 +60,7 @@ export default function InlineImport() {
 	const check = () => {
 		setBusy( true );
 		setError( '' );
-		post( '/cm/preview', { text } )
+		post( '/cm/preview', job ? { job } : { text } )
 			.then( ( p ) => {
 				setPreview( p );
 				const sel = {};
@@ -70,14 +76,32 @@ export default function InlineImport() {
 	const commit = () => {
 		setBusy( true );
 		setError( '' );
-		post( '/cm/commit', { token: preview.token, ...picked } )
+		post( '/cm/commit', { token: preview.token, job: job || undefined, ...picked } )
 			.then( ( r ) => {
 				setResult( r );
 				setPreview( null );
 				setText( '' );
+				if ( onClosed ) {
+					onClosed( 'imported' );
+				}
 				// Lists behind the dialog (topics, tasks…) reload themselves.
 				window.dispatchEvent( new window.CustomEvent( 'paydarpress:imported', { detail: r } ) );
 			} )
+			.catch( ( e ) => setError( errorMessage( e ) ) )
+			.finally( () => setBusy( false ) );
+	};
+
+	useEffect( () => {
+		if ( job ) {
+			check();
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ job ] );
+
+	const discard = () => {
+		setBusy( true );
+		post( `/ai/jobs/${ job }/discard` )
+			.then( () => onClosed && onClosed( 'discarded' ) )
 			.catch( ( e ) => setError( errorMessage( e ) ) )
 			.finally( () => setBusy( false ) );
 	};
@@ -104,7 +128,7 @@ export default function InlineImport() {
 					</ul>
 				) }
 				{ result.errors && result.errors.length > 0 && <ul className="pp-checks">{ result.errors.map( ( e, i ) => <li key={ i } className="pp-check pp-check--error">{ e }</li> ) }</ul> }
-				<Button variant="link" onClick={ () => setResult( null ) }>ورود پاسخ دیگر</Button>
+				{ ! job && <Button variant="link" onClick={ () => setResult( null ) }>ورود پاسخ دیگر</Button> }
 			</div>
 		);
 	}
@@ -112,7 +136,11 @@ export default function InlineImport() {
 	return (
 		<div className="pp-inline-import">
 			{ error && <Notice status="error" onRemove={ () => setError( '' ) }>{ error }</Notice> }
-			{ ! preview ? (
+			{ ! preview && job ? (
+				<div className="pp-ai-modal__row">
+					{ busy ? <><Spinner /> <span className="pp-muted">در حال بررسی پاسخ…</span></> : <Button variant="secondary" onClick={ check }>بررسی دوباره</Button> }
+				</div>
+			) : ! preview ? (
 				<>
 					<TextareaControl __nextHasNoMarginBottom label="پاسخ هوش مصنوعی" hideLabelFromVision rows={ 4 } value={ text } onChange={ setText } placeholder="پاسخ کامل ChatGPT، Claude یا Gemini (بلوک JSON) را اینجا بچسبانید" className="pp-paste" dir="auto" />
 					<Button variant="primary" onClick={ check } isBusy={ busy } disabled={ busy || ! text.trim() }>بررسی پاسخ</Button>
@@ -123,12 +151,13 @@ export default function InlineImport() {
 					{ SECTIONS.map( ( [ s, label ] ) => ( preview[ s ] || [] ).map( ( item ) => (
 						<div key={ `${ s }-${ item.index }` } className={ `pp-import-item${ item.duplicate ? ' is-duplicate' : '' }` }>
 							<CheckboxControl __nextHasNoMarginBottom label={ `${ label }: ${ itemTitle( s, item ) }` } checked={ ( picked[ s ] || [] ).includes( item.index ) } disabled={ item.blocked } onChange={ ( on ) => toggle( s, item.index, on ) } />
+							{ 'articles' === s && item.words > 0 && <div className="pp-muted pp-import-item__meta">{ num( item.words ) } کلمه{ item.internal_links ? ` · ${ num( item.internal_links ) } لینک داخلی` : '' }{ item.faq && item.faq.length ? ` · ${ num( item.faq.length ) } پرسش متداول` : '' }{ item.inline_images && item.inline_images.length ? ` · ${ num( item.inline_images.length ) } پرامپت تصویر داخل متن` : '' }</div> }
 							{ item.checks.length > 0 && <ul className="pp-checks">{ item.checks.map( ( c, i ) => <li key={ i } className={ `pp-check ${ LEVEL[ c.level ] || '' }` }>{ c.text }</li> ) }</ul> }
 						</div>
 					) ) ) }
 					<div className="pp-ai-modal__row">
 						<Button variant="primary" onClick={ commit } isBusy={ busy } disabled={ busy || 0 === total }>ورود { num( total ) } مورد</Button>
-						<Button variant="tertiary" onClick={ () => setPreview( null ) } disabled={ busy }>انصراف</Button>
+						{ job ? <Button variant="tertiary" isDestructive onClick={ discard } disabled={ busy }>کنار گذاشتن این پاسخ</Button> : <Button variant="tertiary" onClick={ () => setPreview( null ) } disabled={ busy }>انصراف</Button> }
 						<span className="pp-muted">مقاله‌ها فقط پیش‌نویس می‌شوند.</span>
 					</div>
 				</>

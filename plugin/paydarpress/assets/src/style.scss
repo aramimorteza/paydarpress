@@ -2187,3 +2187,43 @@ button.pp-chip {
 
 	li + li { border-block-start: 1px solid var(--pwp-border, #e2e5ea); }
 }
+
+/* Automatic mode (0.20.0) */
+
+.pp-ai-modal__block--auto {
+	border: 1px solid var(--pwp-primary-soft, #d6ece8);
+	background: var(--pwp-bg, #f6f7f9);
+	border-radius: var(--pwp-radius-sm, 6px);
+	padding: var(--pwp-space-3, 12px);
+}
+
+.pp-auto-progress {
+	display: flex;
+	gap: var(--pwp-space-2, 8px);
+	align-items: flex-start;
+	margin: var(--pwp-space-2, 8px) 0;
+
+	.components-spinner {
+		margin: 2px 0 0;
+		flex: none;
+	}
+}
+
+.pp-card__title--pad {
+	padding: var(--pwp-space-3, 12px) var(--pwp-space-4, 16px) 0;
+}
+
+.pp-actions-cell {
+	white-space: nowrap;
+	text-align: end;
+
+	.components-button + .components-button {
+		margin-inline-start: 4px;
+	}
+}
+
+.pp-import-item__meta {
+	margin: 2px 0 4px;
+	padding-inline-start: 32px;
+	font-size: 12px;
+}

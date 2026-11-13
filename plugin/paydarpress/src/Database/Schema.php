@@ -21,9 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Schema {
 
-	public const VERSION = '1.6.0';
+	public const VERSION = '1.7.0';
 
-	public const TABLES = array( 'inventory', 'links', 'audit_findings', 'scans', 'activity', 'imports', 'gsc', 'topics', 'link_suggestions', 'ai_usage', 'changes', 'redirects' );
+	public const TABLES = array( 'inventory', 'links', 'audit_findings', 'scans', 'activity', 'imports', 'gsc', 'topics', 'link_suggestions', 'ai_usage', 'changes', 'redirects', 'ai_jobs' );
 
 	/**
 	 * Full table name for a short name, e.g. `inventory` → `wp_paydarpress_inventory`.
@@ -58,6 +58,7 @@ final class Schema {
 		$topics         = self::table( 'topics' );
 		$ai_usage       = self::table( 'ai_usage' );
 		$changes        = self::table( 'changes' );
+		$ai_jobs        = self::table( 'ai_jobs' );
 		$redirects      = self::table( 'redirects' );
 		$suggestions    = self::table( 'link_suggestions' );
 
@@ -280,6 +281,27 @@ final class Schema {
   created_at datetime NOT NULL,
   PRIMARY KEY  (id),
   UNIQUE KEY source_hash (source_hash)
+) {$charset};",
+			"CREATE TABLE {$ai_jobs} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  task varchar(20) NOT NULL DEFAULT '',
+  args text DEFAULT NULL,
+  title varchar(255) NOT NULL DEFAULT '',
+  object_id bigint(20) unsigned DEFAULT NULL,
+  status varchar(20) NOT NULL DEFAULT 'queued',
+  response longtext DEFAULT NULL,
+  error text DEFAULT NULL,
+  model varchar(120) NOT NULL DEFAULT '',
+  input_tokens int(10) unsigned NOT NULL DEFAULT 0,
+  output_tokens int(10) unsigned NOT NULL DEFAULT 0,
+  user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  created_at datetime NOT NULL,
+  started_at datetime DEFAULT NULL,
+  finished_at datetime DEFAULT NULL,
+  imported_at datetime DEFAULT NULL,
+  PRIMARY KEY  (id),
+  KEY status (status),
+  KEY created_at (created_at)
 ) {$charset};",
 		);
 	}

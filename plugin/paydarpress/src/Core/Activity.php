@@ -59,5 +59,6 @@ final class Activity {
 
 		// AI usage is kept at least 90 days so monthly totals stay correct.
 		\PaydarWP\PaydarPress\Ai\Usage::prune( $days );
+		\PaydarWP\PaydarPress\Ai\AiJobs::prune( $days );
 	}
 }

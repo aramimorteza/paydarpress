@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
 final class AiClient {
 
 	/** Tasks that count as one article. */
-	public const ARTICLE_TASKS = array( 'article', 'rewrite' );
+	public const ARTICLE_TASKS = array( 'article', 'rewrite', 'merge' );
 
 	public const TASK_LABELS = array(
 		'test'       => 'آزمایش اتصال',
@@ -31,9 +31,14 @@ final class AiClient {
 		'anchors'    => 'متن لینک',
 		'term'       => 'متن دسته‌بندی',
 		'alt'        => 'متن جایگزین تصویر',
+		'structure'  => 'بررسی ساختار دسته‌ها',
+		'merge'      => 'ادغام دو مقاله',
 	);
 
 	private const TIMEOUT = 180;
+
+	/** @var int Timeout of the current request (long articles need more). */
+	private $timeout = self::TIMEOUT;
 
 	/** @var array|null */
 	private $conn;
@@ -68,8 +73,9 @@ final class AiClient {
 		}
 		Usage::assert_allowed( $task );
 
-		$max   = (int) ( $opts['max_tokens'] ?? Settings::get( 'ai.max_output_tokens', 8000 ) );
-		$start = microtime( true );
+		$max   = (int) ( $opts['max_tokens'] ?? Settings::get( 'ai.max_output_tokens', 16000 ) );
+		$start         = microtime( true );
+		$this->timeout = max( 30, min( 600, (int) ( $opts['timeout'] ?? self::TIMEOUT ) ) );
 		try {
 			$result = 'anthropic' === $this->conn['provider']
 				? $this->anthropic( $system, $user, $max )
@@ -78,9 +84,12 @@ final class AiClient {
 			Usage::record( $task, $this->conn, 0, 0, 'error', $e->getMessage(), $opts['object_id'] ?? null, $start );
 			throw $e;
 		}
-		Usage::record( $task, $this->conn, $result['input_tokens'], $result['output_tokens'], 'ok', null, $opts['object_id'] ?? null, $start );
+		$usage_id = Usage::record( $task, $this->conn, $result['input_tokens'], $result['output_tokens'], 'ok', null, $opts['object_id'] ?? null, $start );
 
-		return $result + array( 'model' => $this->conn['model'] );
+		return $result + array(
+			'model'    => $this->conn['model'],
+			'usage_id' => $usage_id,
+		);
 	}
 
 	/**
@@ -193,7 +202,7 @@ final class AiClient {
 	private function send( string $method, string $path, array $headers, ?array $payload ): array {
 		$args = array(
 			'method'      => $method,
-			'timeout'     => self::TIMEOUT,
+			'timeout'     => $this->timeout,
 			'redirection' => 0,
 			'headers'     => $headers + array(
 				'Content-Type' => 'application/json',

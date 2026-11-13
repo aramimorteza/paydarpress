@@ -3,6 +3,7 @@ import { Button, Modal, Notice, Spinner, TextareaControl } from '@wordpress/comp
 import { post, errorMessage } from '../lib/api';
 import { num } from '../lib/format';
 import InlineImport from './InlineImport';
+import AutoRun from './AutoRun';
 
 const ASSISTANTS = [
 	{ name: 'ChatGPT', url: 'https://chatgpt.com/' },
@@ -102,9 +103,17 @@ export default function AiButton( { command, small = true, variant = 'secondary'
 						</Notice>
 					) }
 
+					{ command.prompt && data && data.ai_ready && (
+						<section className="pp-ai-modal__block pp-ai-modal__block--auto">
+							<h3>ساخت خودکار با اتصال API</h3>
+							<p className="pp-muted">همین پرامپت مستقیم به سرویس هوش مصنوعی فرستاده می‌شود. پاسخ از همان بررسی‌های ورود عبور می‌کند و شما انتخاب می‌کنید چه چیزی وارد شود.</p>
+							<AutoRun prompt={ command.prompt } cost={ data.ai_cost } />
+						</section>
+					) }
+
 					{ command.prompt && (
 						<section className="pp-ai-modal__block">
-							<h3>روش ۱: با ChatGPT، Claude یا Gemini (بدون نیاز به چیز دیگر)</h3>
+							<h3>{ data && data.ai_ready ? 'یا دستی: با ChatGPT، Claude یا Gemini' : 'روش ۱: با ChatGPT، Claude یا Gemini (بدون نیاز به چیز دیگر)' }</h3>
 							<ol className="pp-ai-steps">
 								<li>
 									<strong>پرامپت کامل را کپی کنید.</strong> قوانین نوشتن، پروفایل سایت، صفحات کلیدی، مطالب مرتبط و قالب خروجی، مخصوص همین مورد، داخل آن است.
@@ -152,11 +161,11 @@ export default function AiButton( { command, small = true, variant = 'secondary'
 					</section>
 
 					{ command.hint && <p className="pp-muted">{ command.hint }</p> }
-					<p className="pp-ai-modal__phase">
-						{ data && data.ai_ready
-							? 'اتصال API تنظیم شده است؛ ساخت خودکار همین مورد با یک کلیک در به‌روزرسانی بعدی به این پنجره اضافه می‌شود.'
-							: <>با تنظیم کلید API در <a href="#/settings?tab=ai" onClick={ () => setOpen( false ) }>تنظیمات ← هوش مصنوعی</a>، این کار بدون کپی و چسباندن انجام خواهد شد.</> }
-					</p>
+					{ command.prompt && data && ! data.ai_ready && canImport && (
+						<p className="pp-ai-modal__phase">
+							با تنظیم کلید API در <a href="#/settings?tab=ai" onClick={ () => setOpen( false ) }>تنظیمات ← هوش مصنوعی</a>، همین کار با یک کلیک و بدون کپی و چسباندن انجام می‌شود.
+						</p>
+					) }
 				</Modal>
 			) }
 		</>

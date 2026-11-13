@@ -135,6 +135,16 @@ final class ContentMasterController {
 	public function preview( WP_REST_Request $request ) {
 		$text  = (string) $request->get_param( 'text' );
 		$files = $request->get_file_params();
+		$job   = (int) $request->get_param( 'job' );
+
+		// Automatic mode: the reply is read on the server; it never travels through the browser twice.
+		if ( $job > 0 ) {
+			try {
+				$text = \PaydarWP\PaydarPress\Ai\AiJobs::response( $job );
+			} catch ( Throwable $e ) {
+				return new WP_Error( 'paydarpress_cm_job', $e->getMessage(), array( 'status' => 404 ) );
+			}
+		}
 
 		if ( '' === trim( $text ) && isset( $files['file']['tmp_name'] ) && is_uploaded_file( (string) $files['file']['tmp_name'] ) ) {
 			if ( (int) $files['file']['size'] > ImportParser::MAX_BYTES ) {
@@ -178,6 +188,11 @@ final class ContentMasterController {
 		}
 
 		$result['pending_links'] = LinkSuggestionRepository::pending_count();
+
+		$job = (int) $request->get_param( 'job' );
+		if ( $job > 0 ) {
+			\PaydarWP\PaydarPress\Ai\AiJobs::close( $job, 'imported' );
+		}
 
 		return new WP_REST_Response( $result );
 	}

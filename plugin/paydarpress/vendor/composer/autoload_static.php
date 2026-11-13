@@ -26,6 +26,7 @@ class ComposerStaticInitfb42b83d6c8d640da5884eda2eaeec31
         'PaydarWP\\PaydarPress\\Admin\\DashboardWidget' => __DIR__ . '/../..' . '/src/Admin/DashboardWidget.php',
         'PaydarWP\\PaydarPress\\Admin\\PostMetaBox' => __DIR__ . '/../..' . '/src/Admin/PostMetaBox.php',
         'PaydarWP\\PaydarPress\\Ai\\AiClient' => __DIR__ . '/../..' . '/src/Ai/AiClient.php',
+        'PaydarWP\\PaydarPress\\Ai\\AiJobs' => __DIR__ . '/../..' . '/src/Ai/AiJobs.php',
         'PaydarWP\\PaydarPress\\Ai\\Credentials' => __DIR__ . '/../..' . '/src/Ai/Credentials.php',
         'PaydarWP\\PaydarPress\\Ai\\PromptBuilder' => __DIR__ . '/../..' . '/src/Ai/PromptBuilder.php',
         'PaydarWP\\PaydarPress\\Ai\\Usage' => __DIR__ . '/../..' . '/src/Ai/Usage.php',

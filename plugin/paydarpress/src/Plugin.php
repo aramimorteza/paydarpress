@@ -99,6 +99,9 @@ final class Plugin {
 		( new \PaydarWP\PaydarPress\Images\ImageHash() )->register();
 		( new \PaydarWP\PaydarPress\Images\BulkConverter() )->register();
 
+		// Automatic mode: AI requests run in the background (Action Scheduler).
+		( new \PaydarWP\PaydarPress\Ai\AiJobs() )->register();
+
 		// 301 redirects of merged/deleted content (runs only on 404 requests).
 		( new \PaydarWP\PaydarPress\Strategy\Redirects() )->register();
 

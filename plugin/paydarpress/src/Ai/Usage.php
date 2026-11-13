@@ -91,7 +91,7 @@ final class Usage {
 	 * @param int|null    $object_id Related post/term.
 	 * @param float       $start     microtime() at start.
 	 */
-	public static function record( string $task, array $conn, int $in, int $out, string $status, ?string $error, ?int $object_id, float $start ): void {
+	public static function record( string $task, array $conn, int $in, int $out, string $status, ?string $error, ?int $object_id, float $start ): int {
 		global $wpdb;
 		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 			Schema::table( 'ai_usage' ),
@@ -109,6 +109,22 @@ final class Usage {
 				'created_at'    => current_time( 'mysql', true ),
 			)
 		);
+		return (int) $wpdb->insert_id;
+	}
+
+	/**
+	 * Marks a request whose reply could not be used (truncated, wrong format, nothing to import):
+	 * it still counts as a request, but not against the monthly article limit.
+	 *
+	 * @param int    $id    Usage row.
+	 * @param string $error Reason.
+	 */
+	public static function mark_unusable( int $id, string $error ): void {
+		global $wpdb;
+		if ( $id <= 0 ) {
+			return;
+		}
+		$wpdb->update( Schema::table( 'ai_usage' ), array( 'status' => 'unusable', 'error' => mb_substr( $error, 0, 255 ) ), array( 'id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 	}
 
 	/**

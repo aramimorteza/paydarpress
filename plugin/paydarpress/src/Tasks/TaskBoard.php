@@ -157,7 +157,13 @@ final class TaskBoard {
 			$tasks[] = self::task( 'site:' . $f['code'], 'fix', 'SITE_NOINDEX' === $f['code'] ? 'سایت برای موتورهای جست‌وجو بسته است' : 'خزنده‌های گوگل یا هوش مصنوعی مسدودند', 'تا این مشکل حل نشود، هیچ محتوایی در گوگل دیده نمی‌شود.', 99, 5, array( 'route' => '/visibility', 'label' => 'بررسی دسترسی' ) );
 		}
 
-		// 3. Drafts waiting for the owner.
+		// 3. Automatic-mode replies and drafts waiting for the owner.
+		$ai_ready = \PaydarWP\PaydarPress\Ai\AiJobs::ready_count();
+		if ( $ai_ready > 0 ) {
+			$tasks[] = self::task( 'ai:ready', 'publish', sprintf( '%s پاسخ هوش مصنوعی آماده بررسی است', PersianNormalizer::fa_number( $ai_ready ) ), 'ساخت خودکار تمام شده است. بررسی‌ها (تکراری بودن، لینک‌ها، نامک) را ببینید و موارد درست را به‌صورت پیش‌نویس وارد کنید؛ تا وارد نکنید چیزی در سایت تغییر نمی‌کند.', 93, 5, array( 'route' => '/auto', 'label' => 'بررسی پاسخ‌ها' ) );
+		}
+
+		// Drafts waiting for the owner.
 		foreach ( self::imported_drafts() as $d ) {
 			$review  = ReviewGate::needs_review( $d['id'] );
 			$tasks[] = self::task(

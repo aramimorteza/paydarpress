@@ -179,7 +179,7 @@ export function AiUsage( { state } ) {
 								<td dir="ltr">{ r.model }</td>
 								<td className="pp-num">{ num( r.input_tokens + r.output_tokens ) }</td>
 								<td className="pp-num">{ num( Math.round( r.duration_ms / 100 ) / 10 ) } ث</td>
-								<td>{ 'ok' === r.status ? <span className="pp-badge pp-badge--success">موفق</span> : <span className="pp-badge pp-badge--danger" title={ r.error }>ناموفق</span> }{ r.error && <div className="pp-muted pp-ai-usage__err">{ r.error }</div> }</td>
+								<td>{ 'ok' === r.status && <span className="pp-badge pp-badge--success">موفق</span> }{ 'unusable' === r.status && <span className="pp-badge pp-badge--warning" title={ r.error }>پاسخ قابل استفاده نبود</span> }{ 'ok' !== r.status && 'unusable' !== r.status && <span className="pp-badge pp-badge--danger" title={ r.error }>ناموفق</span> }{ r.error && <div className="pp-muted pp-ai-usage__err">{ r.error }</div> }</td>
 								<td>{ ago( r.created_at ) }</td>
 							</tr>
 						) ) }

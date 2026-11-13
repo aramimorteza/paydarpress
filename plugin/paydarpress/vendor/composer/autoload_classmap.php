@@ -11,6 +11,7 @@ return array(
     'PaydarWP\\PaydarPress\\Admin\\DashboardWidget' => $baseDir . '/src/Admin/DashboardWidget.php',
     'PaydarWP\\PaydarPress\\Admin\\PostMetaBox' => $baseDir . '/src/Admin/PostMetaBox.php',
     'PaydarWP\\PaydarPress\\Ai\\AiClient' => $baseDir . '/src/Ai/AiClient.php',
+    'PaydarWP\\PaydarPress\\Ai\\AiJobs' => $baseDir . '/src/Ai/AiJobs.php',
     'PaydarWP\\PaydarPress\\Ai\\Credentials' => $baseDir . '/src/Ai/Credentials.php',
     'PaydarWP\\PaydarPress\\Ai\\PromptBuilder' => $baseDir . '/src/Ai/PromptBuilder.php',
     'PaydarWP\\PaydarPress\\Ai\\Usage' => $baseDir . '/src/Ai/Usage.php',

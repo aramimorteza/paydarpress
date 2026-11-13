@@ -69,7 +69,7 @@ final class Settings {
 			'ai'          => array(
 				'monthly_articles' => 30,
 				'monthly_requests' => 300,
-				'max_output_tokens' => 8000,
+				'max_output_tokens' => 16000,
 			),
 			'retention'   => array(
 				'activity_days' => 90,
