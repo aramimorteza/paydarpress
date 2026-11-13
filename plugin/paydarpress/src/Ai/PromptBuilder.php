@@ -26,7 +26,7 @@ defined( 'ABSPATH' ) || exit;
  */
 final class PromptBuilder {
 
-	public const TASKS = array( 'topics', 'article', 'rewrite', 'term', 'meta', 'structure', 'merge' );
+	public const TASKS = array( 'topics', 'article', 'rewrite', 'term', 'meta', 'structure', 'merge', 'alt' );
 
 	/** Existing items listed for duplicate checks and internal links. */
 	private const RELATED_LIMIT = 60;
@@ -383,6 +383,62 @@ final class PromptBuilder {
 	}
 
 	/**
+	 * Alt texts for existing images, each written from its own place in the article.
+	 *
+	 * @param array $args post_id (optional; otherwise the posts with the most missing alts).
+	 * @throws RuntimeException When there is nothing to do.
+	 */
+	private static function task_alt( array $args ): array {
+		$post_id = (int) ( $args['post_id'] ?? 0 );
+		$items   = \PaydarWP\PaydarPress\Images\AltContext::occurrences( $post_id );
+		if ( array() === $items ) {
+			throw new RuntimeException( $post_id > 0 ? 'همه تصاویر این نوشته متن جایگزین مناسب دارند.' : 'تصویری بدون متن جایگزین پیدا نشد. اگر به‌تازگی تصویر اضافه کرده‌اید، اسکن را دوباره اجرا کنید.' );
+		}
+
+		$lines = array();
+		$last  = 0;
+		foreach ( $items as $it ) {
+			if ( $it['post_id'] !== $last ) {
+				$seo     = self::seo_of( $it['post_id'] );
+				$lines[] = "\n### ARTICLE «{$it['post_title']}» (" . self::url( $it['post_id'] ) . ')' . ( '' !== $seo['focus_keyword'] ? " — focus keyword: {$seo['focus_keyword']}" : '' );
+				$last    = $it['post_id'];
+			}
+			$row = array( "- ref: {$it['ref']}", 'featured' === $it['kind'] ? '  place: FEATURED IMAGE (shown at the top and when shared; context = the whole article)' : '  place: inside the article' );
+			if ( '' !== $it['heading'] ) {
+				$row[] = "  section heading: {$it['heading']}";
+			}
+			if ( '' !== $it['before'] ) {
+				$row[] = "  text before: …{$it['before']}";
+			}
+			if ( '' !== $it['after'] ) {
+				$row[] = '  text after: ' . $it['after'] . '…';
+			}
+			if ( '' !== $it['caption'] ) {
+				$row[] = "  caption: {$it['caption']}";
+			}
+			$row[] = '  file name: ' . $it['file'] . ( '' !== $it['current_alt'] ? " (current alt, not useful: «{$it['current_alt']}»)" : '' );
+			$lines[] = implode( "\n", $row );
+		}
+
+		$one   = $post_id > 0 ? self::title( $post_id ) : '';
+		$title = '' !== $one ? 'متن جایگزین تصاویر «' . $one . '»' : 'متن جایگزین ' . PersianNormalizer::fa_number( count( $items ) ) . ' تصویر بدون alt';
+
+		return array(
+			'title'      => $title,
+			'command'    => ( '' !== $one ? 'متن جایگزین تصاویر: ' . self::url( $post_id ) : 'متن جایگزین تصاویر بدون alt' ) . "\nبرای هر تصویر بر اساس جای آن در مقاله (سرتیتر، متن قبل و بعد) alt بنویس و در «خروجی پایدارپرس» در بخش image_alts قرار بده.",
+			'task'       => 'Write the alt text of each image listed below. You cannot see the images: infer what each one most likely shows from WHERE it is (section heading, the text right before and after it, caption, file name) and what the reader needs to understand at that point. Describe a concrete scene, object or document, never just the topic name. If the context really says nothing about an image, write a short neutral description based on the section topic rather than guessing details.'
+				. "\n" . self::alt_rules()
+				. "\n\n## IMAGES" . implode( "\n", $lines ),
+			'subject'    => $one,
+			'rules'      => self::rules_short(),
+			'output'     => self::output( 'alt' ),
+			'no_related' => true,
+			'minimal'    => true,
+			'object_id'  => $post_id > 0 ? $post_id : null,
+		);
+	}
+
+	/**
 	 * Merge: one rewrite of the article that stays, absorbing what is valuable in the other.
 	 *
 	 * @param array $args from, into.
@@ -515,11 +571,19 @@ final class PromptBuilder {
 				'- HTML: clean WordPress HTML only: <h2>, <h3>, <p>, <ul>, <ol>, <table> when useful, <a href>, <strong> sparingly. No <h1>, CSS, scripts or Markdown. Optional boxes: <div class="tip-box">, <div class="note-box">, <div class="mistake-box">, <div class="example-box">.',
 				'- FAQ: 3–6 real follow-up questions go ONLY in `faq` (short, direct answers, plain text). Do NOT write a FAQ section inside `html`; the plugin adds it at the end of the article as an accordion with structured data.',
 				'- SEO: title ≤ 60 characters, meta description ≤ 155 characters, ' . ( 'persian' === \PaydarWP\PaydarPress\Core\Settings::get( 'policy.slug_style', 'english' ) ? 'slug: leave empty (the site uses Persian addresses from the title)' : 'slug: short English, 3–5 words, lowercase with hyphens, based on the search intent (not a translation of the whole title)' ) . ', tags from the approved tags when given.',
-				'- inline_images: for articles longer than about 1,200 words, 1–3 images placed where a picture really helps (a process, a comparison, a document, a place). Each with `after_heading` (the exact H2/H3 text it follows), an English `prompt` in the VISUAL STYLE, `alt` in the site language and `why` (one line). Do not add images just for decoration.',
+				'- ' . \PaydarWP\PaydarPress\Images\InlinePlan::prompt_rule() . ' Each with `after_heading` (the exact H2/H3 text it follows), an English `prompt` in the VISUAL STYLE, `alt` in the site language and `why` (one line).',
+				'- ' . self::alt_rules(),
 				'- reverse_links: 2–3 EXISTING CONTENT items that should link to this new article, with an anchor and the sentence where it fits.',
-				'- featured_image: a UNIQUE image brief for THIS article. `prompt` in English: one concrete scene taken from the article\'s own situation (who, where, what is happening, one telling detail), in the VISUAL STYLE below; vary subject, setting, angle and composition; never a generic stock concept (handshake, gavel on desk, laptop on table, person thinking) and never one of the RECENT IMAGES listed; no text, logos or watermarks. `alt` in the site language describes what is actually shown.',
+				'- featured_image: a UNIQUE image brief for THIS article. `prompt` in English: one concrete scene taken from the article\'s own situation (who, where, what is happening, one telling detail), in the VISUAL STYLE below; vary subject, setting, angle and composition; never a generic stock concept (handshake, gavel on desk, laptop on table, person thinking) and never one of the RECENT IMAGES listed; no text, logos or watermarks. `alt` follows the ALT TEXT rule above, using the article\'s main topic as its context.',
 			)
 		);
+	}
+
+	/**
+	 * Alt text rule shared by articles and the alt task.
+	 */
+	public static function alt_rules(): string {
+		return 'ALT TEXT (every image): written in the site language for THIS image in THIS place. Describe what the image actually shows, in the context of the section it sits in: use the nearest heading and the sentences right before and after it to say what the picture means to the reader there (e.g. not «قرارداد» but «امضای قرارداد اجاره توسط مستأجر و موجر در دفتر املاک»). 5–15 words, at most 125 characters, one plain sentence without a final period. Mention the section\'s topic naturally; use the article\'s focus keyword in at most ONE image of the article and only if it truly describes the picture. Never start with «تصویر», «عکس» or «image of», never use the file name, never repeat the same alt for two images, no keyword lists, no promotional words.';
 	}
 
 	/**
@@ -532,6 +596,7 @@ final class PromptBuilder {
 				'- This is a REWRITE: keep the URL and the main search intent; keep correct facts, useful examples and existing good internal links; remove outdated years/figures unless still true.',
 				'- Do not count existing links to key pages as extra: the whole new content must respect the key-page limit.',
 				'- `reverse_links` are optional for a rewrite.',
+				'- Images: keep every existing <img> of the current content that still fits (same src) in its section, and fix its alt by the ALT TEXT rule. Count existing images toward the inline image number; only add `inline_images` for what is still missing, and if there are already more images than the rule allows, keep the most useful ones.',
 			)
 		);
 	}
@@ -573,6 +638,8 @@ final class PromptBuilder {
 				return $head . 'with "term_descriptions": [{"taxonomy": "' . $ctx['taxonomy'] . '", "term_id": ' . (int) $ctx['term_id'] . ', "name": ' . wp_json_encode( $ctx['name'], JSON_UNESCAPED_UNICODE ) . ', "description": "<HTML>"}]';
 			case 'structure':
 				return $head . 'with "structure_suggestions": [{"action": "merge|split|create|rename|noindex|keep", "taxonomy": "category|product_cat", "term_id": 0, "name": "<current name>", "new_name": "<new display name, for create/rename/split>", "into_term_id": 0, "into_name": "<target category, for merge>", "reason": "<one or two sentences in the site language>", "priority": "high|medium|low"}] and "notes": "<short overall assessment in the site language>".';
+			case 'alt':
+				return $head . 'with "image_alts": [{"ref": "<ref exactly as listed>", "alt": "<alt text>"}] — one item for EVERY image listed, in the same order.';
 			case 'meta':
 				return $head . 'with "seo_updates": [{"url": "' . $ctx['url'] . '", "seo_title": "", "meta_description": ""}] and "notes": "<2 alternative titles and 2 alternative descriptions>".';
 		}
@@ -586,6 +653,9 @@ final class PromptBuilder {
 	 */
 	private static function site_context( array $spec ): string {
 		$parts = array( "## SITE PROFILE\n" . self::profile_text() );
+		if ( ! empty( $spec['minimal'] ) ) {
+			return implode( "\n\n", $parts );
+		}
 
 		$key = self::key_pages_text();
 		if ( '' !== $key ) {

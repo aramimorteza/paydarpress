@@ -198,7 +198,8 @@ final class AuditEngine {
 		$key_pages   = array_flip( array_map( 'intval', (array) apply_filters( 'paydarpress/key_page_ids', array() ) ) );
 		$thin        = (int) ( $this->settings['thin_words'] ?? 300 );
 		$weak_min    = (int) ( $this->settings['weak_inbound_min'] ?? 3 );
-		$inline_min  = (int) ( $this->settings['inline_images_min_words'] ?? 800 );
+		$img_per     = (int) \PaydarWP\PaydarPress\Core\Settings::get( 'images.words_per_inline', 400 );
+		$img_max     = (int) \PaydarWP\PaydarPress\Core\Settings::get( 'images.inline_max', 5 );
 		$by_keyword  = array();
 		// New content gets time to receive links (content policy) before it counts as orphan.
 		$grace_until = time() - max( 0, (int) \PaydarWP\PaydarPress\Core\Settings::get( 'policy.grace_days', 45 ) ) * DAY_IN_SECONDS;
@@ -281,8 +282,24 @@ final class AuditEngine {
 				if ( '0' === (string) $row['has_featured_image'] ) {
 					$this->add( 'IMG_NO_FEATURED', 'content', $id );
 				}
-				if ( $words >= $inline_min && 0 === (int) $row['inline_images'] ) {
-					$this->add( 'IMG_NO_INLINE', 'content', $id, array( 'words' => $words ) );
+				// Inline images in proportion to the length (images.words_per_inline / inline_max).
+				$img_verdict = \PaydarWP\PaydarPress\Images\InlinePlan::verdict( $words, (int) $row['inline_images'], $img_per, $img_max );
+				if ( 'ok' !== $img_verdict ) {
+					$img_codes = array(
+						'none' => 'IMG_NO_INLINE',
+						'few'  => 'IMG_FEW_INLINE',
+						'many' => 'IMG_TOO_MANY_INLINE',
+					);
+					$this->add(
+						$img_codes[ $img_verdict ],
+						'content',
+						$id,
+						array(
+							'words'    => $words,
+							'images'   => (int) $row['inline_images'],
+							'expected' => \PaydarWP\PaydarPress\Images\InlinePlan::expected( $words, $img_per, $img_max ),
+						)
+					);
 				}
 			}
 

@@ -618,6 +618,11 @@ final class AuditController {
 			case 'IMG_GENERIC_ALT':
 				$lines[] = sprintf( '%s تصویر', $fa( $data['count'] ?? 0 ) );
 				break;
+			case 'IMG_NO_INLINE':
+			case 'IMG_FEW_INLINE':
+			case 'IMG_TOO_MANY_INLINE':
+				$lines[] = sprintf( '%s کلمه، %s تصویر داخل متن (پیشنهاد برای این طول: %s)', $fa( $data['words'] ?? 0 ), $fa( $data['images'] ?? 0 ), $fa( $data['expected'] ?? 0 ) );
+				break;
 			case 'GSC_CLICK_DROP':
 				$lines[] = sprintf( 'کلیک: %s (دوره قبل: %s) — جایگاه: %s (دوره قبل: %s)', $fa( $data['clicks'] ?? 0 ), $fa( $data['prev_clicks'] ?? 0 ), $fa( $data['position'] ?? 0 ), $fa( $data['prev_position'] ?? 0 ) );
 				break;

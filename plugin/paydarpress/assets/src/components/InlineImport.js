@@ -10,6 +10,7 @@ const SECTIONS = [
 	[ 'seo_updates', 'عنوان و متا' ],
 	[ 'link_suggestions', 'پیشنهاد لینک' ],
 	[ 'structure_suggestions', 'پیشنهاد ساختار' ],
+	[ 'image_alts', 'متن جایگزین' ],
 ];
 
 const LEVEL = { duplicate: 'pp-check--duplicate', error: 'pp-check--error', warning: 'pp-check--warning', info: 'pp-check--info' };
@@ -35,6 +36,9 @@ function itemTitle( section, item ) {
 	}
 	if ( 'structure_suggestions' === section ) {
 		return `${ { merge: 'ادغام', split: 'تقسیم', create: 'دسته تازه', rename: 'تغییر نام', noindex: 'noindex', keep: 'بدون تغییر' }[ item.action ] || item.action } «${ item.name || item.new_name }»${ item.into_name ? ` ← «${ item.into_name }»` : '' }${ item.new_name && item.name ? ` ← «${ item.new_name }»` : '' } — ${ item.reason }`;
+	}
+	if ( 'image_alts' === section ) {
+		return `«${ item.alt }» — ${ 'featured' === item.kind ? 'تصویر شاخص' : 'تصویر' } «${ item.post_title }»${ item.heading ? ` (بخش «${ item.heading }»)` : '' }`;
 	}
 	return item.title;
 }
@@ -120,6 +124,7 @@ export default function InlineImport( { job = 0, onClosed } ) {
 						result.seo ? `${ num( result.seo ) } متا` : '',
 						result.link_suggestions ? `${ num( result.link_suggestions ) } پیشنهاد لینک` : '',
 						result.structure ? `${ num( result.structure ) } پیشنهاد ساختار (در «دسته‌ها و برچسب‌ها»)` : '',
+						result.alts ? `${ num( result.alts ) } متن جایگزین تصویر` : '',
 					].filter( Boolean ).join( '، ' ) || 'موردی' }.
 				</Notice>
 				{ result.articles.length > 0 && (
@@ -158,7 +163,7 @@ export default function InlineImport( { job = 0, onClosed } ) {
 					<div className="pp-ai-modal__row">
 						<Button variant="primary" onClick={ commit } isBusy={ busy } disabled={ busy || 0 === total }>ورود { num( total ) } مورد</Button>
 						{ job ? <Button variant="tertiary" isDestructive onClick={ discard } disabled={ busy }>کنار گذاشتن این پاسخ</Button> : <Button variant="tertiary" onClick={ () => setPreview( null ) } disabled={ busy }>انصراف</Button> }
-						<span className="pp-muted">مقاله‌ها فقط پیش‌نویس می‌شوند.</span>
+						{ ( preview.articles || [] ).length > 0 && <span className="pp-muted">مقاله‌ها فقط پیش‌نویس می‌شوند.</span> }{ ( preview.image_alts || [] ).length > 0 && <span className="pp-muted">فقط تصاویری که متن جایگزین ندارند یا متنشان بی‌معناست تغییر می‌کنند؛ نسخه قبلی نوشته در «بازنگری‌ها» می‌ماند.</span> }
 					</div>
 				</>
 			) }

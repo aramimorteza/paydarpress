@@ -132,6 +132,18 @@ final class InventoryExporter {
 				'wordpress_version'   => get_bloginfo( 'version' ),
 				'woocommerce'         => class_exists( 'WooCommerce' ),
 				'scanned_post_types'  => ContentScanner::post_types(),
+				// Writing rules ContentMaster must follow (slug style, image ratios and counts).
+				'content_rules'       => array(
+					'policy'  => array(
+						'slug_style' => (string) \PaydarWP\PaydarPress\Core\Settings::get( 'policy.slug_style', 'english' ),
+					),
+					'images'  => array(
+						'featured_ratio'   => (string) \PaydarWP\PaydarPress\Core\Settings::get( 'images.featured_ratio', '16:9' ),
+						'inline_ratio'     => (string) \PaydarWP\PaydarPress\Core\Settings::get( 'images.inline_ratio', '4:3' ),
+						'words_per_inline' => (int) \PaydarWP\PaydarPress\Core\Settings::get( 'images.words_per_inline', 400 ),
+						'inline_max'       => (int) \PaydarWP\PaydarPress\Core\Settings::get( 'images.inline_max', 5 ),
+					),
+				),
 			),
 			'profile'       => $this->profile( $profile, $completion ),
 			'taxonomies'    => $this->taxonomies(),

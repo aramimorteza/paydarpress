@@ -124,6 +124,34 @@ final class ImagesController {
 			'hash'      => ImageHash::progress(),
 			'groups'    => $groups,
 			'bulk'      => BulkConverter::report(),
+			'alt'       => self::alt_stats(),
+			'inline'    => array(
+				'per'   => (int) \PaydarWP\PaydarPress\Core\Settings::get( 'images.words_per_inline', 400 ),
+				'max'   => (int) \PaydarWP\PaydarPress\Core\Settings::get( 'images.inline_max', 5 ),
+				'none'  => self::count_code( 'IMG_NO_INLINE' ),
+				'few'   => self::count_code( 'IMG_FEW_INLINE' ),
+				'many'  => self::count_code( 'IMG_TOO_MANY_INLINE' ),
+			),
 		);
+	}
+
+	/**
+	 * Posts with missing / generic alt texts (from the last audit).
+	 */
+	private static function alt_stats(): array {
+		return array(
+			'missing' => self::count_code( 'IMG_MISSING_ALT' ),
+			'generic' => self::count_code( 'IMG_GENERIC_ALT' ),
+		);
+	}
+
+	/**
+	 * Open findings of one code.
+	 *
+	 * @param string $code Code.
+	 */
+	private static function count_code( string $code ): int {
+		$stats = get_option( \PaydarWP\PaydarPress\Audit\AuditEngine::OPTION_STATS, array() );
+		return (int) ( is_array( $stats ) ? ( $stats['by_code'][ $code ] ?? 0 ) : 0 );
 	}
 }

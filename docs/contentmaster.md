@@ -1,4 +1,4 @@
-# ContentMaster v1.14
+# ContentMaster v1.15
 ### Multi-site SEO content system: Setup, Topic Research, Article Writing, Content Refresh
 
 ---
@@ -65,6 +65,7 @@ ContentMaster | [Site Name]
 | `اصلاح: [توضیح]` | — | Apply the change to the last output (e.g., «اصلاح: لحن ساده‌تر», «اصلاح: یک بخش سوالات متداول اضافه کن») and output only the changed parts unless the whole thing is needed |
 | `سئو [شماره]` | — | Only the SEO fields for an article/title |
 | `تصویر [شماره]` | — | Only the feature image prompt + alt text |
+| `متن جایگزین تصاویر: [URL یا فهرست تصاویر]` | — | Alt texts for existing images, each written from its place in the article; export in `image_alts` |
 | `لینک [شماره]` | — | Only the internal-link plan for an article/title |
 | `بروزرسانی` | `۴` | Audit with Search Console data |
 | `بروزرسانی: [URL]` | — | Full refresh for one existing page |
@@ -312,7 +313,7 @@ The PaydarPress plugin exports the site as JSON (schema `1.x`, profile `contentm
 ### 6.5 Output for PaydarPress (`خروجی پایدارپرس`)
 
 Produce **one** JSON code block and nothing else except one line before it: «این متن را در پایدارپرس ← ورود از ContentMaster بچسبانید.» Rules:
-- `schema` is exactly `paydarpress-import/1`; `generator` is `ContentMaster 1.14`; `site` is the profile domain.
+- `schema` is exactly `paydarpress-import/1`; `generator` is `ContentMaster 1.15`; `site` is the profile domain.
 - By default include the **working topic list** (`topics`) and **every article written in this conversation** (`articles`). `خروجی پایدارپرس: موضوعات` or `خروجی پایدارپرس: مقاله ۳` limit the output.
 - Never shorten or summarize an article for the export: `html` is the exact final HTML of the article (after any «اصلاح»), as one JSON string with escaped quotes and newlines. If the conversation is too long to reproduce an article exactly, export it alone with `خروجی پایدارپرس: مقاله [شماره]`.
 - Use only category names from the profile (`category`), and tags from the article's SEO output.
@@ -325,9 +326,11 @@ Produce **one** JSON code block and nothing else except one line before it: «ا
 - Shops: follow the export's shop focus — few products: full product descriptions first; many products per category: product-category intro texts and FAQs first, full rewrites only for best-sellers.
 - `notes` (optional): one short explanation in the site language, e.g. why an article was not written because it duplicates an existing URL.
 - Featured image: `featured_image.prompt` is a unique brief for THIS article (one concrete scene from the article's own situation) in the profile's `visual_style`; never a generic stock concept and never a concept already used in this conversation or listed as a recent image. PaydarPress converts uploads to WebP and warns about look-alike images.
-- Slug: follow the export's `policy.slug_style`. `english` (default): a short ASCII slug of 3–5 words from the focus keyword (e.g. `tenant-rights-lease`); `persian`: leave `slug` empty so WordPress builds it from the title. Never longer than 60 characters, never change the slug of an existing URL.
-- Image ratios: the featured image is always in the export's `images.featured_ratio` (default 16:9) and inline images in `images.inline_ratio` (default 4:3); mention the ratio in each prompt.
-- Inline images: for articles over ~1,200 words add 1–3 `inline_images` (`[{"after_heading": "<exact H2/H3 text>", "prompt": "", "alt": "", "why": ""}]`), each showing something that helps the reader understand that section (a step, a comparison, a document), not decoration. PaydarPress shows them in the editor with copy buttons; it does not insert them.
+- Slug: follow the export's `site.content_rules.policy.slug_style`. `english` (default): a short ASCII slug of 3–5 words from the focus keyword (e.g. `tenant-rights-lease`); `persian`: leave `slug` empty so WordPress builds it from the title. Never longer than 60 characters, never change the slug of an existing URL.
+- Image ratios: the featured image is always in the export's `site.content_rules.images.featured_ratio` (default 16:9) and inline images in `site.content_rules.images.inline_ratio` (default 4:3); mention the ratio in each prompt.
+- Inline images in proportion to the length: one image per `site.content_rules.images.words_per_inline` words of the FINAL article (default 400) minus one, because the featured image is the first picture; at most `site.content_rules.images.inline_max` (default 5). With the defaults: 600 words → 0, 800 → 1, 1,200 → 2, 2,000 → 4, 2,500+ → 5. Spread them evenly: at most one per H2 section, never two in a row, not in the first 150 words or the conclusion; skip a section that has nothing worth showing rather than add decoration. Format: `inline_images` = `[{"after_heading": "<exact H2/H3 text>", "prompt": "", "alt": "", "why": ""}]`. PaydarPress shows them in the editor with copy buttons; it does not insert them, and it warns when the count does not fit the length (too few tires the reader, too many makes the page heavy).
+- Alt text (every image, featured included): written for THAT image in THAT place. Use the nearest heading and the sentences right before and after the image to say what the picture shows and means to the reader at that point (not «قرارداد» but «امضای قرارداد اجاره توسط مستأجر و موجر در دفتر املاک»). 5–15 words, max 125 characters, no final period; the focus keyword in at most one image of the article and only if it truly describes it; never start with «تصویر/عکس», never the file name, never the same alt twice, no keyword lists.
+- `image_alts` (from `متن جایگزین تصاویر`): `[{"ref": "<ref exactly as listed by PaydarPress, e.g. p12-i3 or p12-f>", "alt": ""}]`, one item per listed image. PaydarPress writes each alt into that exact image of the article (and into the media library when it has none) and never overwrites a good existing alt.
 - Merge (`ادغام: <URL A> در <URL B>`, or the merge prompt from PaydarPress): two pages compete for the same intent. Export ONE article with `"rewrite_of": "<URL B>"` whose HTML is the complete new version of B that absorbs the unique, still-valid parts of A (no duplicated sections, B's slug unchanged). Do not output anything for A: the owner retires it in PaydarPress, which sets it to draft, adds the 301 redirect A → B and repoints internal links.
 - FAQ: put the questions only in `faq` and remove the FAQ section from `html`; PaydarPress inserts it at the end of the article as an accordion (core Details blocks) and prints the FAQPage structured data itself, with or without an SEO plugin.
 - Do not include fields that are unknown; never invent URLs.
@@ -335,7 +338,7 @@ Produce **one** JSON code block and nothing else except one line before it: «ا
 ```json
 {
   "schema": "paydarpress-import/1",
-  "generator": "ContentMaster 1.14",
+  "generator": "ContentMaster 1.15",
   "site": "example.com",
   "topics": [ { "title": "", "category": "", "focus_keyword": "", "intent": "informational|educational|how-to|commercial|support", "notes": "" } ],
   "articles": [ {
@@ -351,6 +354,7 @@ Produce **one** JSON code block and nothing else except one line before it: «ا
   "link_suggestions": [ { "source_url": "", "target_url": "", "anchor": "", "sentence": "" } ],
   "term_descriptions": [ { "taxonomy": "category|product_cat", "term_id": 0, "name": "", "description": "" } ],
   "seo_updates": [ { "url": "", "seo_title": "", "meta_description": "" } ],
+  "image_alts": [ { "ref": "p12-i3", "alt": "" } ],
   "notes": ""
 }
 ```

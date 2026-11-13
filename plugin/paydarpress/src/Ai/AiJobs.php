@@ -208,6 +208,7 @@ final class AiJobs {
 			'term'      => array( 'term_descriptions' ),
 			'meta'      => array( 'seo_updates' ),
 			'structure' => array( 'structure_suggestions' ),
+			'alt'       => array( 'image_alts' ),
 		);
 		$sections = $need[ $task ] ?? array();
 		foreach ( $sections as $section ) {

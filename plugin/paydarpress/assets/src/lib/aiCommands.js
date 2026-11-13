@@ -35,6 +35,9 @@ export function commandForFinding( finding ) {
 	if ( SUPPORT_CODES.includes( finding.code ) && object.url ) {
 		return supportCommand( object.title, object.url, object.id );
 	}
+	if ( [ 'IMG_MISSING_ALT', 'IMG_GENERIC_ALT' ].includes( finding.code ) && object.id ) {
+		return altCommand( object.title, object.id );
+	}
 	if ( TERM_TEXT_CODES.includes( finding.code ) && object.title ) {
 		return termTextCommand( object.title, object.id );
 	}
@@ -198,5 +201,22 @@ export function structureCommand() {
 		command: 'بررسی ساختار دسته‌بندی سایت\nفقط تغییرات لازم (ادغام، تقسیم، دسته تازه، تغییر نام نمایشی، noindex) را با دلیل بده و در «خروجی پایدارپرس» در بخش structure_suggestions قرار بده.',
 		prompt: { task: 'structure', args: {} },
 		hint: 'پیشنهادها فقط به فهرست «پیشنهادهای ساختار» در همین صفحه اضافه می‌شوند؛ هیچ دسته‌ای خودکار تغییر نمی‌کند و تصمیم با شماست.',
+	};
+}
+
+/**
+ * Alt texts for images without a useful one, each written from its place in the article
+ * (nearest heading, text before and after, caption).
+ *
+ * @param {string} title Post title (empty for a batch over several posts).
+ * @param {number} id    Post ID (0: the posts with the most missing alts).
+ */
+export function altCommand( title = '', id = 0 ) {
+	return {
+		label: id ? 'متن جایگزین تصاویر با هوش مصنوعی' : 'نوشتن متن جایگزین با هوش مصنوعی',
+		summary: id ? `متن جایگزین تصاویر «${ title }»` : 'متن جایگزین تصاویر بدون alt',
+		command: id ? `متن جایگزین تصاویر: ${ title }` : 'متن جایگزین تصاویر بدون alt',
+		prompt: { task: 'alt', args: id ? { post_id: id } : {} },
+		hint: `برای هر تصویر، سرتیتر بخش، متن قبل و بعد و زیرنویس آن داخل پرامپت است تا متن جایگزین مخصوص همان جا نوشته شود. ${ id ? '' : 'هر بار حداکثر ۲۵ تصویر از نوشته‌هایی که بیشترین کمبود را دارند. ' }با ورود، متن تصویر در نوشته و اگر کتابخانه رسانه متنی نداشت، همان‌جا هم ذخیره می‌شود؛ متن جایگزینِ درست موجود دست نمی‌خورد.`,
 	};
 }

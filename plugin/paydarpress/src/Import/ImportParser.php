@@ -59,6 +59,7 @@ final class ImportParser {
 		$articles = self::items( $data['articles'] ?? array(), self::MAX_ARTICLES, 'articles', $notices );
 		$links    = self::items( $data['link_suggestions'] ?? array(), self::MAX_SUGGESTIONS, 'link_suggestions', $notices );
 		$terms    = self::items( $data['term_descriptions'] ?? array(), 50, 'term_descriptions', $notices );
+		$alts     = self::items( $data['image_alts'] ?? array(), 200, 'image_alts', $notices );
 		$seo      = self::items( $data['seo_updates'] ?? array(), 100, 'seo_updates', $notices );
 		$struct   = self::items( $data['structure_suggestions'] ?? array(), 30, 'structure_suggestions', $notices );
 
@@ -71,6 +72,7 @@ final class ImportParser {
 			'articles'         => array(),
 			'link_suggestions' => array_values( array_filter( array_map( array( self::class, 'suggestion' ), $links ) ) ),
 			'term_descriptions' => array_values( array_filter( array_map( array( self::class, 'term_description' ), $terms ) ) ),
+			'image_alts'       => array_values( array_filter( array_map( array( self::class, 'image_alt' ), $alts ) ) ),
 			'seo_updates'      => array_values( array_filter( array_map( array( self::class, 'seo_update' ), $seo ) ) ),
 			'structure_suggestions' => array_values( array_filter( array_map( array( self::class, 'structure_suggestion' ), $struct ) ) ),
 			'notes'            => self::str( $data['notes'] ?? '', 3000 ),
@@ -89,7 +91,7 @@ final class ImportParser {
 			$out['articles'][] = $article;
 		}
 
-		if ( array() === $out['topics'] && array() === $out['articles'] && array() === $out['link_suggestions'] && array() === $out['term_descriptions'] && array() === $out['seo_updates'] && array() === $out['structure_suggestions'] ) {
+		if ( array() === $out['topics'] && array() === $out['articles'] && array() === $out['link_suggestions'] && array() === $out['term_descriptions'] && array() === $out['seo_updates'] && array() === $out['structure_suggestions'] && array() === $out['image_alts'] ) {
 			if ( '' !== $out['notes'] ) {
 				throw new RuntimeException( 'هوش مصنوعی چیزی برای ورود نساخت و این توضیح را داد: ' . $out['notes'] );
 			}
@@ -292,6 +294,23 @@ final class ImportParser {
 			),
 			'faq'           => $faq,
 			'reverse_links' => $reverse,
+		);
+	}
+
+	/**
+	 * Alt text for one image occurrence ("p12-i3" = 3rd image of post 12, "p12-f" = featured).
+	 *
+	 * @param array $raw Raw.
+	 */
+	private static function image_alt( array $raw ): ?array {
+		$ref = strtolower( self::str( $raw['ref'] ?? '', 40 ) );
+		$alt = self::str( $raw['alt'] ?? '', 300 );
+		if ( ! preg_match( '/^p\d+-(f|i\d+)$/', $ref ) || '' === $alt ) {
+			return null;
+		}
+		return array(
+			'ref' => $ref,
+			'alt' => $alt,
 		);
 	}
 

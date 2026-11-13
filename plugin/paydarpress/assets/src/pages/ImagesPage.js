@@ -4,6 +4,8 @@ import Page from '../components/Page';
 import FindingsList from '../components/FindingsList';
 import { get, post, errorMessage } from '../lib/api';
 import { num } from '../lib/format';
+import AiButton from '../components/AiButton';
+import { altCommand } from '../lib/aiCommands';
 
 const config = window.paydarpress || {};
 
@@ -86,6 +88,30 @@ export default function ImagesPage() {
 							تا امروز { num( w.files ) } تصویر تبدیل شد: { size( w.before ) } ← { size( w.after ) } (صرفه‌جویی { num( Math.round( ( 1 - w.after / Math.max( 1, w.before ) ) * 100 ) ) }٪).
 						</p>
 					) }
+				</section>
+			) }
+
+			{ data && data.alt && (
+				<section className="pp-card pp-card--section">
+					<h2 className="pp-card__title">متن جایگزین (alt) و تعداد تصاویر داخل متن</h2>
+					<p>
+						{ data.alt.missing + data.alt.generic > 0
+							? <>{ num( data.alt.missing ) } مطلب تصویر بدون متن جایگزین و { num( data.alt.generic ) } مطلب متن جایگزین بی‌معنا (مثل نام فایل) دارد.</>
+							: <span className="pp-ok">همه تصاویر مطالب منتشرشده متن جایگزین دارند.</span> }
+					</p>
+					<p className="pp-muted">
+						متن جایگزین هر تصویر از جای خودش ساخته می‌شود: سرتیتر بخش، متن قبل و بعد تصویر و زیرنویس آن. اگر یک تصویر در دو مقاله آمده باشد، هر کدام متن خودش را می‌گیرد. متن جایگزینِ درست موجود هرگز عوض نمی‌شود.
+					</p>
+					{ data.alt.missing + data.alt.generic > 0 && canManage && (
+						<div className="pp-ai-modal__row"><AiButton command={ altCommand() } small={ false } variant="primary" /></div>
+					) }
+					<p>
+						تعداد تصاویر داخل متن به نسبت طول مقاله: یک تصویر به ازای هر { num( data.inline.per ) } کلمه (منهای تصویر شاخص)، حداکثر { num( data.inline.max ) } تصویر.{ ' ' }
+						{ data.inline.none + data.inline.few + data.inline.many > 0
+							? <>اکنون { num( data.inline.none ) } مقاله بدون تصویر، { num( data.inline.few ) } مقاله با تصویر کم و { num( data.inline.many ) } مقاله با تصویر زیاد است.</>
+							: <span className="pp-ok">تعداد تصاویر همه مقاله‌ها مناسب است.</span> }{ ' ' }
+						<a href="#/settings?tab=images">تغییر نسبت</a>
+					</p>
 				</section>
 			) }
 

@@ -138,6 +138,7 @@ final class ImportService {
 		foreach ( $parsed['seo_updates'] as $i => $u ) {
 			$seo_items[] = $this->check_seo( $i, $u );
 		}
+		$alt_items = $this->check_alts( (array) ( $parsed['image_alts'] ?? array() ) );
 		$struct_items = array();
 		foreach ( $parsed['structure_suggestions'] as $i => $st ) {
 			$struct_items[] = $this->check_structure( $i, $st );
@@ -158,6 +159,7 @@ final class ImportService {
 			'term_descriptions' => $term_items,
 			'seo_updates'      => $seo_items,
 			'structure_suggestions' => $struct_items,
+			'image_alts'       => $alt_items,
 		);
 
 		set_transient( $this->transient_key( $token ), $payload, self::TTL );
@@ -215,12 +217,14 @@ final class ImportService {
 			'link_suggestions' => 0,
 			'terms'            => 0,
 			'seo'              => 0,
+			'alts'             => 0,
 			'errors'           => array(),
 		);
 		$preview += array(
 			'term_descriptions' => array(),
 			'seo_updates'       => array(),
 			'structure_suggestions' => array(),
+			'image_alts'        => array(),
 		);
 
 		foreach ( $pick( 'topics' ) as $topic ) {
@@ -285,6 +289,21 @@ final class ImportService {
 			}
 		}
 
+		$alt_posts = array();
+		foreach ( $pick( 'image_alts' ) as $a ) {
+			$done = \PaydarWP\PaydarPress\Images\AltContext::apply( $a['ref'], $a['alt'] );
+			if ( $done['ok'] ) {
+				++$result['alts'];
+				$alt_posts[ $done['post_id'] ] = true;
+			} else {
+				$result['errors'][] = '«' . $a['alt'] . '»: ' . $done['message'];
+			}
+		}
+		// Rescan so the image findings update soon (a featured-image alt is not a post save).
+		foreach ( array_keys( $alt_posts ) as $alt_post ) {
+			\PaydarWP\PaydarPress\Queue\Queue::schedule( \PaydarWP\PaydarPress\Scanner\ScanManager::ACTION_ITEM, array( (int) $alt_post ), 10, true );
+		}
+
 		$result['structure'] = \PaydarWP\PaydarPress\Strategy\StructurePlan::add( $pick( 'structure_suggestions' ) );
 
 		foreach ( $pick( 'link_suggestions' ) as $s ) {
@@ -311,12 +330,13 @@ final class ImportService {
 		Activity::log(
 			'import.contentmaster',
 			sprintf(
-				'ورود از ContentMaster: %s موضوع، %s پیش‌نویس، %s پیشنهاد لینک، %s متن دسته، %s متا.',
+				'ورود از ContentMaster: %s موضوع، %s پیش‌نویس، %s پیشنهاد لینک، %s متن دسته، %s متا، %s متن جایگزین تصویر.',
 				PersianNormalizer::fa_number( $result['topics'] ),
 				PersianNormalizer::fa_number( count( $result['articles'] ) ),
 				PersianNormalizer::fa_number( $result['link_suggestions'] ),
 				PersianNormalizer::fa_number( $result['terms'] ),
-				PersianNormalizer::fa_number( $result['seo'] )
+				PersianNormalizer::fa_number( $result['seo'] ),
+				PersianNormalizer::fa_number( $result['alts'] )
 			),
 			'import',
 			$import_id
@@ -365,6 +385,20 @@ final class ImportService {
 			// Pages and products have no blog category.
 		} elseif ( null === $category['id'] ) {
 			$checks[] = array( 'warning', '' === $article['category'] ? 'دسته مشخص نشده؛ در دسته پیش‌فرض قرار می‌گیرد.' : 'دسته «' . $article['category'] . '» در سایت نیست؛ در دسته پیش‌فرض قرار می‌گیرد.' );
+		}
+
+		// Inline images in proportion to the length (existing <img> in the HTML count too).
+		$words_n = PersianNormalizer::word_count( self::plain( $article['html'] ) );
+		$imgs_n  = count( (array) ( $article['inline_images'] ?? array() ) ) + preg_match_all( '/<img\\b/i', $article['html'] );
+		$verdict = \PaydarWP\PaydarPress\Images\InlinePlan::verdict( $words_n, $imgs_n );
+		if ( 'ok' !== $verdict ) {
+			$want = \PaydarWP\PaydarPress\Images\InlinePlan::expected( $words_n );
+			$checks[] = array(
+				'many' === $verdict ? 'warning' : 'info',
+				'many' === $verdict
+					? sprintf( '%s تصویر داخل متن برای %s کلمه زیاد است (پیشنهاد: %s)؛ تصویر اضافه صفحه را سنگین و خواننده را خسته می‌کند. فقط مفیدترین‌ها را بگذارید.', PersianNormalizer::fa_number( $imgs_n ), PersianNormalizer::fa_number( $words_n ), PersianNormalizer::fa_number( $want ) )
+					: sprintf( 'برای %s کلمه حدود %s تصویر داخل متن پیشنهاد می‌شود و %s تصویر آمده؛ پس از ورود، تصویر بخش‌های اصلی را اضافه کنید.', PersianNormalizer::fa_number( $words_n ), PersianNormalizer::fa_number( $want ), PersianNormalizer::fa_number( $imgs_n ) ),
+			);
 		}
 
 		$slug = sanitize_title( $article['slug'] );
@@ -673,6 +707,73 @@ final class ImportService {
 			),
 			$checks
 		);
+	}
+
+	/**
+	 * Checks proposed alt texts against the images that still need one.
+	 *
+	 * @param array $items Parsed image_alts.
+	 * @return array[]
+	 */
+	private function check_alts( array $items ): array {
+		$out     = array();
+		$by_post = array();
+		$seen    = array();
+		foreach ( $items as $index => $a ) {
+			$post_id = (int) substr( $a['ref'], 1, (int) strpos( $a['ref'], '-' ) - 1 );
+			if ( ! isset( $by_post[ $post_id ] ) ) {
+				$post                = get_post( $post_id );
+				$by_post[ $post_id ] = array();
+				if ( $post instanceof \WP_Post ) {
+					foreach ( \PaydarWP\PaydarPress\Images\AltContext::for_post( $post ) as $o ) {
+						$by_post[ $post_id ][ $o['ref'] ] = $o;
+					}
+				}
+			}
+			$o      = $by_post[ $post_id ][ $a['ref'] ] ?? null;
+			$alt    = \PaydarWP\PaydarPress\Images\AltContext::clean_alt( $a['alt'] );
+			$checks = array();
+			if ( null === $o ) {
+				$checks[] = array( 'error', 'این تصویر پیدا نشد یا در این فاصله متن جایگزین گرفته است.' );
+			} elseif ( ! current_user_can( 'edit_post', $post_id ) ) {
+				$checks[] = array( 'error', 'اجازه ویرایش این نوشته را ندارید.' );
+			} else {
+				$keyword = (string) self::focus_keyword_of( $post_id );
+				$checks  = \PaydarWP\PaydarPress\Images\AltContext::checks( $alt, (string) $o['file'], $keyword );
+			}
+			$key = $post_id . '|' . mb_strtolower( $alt );
+			if ( isset( $seen[ $key ] ) ) {
+				$checks[] = array( 'warning', 'همین متن برای تصویر دیگری از همین نوشته هم آمده؛ هر تصویر متن خودش را لازم دارد.' );
+			}
+			$seen[ $key ] = true;
+
+			$out[] = $this->with_checks(
+				array(
+					'index'      => $index,
+					'ref'        => $a['ref'],
+					'alt'        => $alt,
+					'post_id'    => $post_id,
+					'post_title' => $o['post_title'] ?? html_entity_decode( get_the_title( $post_id ), ENT_QUOTES, 'UTF-8' ),
+					'kind'       => $o['kind'] ?? '',
+					'src'        => $o['src'] ?? '',
+					'heading'    => $o['heading'] ?? '',
+				),
+				$checks
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * Focus keyword stored in the inventory.
+	 *
+	 * @param int $post_id Post.
+	 */
+	private static function focus_keyword_of( int $post_id ): string {
+		global $wpdb;
+		$table = Schema::table( 'inventory' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return (string) $wpdb->get_var( $wpdb->prepare( "SELECT focus_keyword FROM {$table} WHERE object_id = %d", $post_id ) );
 	}
 
 	/**

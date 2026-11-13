@@ -244,7 +244,7 @@ final class TaskBoard {
 		// 9. Batch fixes.
 		$alt = (int) ( $stats['by_code']['IMG_MISSING_ALT'] ?? 0 );
 		if ( $alt > 0 ) {
-			$tasks[] = self::task( 'images:alt', 'fix', sprintf( 'برای تصاویر %s مطلب متن جایگزین بنویسید', PersianNormalizer::fa_number( $alt ) ), 'متن جایگزین به نابینایان، جست‌وجوی تصویری و فهم هوش مصنوعی از صفحه کمک می‌کند.', 30, 15, array( 'route' => '/images', 'label' => 'سلامت تصاویر' ) );
+			$tasks[] = self::task( 'images:alt', 'fix', sprintf( 'برای تصاویر %s مطلب متن جایگزین بنویسید', PersianNormalizer::fa_number( $alt ) ), 'متن جایگزین به نابینایان، جست‌وجوی تصویری و فهم هوش مصنوعی از صفحه کمک می‌کند. هوش مصنوعی برای هر تصویر از سرتیتر و متن اطرافش متن مخصوص همان جا می‌نویسد.', 30, 15, array( 'route' => '/images', 'label' => 'سلامت تصاویر' ), array( 'kind' => 'alt', 'id' => 0, 'title' => '' ) );
 		}
 		$desc = (int) ( $stats['by_code']['EMPTY_CATEGORY_DESC'] ?? 0 );
 		if ( $desc > 0 ) {
