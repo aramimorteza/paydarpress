@@ -442,13 +442,39 @@ final class ImportService {
 			$checks[] = array( 'info', 'نویسنده «' . $article['author'] . '» کاربر این سایت نیست؛ نوشته به نام شما ساخته می‌شود.' );
 		}
 
+		// Tags: taxonomy map rules (no retired / navigation tags, no category names, at most
+		// MAX_TAGS, at most 2 new ones). Existing tags are kept first.
+		$max_tags      = \PaydarWP\PaydarPress\Profile\TaxonomyMap::MAX_TAGS;
 		$existing_tags = array();
+		$new_tags      = array();
+		$dropped       = array();
 		foreach ( $article['tags'] as $tag ) {
-			if ( term_exists( $tag, 'post_tag' ) ) {
-				$existing_tags[] = $tag;
+			$term = get_term_by( 'name', $tag, 'post_tag' );
+			if ( term_exists( $tag, 'category' ) ) {
+				$dropped[] = $tag;
+			} elseif ( $term instanceof \WP_Term ) {
+				if ( in_array( \PaydarWP\PaydarPress\Profile\TaxonomyMap::role( (int) $term->term_id ), \PaydarWP\PaydarPress\Profile\TaxonomyMap::ACTIVE_ROLES, true ) ) {
+					$existing_tags[] = $tag;
+				} else {
+					$dropped[] = $tag;
+				}
+			} else {
+				$new_tags[] = $tag;
 			}
 		}
-		$new_tags = array_values( array_diff( $article['tags'], $existing_tags ) );
+		if ( count( $new_tags ) > 2 ) {
+			$dropped  = array_merge( $dropped, array_slice( $new_tags, 2 ) );
+			$new_tags = array_slice( $new_tags, 0, 2 );
+		}
+		$kept = array_slice( array_merge( $existing_tags, $new_tags ), 0, $max_tags );
+		if ( count( $existing_tags ) + count( $new_tags ) > $max_tags ) {
+			$dropped = array_merge( $dropped, array_slice( array_merge( $existing_tags, $new_tags ), $max_tags ) );
+		}
+		$new_tags        = array_values( array_intersect( $new_tags, $kept ) );
+		$article['tags'] = $kept;
+		if ( $dropped ) {
+			$checks[] = array( 'info', sprintf( 'این برچسب‌ها وارد نمی‌شوند (حداکثر %s برچسب، حداکثر ۲ برچسب تازه، بدون برچسب کنارگذاشته یا هم‌نام دسته): %s', PersianNormalizer::fa_number( $max_tags ), implode( '، ', $dropped ) ) );
+		}
 		if ( $new_tags ) {
 			$checks[] = array( 'info', 'برچسب‌های جدید ساخته می‌شوند: ' . implode( '، ', $new_tags ) );
 		}

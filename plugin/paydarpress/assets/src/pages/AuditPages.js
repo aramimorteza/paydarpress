@@ -313,7 +313,7 @@ export function TaxonomiesPage() {
 				<>
 					<StructurePanel />
 					<h2 className="pp-section-title">دسته‌بندی‌ها ({ num( data.categories.length ) })</h2>
-					<p className="pp-muted">«هدف» تعداد مطلب مناسب هر دسته است و از مرحله سایت و اهمیت دسته می‌آید. اهمیت هر دسته را در <a href="#/profile">پروفایل ← محدوده موضوعی دسته‌ها</a> تعیین کنید.</p>
+					<p className="pp-muted">«هدف» تعداد مطلب مناسب هر دسته است و از مرحله سایت و نقش دسته می‌آید. نقش، محدوده و هدف هر دسته و برچسب را در <a href="#/profile">پروفایل ← نقشه دسته‌ها و برچسب‌ها</a> تعیین کنید؛ دسته‌های «فقط ناوبری» و «کنار گذاشته» هدف ندارند.</p>
 					{ table( data.categories, 'دسته‌بندی‌ای وجود ندارد.', 'category' ) }
 					<h2 className="pp-section-title">برچسب‌ها ({ num( data.tags.length ) })</h2>
 					{ table( data.tags, 'برچسبی وجود ندارد.', 'tag' ) }

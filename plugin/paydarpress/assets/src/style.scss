@@ -2227,3 +2227,53 @@ button.pp-chip {
 	padding-inline-start: 32px;
 	font-size: 12px;
 }
+
+/* Taxonomy map (0.23.0) */
+
+.pp-taxmap {
+	margin-top: var(--pwp-space-2, 8px);
+}
+
+.pp-taxmap__toolbar {
+	display: flex;
+	gap: var(--pwp-space-2, 8px);
+	margin: var(--pwp-space-2, 8px) 0;
+
+	> * {
+		flex: 1;
+		max-width: 280px;
+	}
+}
+
+.pp-taxmap__row {
+	border: 1px solid var(--pwp-border, #e2e5ea);
+	border-radius: var(--pwp-radius-sm, 6px);
+	padding: var(--pwp-space-3, 12px);
+	margin-bottom: var(--pwp-space-2, 8px);
+
+	&.is-muted {
+		background: var(--pwp-bg, #f6f7f9);
+	}
+
+	.components-base-control {
+		margin-bottom: var(--pwp-space-2, 8px);
+	}
+}
+
+.pp-taxmap__head {
+	display: flex;
+	gap: var(--pwp-space-2, 8px);
+	align-items: center;
+	margin-bottom: var(--pwp-space-2, 8px);
+}
+
+.pp-taxmap__fields {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: var(--pwp-space-3, 12px);
+}
+
+.pp-tab.is-active .pp-muted {
+	color: inherit;
+	opacity: 0.85;
+}

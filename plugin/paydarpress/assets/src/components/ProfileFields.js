@@ -2,6 +2,7 @@ import { useEffect, useState } from '@wordpress/element';
 import { get } from '../lib/api';
 import { num } from '../lib/format';
 import { Button, SelectControl, TextControl, TextareaControl } from '@wordpress/components';
+import TaxMapEditor from './TaxMapEditor';
 
 /** Field name → key of the industry example used as placeholder. */
 const EXAMPLE_KEYS = {
@@ -142,7 +143,14 @@ export function ProfileField( { name, def, value, field, choices, onChange, indu
 		case 'cta_options':
 			return <CtaEditor label={ label } help={ help } ex={ industry ? industry.ex : {} } value={ value || [] } onChange={ set } />;
 		case 'categories':
-			return <CategoriesEditor label={ label } help={ help } ex={ industry ? industry.ex : {} } patterns={ industry ? industry.patterns : '' } value={ value || [] } onChange={ set } />;
+			// Self-saving map of categories and tags (posts and products); see TaxMapEditor.
+			return (
+				<fieldset className="pp-field">
+					<legend>{ label }</legend>
+					<div className="pp-help-text">{ help }</div>
+					<TaxMapEditor canEdit={ !! ( window.paydarpress && window.paydarpress.caps && window.paydarpress.caps.manage ) } />
+				</fieldset>
+			);
 		default:
 			return (
 				<div className="pp-field">
@@ -366,50 +374,3 @@ function CtaEditor( { label, help, ex, value, onChange } ) {
 	);
 }
 
-/**
- * Category scopes.
- */
-function CategoriesEditor( { label, help, ex, patterns, value, onChange } ) {
-	const update = ( index, patch ) => onChange( value.map( ( c, i ) => ( i === index ? { ...c, ...patch } : c ) ) );
-
-	return (
-		<fieldset className="pp-field pp-repeater">
-			<legend>{ label }</legend>
-			<div className="pp-help-text">{ help }</div>
-			{ 0 === value.length && <p className="pp-muted">دسته‌بندی دارای مطلب پیدا نشد. پس از اسکن، دسته‌ها اینجا نمایش داده می‌شوند.</p> }
-			{ value.map( ( cat, index ) => (
-				<div key={ cat.id } className="pp-repeater__item">
-					<div className="pp-repeater__head">
-						<strong>{ cat.name }</strong>
-						{ undefined !== cat.count && <span className="pp-muted">{ Number( cat.count ).toLocaleString( 'fa-IR' ) } مطلب</span> }
-					</div>
-					<SelectControl
-						__nextHasNoMarginBottom
-						label="اهمیت این دسته برای کسب‌وکار"
-						help="دسته مهم دو برابر دسته عادی مطلب هدف دارد و در پیشنهاد موضوع و کارهای هفته جلوتر است؛ دسته کم‌اهمیت نصف."
-						value={ cat.importance || 'normal' }
-						options={ [ { value: 'high', label: 'مهم (نزدیک به فروش یا خدمت اصلی)' }, { value: 'normal', label: 'عادی' }, { value: 'low', label: 'کم‌اهمیت' } ] }
-						onChange={ ( v ) => update( index, { importance: v } ) }
-					/>
-					<TextareaControl
-						__nextHasNoMarginBottom
-						label="این دسته چه موضوعاتی را پوشش می‌دهد؟"
-						help="زیرموضوع‌های اصلی را با ویرگول بنویسید؛ موضوعاتی که به دسته دیگری تعلق دارند را اینجا نیاورید."
-						placeholder={ ex.scope ? `مثال: ${ ex.scope }` : '' }
-						rows={ 2 }
-						value={ cat.scope || '' }
-						onChange={ ( v ) => update( index, { scope: v } ) }
-					/>
-					<TextControl
-						__nextHasNoMarginBottom
-						label="الگوهای جستجوی رایج (اختیاری)"
-						help="شکل جست‌وجوهای این دسته در گوگل؛ به‌جای کلمه متغیر [X] بنویسید."
-						placeholder={ patterns ? `مثال: ${ patterns }` : '' }
-						value={ cat.search_patterns || '' }
-						onChange={ ( v ) => update( index, { search_patterns: v } ) }
-					/>
-				</div>
-			) ) }
-		</fieldset>
-	);
-}

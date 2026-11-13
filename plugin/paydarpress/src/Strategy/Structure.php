@@ -68,12 +68,7 @@ final class Structure {
 	public static function categories(): array {
 		$stage  = SiteStage::current();
 		$base   = self::BASE_TARGET[ $stage ];
-		$scopes = array();
-		foreach ( (array) ProfileRepository::value( 'categories_scope' ) as $c ) {
-			if ( is_array( $c ) && ! empty( $c['id'] ) ) {
-				$scopes[ (int) $c['id'] ] = $c;
-			}
-		}
+		$scopes      = \PaydarWP\PaydarPress\Profile\TaxonomyMap::notes();
 		$impressions = self::impressions_by_category();
 
 		$out = array();
@@ -81,9 +76,14 @@ final class Structure {
 			if ( ! $t instanceof \WP_Term || 'uncategorized' === $t->slug ) {
 				continue;
 			}
-			$importance = (string) ( $scopes[ $t->term_id ]['importance'] ?? 'normal' );
-			$importance = isset( self::IMPORTANCE_FACTOR[ $importance ] ) ? $importance : 'normal';
-			$target     = (int) max( 2, round( $base * self::IMPORTANCE_FACTOR[ $importance ] ) );
+			$notes = $scopes[ $t->term_id ] ?? array();
+			$role  = \PaydarWP\PaydarPress\Profile\TaxonomyMap::role_of( $notes );
+			// Navigation-only and retired categories get no content target.
+			if ( ! in_array( $role, \PaydarWP\PaydarPress\Profile\TaxonomyMap::ACTIVE_ROLES, true ) ) {
+				continue;
+			}
+			$importance = $role;
+			$target     = (int) ( $notes['target'] ?? 0 ) > 0 ? (int) $notes['target'] : (int) max( 2, round( $base * self::IMPORTANCE_FACTOR[ $importance ] ) );
 			$out[]      = array(
 				'id'          => (int) $t->term_id,
 				'name'        => html_entity_decode( $t->name, ENT_QUOTES, 'UTF-8' ),
@@ -92,6 +92,7 @@ final class Structure {
 				'target'      => $target,
 				'gap'         => max( 0, $target - (int) $t->count ),
 				'impressions' => (int) ( $impressions[ $t->term_id ] ?? 0 ),
+				'scope'       => (string) ( $notes['scope'] ?? '' ),
 			);
 		}
 		usort( $out, static fn( $a, $b ) => array( $b['gap'] * self::IMPORTANCE_FACTOR[ $b['importance'] ], $b['impressions'] ) <=> array( $a['gap'] * self::IMPORTANCE_FACTOR[ $a['importance'] ], $a['impressions'] ) );

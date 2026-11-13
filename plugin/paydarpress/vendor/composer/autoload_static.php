@@ -76,6 +76,7 @@ class ComposerStaticInitfb42b83d6c8d640da5884eda2eaeec31
         'PaydarWP\\PaydarPress\\Profile\\Industries' => __DIR__ . '/../..' . '/src/Profile/Industries.php',
         'PaydarWP\\PaydarPress\\Profile\\ProfileInference' => __DIR__ . '/../..' . '/src/Profile/ProfileInference.php',
         'PaydarWP\\PaydarPress\\Profile\\ProfileRepository' => __DIR__ . '/../..' . '/src/Profile/ProfileRepository.php',
+        'PaydarWP\\PaydarPress\\Profile\\TaxonomyMap' => __DIR__ . '/../..' . '/src/Profile/TaxonomyMap.php',
         'PaydarWP\\PaydarPress\\Queue\\Queue' => __DIR__ . '/../..' . '/src/Queue/Queue.php',
         'PaydarWP\\PaydarPress\\Rest\\AiController' => __DIR__ . '/../..' . '/src/Rest/AiController.php',
         'PaydarWP\\PaydarPress\\Rest\\AuditController' => __DIR__ . '/../..' . '/src/Rest/AuditController.php',

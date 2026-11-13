@@ -35,7 +35,7 @@ final class PromptBuilder {
 	private const REWRITE_MAX_CHARS = 40000;
 
 	/** Profile fields that are not useful to the writer. */
-	private const SKIP_FIELDS = array( 'visual_style', 'seo_plugin', 'page_builder', 'woocommerce', 'key_pages', 'cta_options', 'categories_scope', 'competitors' );
+	private const SKIP_FIELDS = array( 'approved_tags', 'visual_style', 'seo_plugin', 'page_builder', 'woocommerce', 'key_pages', 'cta_options', 'categories_scope', 'competitors' );
 
 	/**
 	 * Builds the prompt for a task.
@@ -239,6 +239,7 @@ final class PromptBuilder {
 			'with_gsc'    => true,
 			'with_policy' => true,
 			'with_images' => true,
+			'with_tags'   => true,
 			'object_id'   => $link_to ? $link_to->ID : null,
 		);
 	}
@@ -294,6 +295,7 @@ final class PromptBuilder {
 			'rules'       => self::rules_article() . "\n" . self::rules_rewrite(),
 			'output'      => self::output( 'rewrite', array( 'url' => $url, 'product' => $is_product ) ),
 			'with_images' => ! $is_product,
+			'with_tags'   => ! $is_product,
 			'extra'       => $extra,
 			'with_gsc'    => true,
 			'object_id'   => $post->ID,
@@ -570,7 +572,8 @@ final class PromptBuilder {
 				'- Conclusion: natural, with ONE call to action from CTA OPTIONS framed as the helpful next step.',
 				'- HTML: clean WordPress HTML only: <h2>, <h3>, <p>, <ul>, <ol>, <table> when useful, <a href>, <strong> sparingly. No <h1>, CSS, scripts or Markdown. Optional boxes: <div class="tip-box">, <div class="note-box">, <div class="mistake-box">, <div class="example-box">.',
 				'- FAQ: 3–6 real follow-up questions go ONLY in `faq` (short, direct answers, plain text). Do NOT write a FAQ section inside `html`; the plugin adds it at the end of the article as an accordion with structured data.',
-				'- SEO: title ≤ 60 characters, meta description ≤ 155 characters, ' . ( 'persian' === \PaydarWP\PaydarPress\Core\Settings::get( 'policy.slug_style', 'english' ) ? 'slug: leave empty (the site uses Persian addresses from the title)' : 'slug: short English, 3–5 words, lowercase with hyphens, based on the search intent (not a translation of the whole title)' ) . ', tags from the approved tags when given.',
+				'- SEO: title ≤ 60 characters, meta description ≤ 155 characters, ' . ( 'persian' === \PaydarWP\PaydarPress\Core\Settings::get( 'policy.slug_style', 'english' ) ? 'slug: leave empty (the site uses Persian addresses from the title)' : 'slug: short English, 3–5 words, lowercase with hyphens, based on the search intent (not a translation of the whole title)' ) . ', tags by the TAGS rule.',
+				'- TAGS: 1–' . \PaydarWP\PaydarPress\Profile\TaxonomyMap::MAX_TAGS . ' tags (never more than ' . \PaydarWP\PaydarPress\Profile\TaxonomyMap::MAX_TAGS . '), each one a real topic of this article, chosen from the TAGS list (exact names). Only if no listed tag fits, you may add at most ONE new tag: a general, reusable term people actually search for (not a sentence, not the article title, not a synonym or plural of a listed tag or category). Never use a category name as a tag.',
 				'- ' . \PaydarWP\PaydarPress\Images\InlinePlan::prompt_rule() . ' Each with `after_heading` (the exact H2/H3 text it follows), an English `prompt` in the VISUAL STYLE, `alt` in the site language and `why` (one line).',
 				'- ' . self::alt_rules(),
 				'- reverse_links: 2–3 EXISTING CONTENT items that should link to this new article, with an anchor and the sentence where it fits.',
@@ -676,6 +679,12 @@ final class PromptBuilder {
 		if ( ! empty( $spec['with_images'] ) ) {
 			$parts[] = self::images_text( (int) ( $spec['category_id'] ?? 0 ) );
 		}
+		if ( ! empty( $spec['with_tags'] ) ) {
+			$tags = \PaydarWP\PaydarPress\Profile\TaxonomyMap::allowed_tags( (int) ( $spec['category_id'] ?? 0 ), 40 );
+			if ( $tags ) {
+				$parts[] = "## TAGS (existing tags you may use; the most relevant first)\n" . implode( "\n", array_map( static fn( $t ) => '- ' . $t['name'] . ( '' !== $t['scope'] ? ' — ' . $t['scope'] : '' ), $tags ) );
+			}
+		}
 
 		if ( empty( $spec['no_related'] ) ) {
 			$related = self::related_text( (string) ( $spec['subject'] ?? '' ), (int) ( $spec['category_id'] ?? 0 ), (array) ( $spec['exclude'] ?? array() ) );
@@ -768,15 +777,18 @@ final class PromptBuilder {
 	 * Categories with item counts and scope.
 	 */
 	private static function categories_text(): string {
-		$scopes = array();
-		foreach ( (array) ProfileRepository::value( 'categories_scope' ) as $c ) {
-			if ( is_array( $c ) && ! empty( $c['id'] ) ) {
-				$scopes[ (int) $c['id'] ] = (string) ( $c['scope'] ?? '' );
-			}
-		}
 		$lines = array();
 		foreach ( \PaydarWP\PaydarPress\Strategy\Structure::categories() as $c ) {
-			$lines[] = '- ' . $c['name'] . ' (' . $c['count'] . ' posts, target ' . $c['target'] . ', importance ' . $c['importance'] . ( $c['gap'] > 0 ? ', needs ' . $c['gap'] . ' more' : ', target reached' ) . ')' . ( ! empty( $scopes[ $c['id'] ] ) ? ' — ' . $scopes[ $c['id'] ] : '' );
+			$lines[] = '- ' . $c['name'] . ' (' . $c['count'] . ' posts, target ' . $c['target'] . ', importance ' . $c['importance'] . ( $c['gap'] > 0 ? ', needs ' . $c['gap'] . ' more' : ', target reached' ) . ')' . ( '' !== $c['scope'] ? ' — covers: ' . $c['scope'] : '' );
+		}
+		$closed = array();
+		foreach ( \PaydarWP\PaydarPress\Profile\TaxonomyMap::notes() as $n ) {
+			if ( 'category' === ( $n['taxonomy'] ?? '' ) && ! in_array( \PaydarWP\PaydarPress\Profile\TaxonomyMap::role_of( $n ), \PaydarWP\PaydarPress\Profile\TaxonomyMap::ACTIVE_ROLES, true ) ) {
+				$closed[] = (string) $n['name'];
+			}
+		}
+		if ( $closed ) {
+			$lines[] = '(Do NOT put new content in: ' . implode( '، ', $closed ) . ' — navigation-only or retired.)';
 		}
 		return $lines ? implode( "\n", $lines ) . "\n(Prefer categories that need more posts, important ones first; for categories that reached their target, propose only clearly missing intents.)" : '- (no categories yet)';
 	}

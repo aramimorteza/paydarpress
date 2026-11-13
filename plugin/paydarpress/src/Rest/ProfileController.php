@@ -33,6 +33,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *  GET  /profile            profile, field definitions, completion, choices (pages, categories)
  *  POST /profile            { values: {field: value}, wizard_done?: bool }
  *  POST /profile/infer
+ *  GET  /taxmap             { taxonomy, search, page, filter } terms with the owner's notes
+ *  POST /taxmap/{id}        { scope, search_patterns, role, target, key_page }
  *  GET  /export             last export info
  *  POST /export             { include_drafts, compact }
  *  GET  /onboarding         first-run checklist
@@ -100,6 +102,9 @@ final class ProfileController {
 				'permission_callback' => $view,
 			)
 		);
+		register_rest_route( $ns, '/taxmap', array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'taxmap' ), 'permission_callback' => $view ) );
+		register_rest_route( $ns, '/taxmap/confirm', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'taxmap_confirm' ), 'permission_callback' => $manage ) );
+		register_rest_route( $ns, '/taxmap/(?P<id>\\d+)', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'taxmap_save' ), 'permission_callback' => $manage ) );
 		register_rest_route( $ns, '/profile/infer', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'infer' ), 'permission_callback' => $manage ) );
 
 		register_rest_route(
@@ -411,5 +416,79 @@ final class ProfileController {
 		$state         = is_array( $state ) ? $state : array();
 		$state[ $key ] = $value;
 		update_option( 'paydarpress_onboarding', $state, false );
+	}
+
+	/**
+	 * Taxonomy map page.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 */
+	public function taxmap( WP_REST_Request $request ) {
+		$taxes    = \PaydarWP\PaydarPress\Profile\TaxonomyMap::taxonomies();
+		$taxonomy = (string) $request->get_param( 'taxonomy' );
+		$taxonomy = isset( $taxes[ $taxonomy ] ) ? $taxonomy : (string) array_key_first( $taxes );
+		try {
+			$page = \PaydarWP\PaydarPress\Profile\TaxonomyMap::page( $taxonomy, sanitize_text_field( (string) $request->get_param( 'search' ) ), max( 1, (int) $request->get_param( 'page' ) ), 30, sanitize_key( (string) ( $request->get_param( 'filter' ) ?: 'all' ) ) );
+		} catch ( \RuntimeException $e ) {
+			return new \WP_Error( 'paydarpress_taxmap', $e->getMessage(), array( 'status' => 400 ) );
+		}
+		$tabs = array();
+		foreach ( $taxes as $key => $label ) {
+			$tabs[] = array(
+				'key'     => $key,
+				'label'   => $label,
+				'summary' => \PaydarWP\PaydarPress\Profile\TaxonomyMap::summary( $key ),
+			);
+		}
+		$pages = array();
+		foreach ( \PaydarWP\PaydarPress\Profile\ProfileRepository::key_page_ids() as $id ) {
+			$pages[] = array(
+				'id'    => $id,
+				'title' => html_entity_decode( get_the_title( $id ), ENT_QUOTES, 'UTF-8' ),
+			);
+		}
+		return new WP_REST_Response(
+			$page + array(
+				'taxonomy'  => $taxonomy,
+				'tabs'      => $tabs,
+				'roles'     => \PaydarWP\PaydarPress\Profile\TaxonomyMap::ROLES,
+				'key_pages' => $pages,
+				'targets'   => 'category' === $taxonomy ? self::auto_targets() : null,
+				'max_tags'  => \PaydarWP\PaydarPress\Profile\TaxonomyMap::MAX_TAGS,
+			)
+		);
+	}
+
+	/**
+	 * Confirms the map as it is (profile completion).
+	 */
+	public function taxmap_confirm(): WP_REST_Response {
+		\PaydarWP\PaydarPress\Profile\ProfileRepository::save_user( array( 'categories_scope' => array_values( \PaydarWP\PaydarPress\Profile\TaxonomyMap::notes() ) ) );
+		return new WP_REST_Response( array( 'ok' => true ) );
+	}
+
+	/**
+	 * Saves notes for one term.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 */
+	public function taxmap_save( WP_REST_Request $request ) {
+		try {
+			return new WP_REST_Response( \PaydarWP\PaydarPress\Profile\TaxonomyMap::save( (int) $request['id'], (array) $request->get_json_params() ) );
+		} catch ( \RuntimeException $e ) {
+			return new \WP_Error( 'paydarpress_taxmap', $e->getMessage(), array( 'status' => 400 ) );
+		}
+	}
+
+	/**
+	 * Automatic category targets per role (current site stage).
+	 */
+	private static function auto_targets(): array {
+		$base = \PaydarWP\PaydarPress\Strategy\Structure::BASE_TARGET[ \PaydarWP\PaydarPress\Policy\SiteStage::current() ];
+		$out  = array();
+		foreach ( \PaydarWP\PaydarPress\Strategy\Structure::IMPORTANCE_FACTOR as $role => $factor ) {
+			$out[ $role ] = (int) max( 2, round( $base * $factor ) );
+		}
+		return $out;
 	}
 }

@@ -71,7 +71,13 @@ function useProfile() {
 	 * @param {string[]} names      Field names.
 	 * @param {boolean}  wizardDone Mark the wizard as finished.
 	 */
-	const save = ( names, wizardDone = false ) => {
+	const save = ( allNames, wizardDone = false ) => {
+		// The taxonomy map saves itself row by row; confirming it here must not resend the
+		// (possibly stale) list kept in this form.
+		const names = allNames.filter( ( n ) => 'categories_scope' !== n );
+		if ( names.length !== allNames.length && canManage() ) {
+			post( '/taxmap/confirm' ).catch( () => {} );
+		}
 		const payload = {};
 		names.forEach( ( n ) => ( payload[ n ] = values[ n ] ) );
 		setSaving( true );
@@ -121,7 +127,7 @@ function Completion( { completion, defs } ) {
 const STEPS = [
 	{ title: 'اطلاعات سایت', text: 'این اطلاعات خودکار از سایت خوانده شد. حوزه و حساسیت محتوا را بررسی کنید.', fields: [ 'site_name', 'domain', 'seo_plugin', 'page_builder', 'woocommerce', 'industry_module', 'fact_sensitivity' ] },
 	{ title: 'صفحات کلیدی و دعوت به اقدام', text: 'مقالات به این صفحات لینک می‌دهند. صفحات منوی اصلی و صفحات تماس و خدمات پیشنهاد شده‌اند.', fields: [ 'key_pages', 'cta_options' ] },
-	{ title: 'دسته‌بندی‌ها', text: 'برای هر دسته بنویسید چه موضوعاتی را پوشش می‌دهد تا موضوعات جدید درست دسته‌بندی شوند.', fields: [ 'categories_scope' ] },
+	{ title: 'دسته‌ها و برچسب‌ها', text: 'برای دسته‌ها (و برچسب‌های مهم) بنویسید چه موضوعاتی را پوشش می‌دهند و نقششان چیست؛ هر ردیف جداگانه ذخیره می‌شود. موضوعات و مقالات جدید با همین نقشه دسته و برچسب می‌گیرند.', fields: [ 'categories_scope' ] },
 	{ title: 'کسب‌وکار و مخاطب', text: 'این بخش را فقط شما می‌دانید؛ پاسخ‌های کوتاه هم کافی است.', fields: [ 'business_offer', 'geographic_scope', 'primary_content_goal', 'primary_audience', 'audience_problems', 'knowledge_level', 'tone_of_voice' ] },
 	{ title: 'قوانین محتوا', text: 'چه چیزهایی هرگز نباید نوشته شود و چه اصطلاحاتی ترجیح دارند.', fields: [ 'forbidden_topics', 'industry_rules', 'brand_glossary', 'primary_keyword_patterns' ] },
 ];
@@ -349,7 +355,8 @@ export function ProfilePage() {
 					<h2 className="pp-card__title">{ title }</h2>
 					<div className={ `pp-form${ 'identity' === group ? ' pp-form--grid' : '' }` }>
 						{ Object.keys( data.defs )
-							.filter( ( name ) => data.defs[ name ].group === group )
+							// «approved_tags» moved into the taxonomy map (role per tag).
+							.filter( ( name ) => data.defs[ name ].group === group && 'approved_tags' !== name )
 							.map( ( name ) => (
 								<ProfileField key={ name } name={ name } def={ data.defs[ name ] } value={ values[ name ] } field={ data.fields[ name ] } choices={ data.choices } onChange={ profile.change } industry={ ( data.industries || {} )[ values.industry_module || data.default_industry ] } note={ 'industry_module' === name && profile.filled.length ? `بر اساس این حوزه پیشنهاد شد (قابل ویرایش): ${ profile.filled.join( '، ' ) }` : '' } />
 							) ) }

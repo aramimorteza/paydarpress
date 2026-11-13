@@ -236,23 +236,15 @@ final class ProfileRepository {
 				return $out;
 
 			case 'categories':
+				// Taxonomy map notes (categories and tags of posts and products), see TaxonomyMap.
 				$out = array();
-				foreach ( array_slice( (array) $raw, 0, 200 ) as $item ) {
+				foreach ( array_slice( (array) $raw, 0, TaxonomyMap::MAX_NOTES ) as $item ) {
 					$id   = (int) ( is_array( $item ) ? ( $item['id'] ?? 0 ) : 0 );
 					$term = $id > 0 ? get_term( $id ) : null;
-					if ( ! $term instanceof WP_Term ) {
+					if ( ! $term instanceof WP_Term || ! isset( TaxonomyMap::TAXONOMIES[ $term->taxonomy ] ) ) {
 						continue;
 					}
-					$link       = get_term_link( $term );
-					$out[ $id ] = array(
-						'id'              => $id,
-						'name'            => html_entity_decode( $term->name, ENT_QUOTES, 'UTF-8' ),
-						'url'             => is_string( $link ) ? $link : '',
-						'count'           => (int) $term->count,
-						'scope'           => mb_substr( sanitize_textarea_field( (string) ( $item['scope'] ?? '' ) ), 0, 500 ),
-						'search_patterns' => mb_substr( sanitize_text_field( (string) ( $item['search_patterns'] ?? '' ) ), 0, 300 ),
-						'importance'      => in_array( $item['importance'] ?? '', array( 'high', 'normal', 'low' ), true ) ? $item['importance'] : 'normal',
-					);
+					$out[ $id ] = TaxonomyMap::clean( $term, $item );
 				}
 				return array_values( $out );
 		}

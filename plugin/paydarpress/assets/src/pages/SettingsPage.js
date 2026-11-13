@@ -32,7 +32,7 @@ const TABS = [
 			{ path: 'audit.stale_months', type: 'number', label: 'قدیمی شدن مطلب پس از', suffix: 'ماه', help: 'مطالبی که در این مدت ویرایش نشده‌اند، در پیشنهاد بازنویسی امتیاز بیشتری می‌گیرند.' },
 			{ path: 'audit.weak_inbound_min', type: 'number', advanced: true, label: 'حداقل لینک ورودی صفحات کلیدی', suffix: 'لینک', help: 'صفحات کلیدی پروفایل که کمتر از این تعداد لینک داخلی دریافت کنند، گزارش می‌شوند.' },
 			{ path: 'audit.weak_category_min', type: 'number', advanced: true, label: 'حداقل نوشته در هر دسته', suffix: 'نوشته', help: 'دسته‌های با نوشته کمتر «دسته ضعیف» شناخته می‌شوند.' },
-			{ path: 'audit.tag_overuse_max', type: 'number', advanced: true, label: 'حداکثر برچسب برای هر نوشته', suffix: 'برچسب', help: 'نوشته‌هایی با برچسب بیشتر از این عدد گزارش می‌شوند؛ برچسب زیاد صفحات آرشیو ضعیف و تکراری می‌سازد.' },
+			{ path: 'audit.tag_overuse_max', type: 'number', advanced: true, label: 'حداکثر برچسب برای هر نوشته', suffix: 'برچسب', help: 'نوشته‌هایی با برچسب بیشتر از این عدد گزارش می‌شوند؛ برچسب زیاد صفحات آرشیو ضعیف و تکراری می‌سازد. پرامپت‌ها و ورود مقاله همیشه حداکثر ۵ برچسب می‌گذارند.' },
 			{ path: 'audit.gsc_min_impressions', type: 'number', advanced: true, label: 'حداقل نمایش برای فرصت سرچ کنسول', suffix: 'نمایش', help: 'صفحات با نمایش کمتر از این عدد در «نزدیک صفحه اول» و «رتبه خوب، کلیک کم» گزارش نمی‌شوند.' },
 			{ path: 'audit.orphan_exclude_ids', type: 'ids', advanced: true, label: 'شناسه صفحاتی که یتیم حساب نشوند', help: 'شناسه نوشته یا برگه را با ویرگول جدا کنید؛ مثلاً صفحات فرود تبلیغاتی که عمداً لینک داخلی ندارند.' },
 		],

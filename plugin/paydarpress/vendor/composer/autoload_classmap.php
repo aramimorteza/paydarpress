@@ -61,6 +61,7 @@ return array(
     'PaydarWP\\PaydarPress\\Profile\\Industries' => $baseDir . '/src/Profile/Industries.php',
     'PaydarWP\\PaydarPress\\Profile\\ProfileInference' => $baseDir . '/src/Profile/ProfileInference.php',
     'PaydarWP\\PaydarPress\\Profile\\ProfileRepository' => $baseDir . '/src/Profile/ProfileRepository.php',
+    'PaydarWP\\PaydarPress\\Profile\\TaxonomyMap' => $baseDir . '/src/Profile/TaxonomyMap.php',
     'PaydarWP\\PaydarPress\\Queue\\Queue' => $baseDir . '/src/Queue/Queue.php',
     'PaydarWP\\PaydarPress\\Rest\\AiController' => $baseDir . '/src/Rest/AiController.php',
     'PaydarWP\\PaydarPress\\Rest\\AuditController' => $baseDir . '/src/Rest/AuditController.php',

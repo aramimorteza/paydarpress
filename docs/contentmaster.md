@@ -1,4 +1,4 @@
-# ContentMaster v1.15
+# ContentMaster v1.16
 ### Multi-site SEO content system: Setup, Topic Research, Article Writing, Content Refresh
 
 ---
@@ -313,10 +313,10 @@ The PaydarPress plugin exports the site as JSON (schema `1.x`, profile `contentm
 ### 6.5 Output for PaydarPress (`خروجی پایدارپرس`)
 
 Produce **one** JSON code block and nothing else except one line before it: «این متن را در پایدارپرس ← ورود از ContentMaster بچسبانید.» Rules:
-- `schema` is exactly `paydarpress-import/1`; `generator` is `ContentMaster 1.15`; `site` is the profile domain.
+- `schema` is exactly `paydarpress-import/1`; `generator` is `ContentMaster 1.16`; `site` is the profile domain.
 - By default include the **working topic list** (`topics`) and **every article written in this conversation** (`articles`). `خروجی پایدارپرس: موضوعات` or `خروجی پایدارپرس: مقاله ۳` limit the output.
 - Never shorten or summarize an article for the export: `html` is the exact final HTML of the article (after any «اصلاح»), as one JSON string with escaped quotes and newlines. If the conversation is too long to reproduce an article exactly, export it alone with `خروجی پایدارپرس: مقاله [شماره]`.
-- Use only category names from the profile (`category`), and tags from the article's SEO output.
+- Use only category names from the profile (`category`). Every taxonomy item in the export has a `role` (high / normal / low = active, nav = navigation only, retired = do not use): never put new content in a `nav` or `retired` category or tag. Tags: 1–5 per article (never more), from existing active tags first; at most ONE new tag and only if none fits (a general, searched term — not a sentence, the title, a synonym of an existing tag, or a category name).
 - `reverse_links` come from the article's reverse-link suggestions; `source_url` must be an existing inventory URL.
 - `link_suggestions` (optional) are other internal links you recommended in this conversation for existing articles (from `بروزرسانی` or cluster work), with the exact anchor sentence present in the source article when known.
 - **Rewrites** (`بروزرسانی` with a full new version): put them in `articles` with `"rewrite_of": "<current URL>"` and the FULL new HTML. The plugin creates a separate draft; the live page changes only when the owner clicks «جایگزینی نوشته اصلی». For products, `html` is the full product description and `excerpt` the short description.
@@ -338,7 +338,7 @@ Produce **one** JSON code block and nothing else except one line before it: «ا
 ```json
 {
   "schema": "paydarpress-import/1",
-  "generator": "ContentMaster 1.15",
+  "generator": "ContentMaster 1.16",
   "site": "example.com",
   "topics": [ { "title": "", "category": "", "focus_keyword": "", "intent": "informational|educational|how-to|commercial|support", "notes": "" } ],
   "articles": [ {

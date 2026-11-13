@@ -567,10 +567,7 @@ final class InventoryExporter {
 			'product_categories' => 'product_cat',
 			'product_tags'       => 'product_tag',
 		);
-		$scopes = array();
-		foreach ( (array) ProfileRepository::value( 'categories_scope' ) as $item ) {
-			$scopes[ (int) $item['id'] ] = (string) $item['scope'];
-		}
+		$notes = \PaydarWP\PaydarPress\Profile\TaxonomyMap::notes();
 
 		foreach ( $map as $key => $taxonomy ) {
 			if ( ! taxonomy_exists( $taxonomy ) ) {
@@ -590,7 +587,12 @@ final class InventoryExporter {
 				if ( is_taxonomy_hierarchical( $taxonomy ) ) {
 					$entry['parent']          = (int) $term->parent;
 					$entry['has_description'] = mb_strlen( trim( wp_strip_all_tags( $term->description ) ) ) >= 50;
-					$entry['scope']           = $scopes[ (int) $term->term_id ] ?? '';
+				}
+				// Owner's notes from the taxonomy map (role: high|normal|low|nav|retired).
+				$n             = $notes[ (int) $term->term_id ] ?? array();
+				$entry['role'] = \PaydarWP\PaydarPress\Profile\TaxonomyMap::role_of( $n );
+				if ( '' !== (string) ( $n['scope'] ?? '' ) ) {
+					$entry['scope'] = (string) $n['scope'];
 				}
 				$list[] = $entry;
 			}

@@ -36,7 +36,7 @@ final class Settings {
 			'audit'       => array(
 				'thin_words'              => 300,
 				'weak_category_min'       => 3,
-				'tag_overuse_max'         => 8,
+				'tag_overuse_max'         => 5,
 				'weak_inbound_min'        => 3,
 				'stale_months'            => 18,
 				'orphan_exclude_ids'      => array(),
