@@ -6,6 +6,7 @@ import FindingsList from '../components/FindingsList';
 import FindingCard from '../components/FindingCard';
 import AiButton from '../components/AiButton';
 import StructurePanel from '../components/StructurePanel';
+import ClassifyPanel from '../components/ClassifyPanel';
 import MergeButton from '../components/MergeButton';
 import { refreshCommand, termCommand, termTextCommand } from '../lib/aiCommands';
 import { get, post, errorMessage } from '../lib/api';
@@ -312,6 +313,7 @@ export function TaxonomiesPage() {
 			{ data && (
 				<>
 					<StructurePanel />
+					<ClassifyPanel />
 					<h2 className="pp-section-title">دسته‌بندی‌ها ({ num( data.categories.length ) })</h2>
 					<p className="pp-muted">«هدف» تعداد مطلب مناسب هر دسته است و از مرحله سایت و نقش دسته می‌آید. نقش، محدوده و هدف هر دسته و برچسب را در <a href="#/profile">پروفایل ← نقشه دسته‌ها و برچسب‌ها</a> تعیین کنید؛ دسته‌های «فقط ناوبری» و «کنار گذاشته» هدف ندارند.</p>
 					{ table( data.categories, 'دسته‌بندی‌ای وجود ندارد.', 'category' ) }

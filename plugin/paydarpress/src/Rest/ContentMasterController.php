@@ -78,6 +78,8 @@ final class ContentMasterController {
 					'seo_updates'      => $ids,
 					'structure_suggestions' => $ids,
 					'image_alts'       => $ids,
+					'new_terms'        => $ids,
+					'classifications'  => $ids,
 				),
 			)
 		);
@@ -137,6 +139,14 @@ final class ContentMasterController {
 		$text  = (string) $request->get_param( 'text' );
 		$files = $request->get_file_params();
 		$job   = (int) $request->get_param( 'job' );
+		$batch = (int) $request->get_param( 'batch' );
+		if ( $batch > 0 ) {
+			try {
+				$text = \PaydarWP\PaydarPress\Ai\AiJobs::batch_response( $batch );
+			} catch ( Throwable $e ) {
+				return new WP_Error( 'paydarpress_cm_batch', $e->getMessage(), array( 'status' => 404 ) );
+			}
+		}
 
 		// Automatic mode: the reply is read on the server; it never travels through the browser twice.
 		if ( $job > 0 ) {
@@ -183,6 +193,8 @@ final class ContentMasterController {
 					'seo_updates'      => (array) $request->get_param( 'seo_updates' ),
 					'structure_suggestions' => (array) $request->get_param( 'structure_suggestions' ),
 					'image_alts'       => (array) $request->get_param( 'image_alts' ),
+					'new_terms'        => (array) $request->get_param( 'new_terms' ),
+					'classifications'  => (array) $request->get_param( 'classifications' ),
 				)
 			);
 		} catch ( Throwable $e ) {
@@ -194,6 +206,10 @@ final class ContentMasterController {
 		$job = (int) $request->get_param( 'job' );
 		if ( $job > 0 ) {
 			\PaydarWP\PaydarPress\Ai\AiJobs::close( $job, 'imported' );
+		}
+		$batch = (int) $request->get_param( 'batch' );
+		if ( $batch > 0 ) {
+			\PaydarWP\PaydarPress\Ai\AiJobs::close_batch( $batch, 'imported' );
 		}
 
 		return new WP_REST_Response( $result );

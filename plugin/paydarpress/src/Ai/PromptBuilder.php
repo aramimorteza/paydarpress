@@ -26,7 +26,7 @@ defined( 'ABSPATH' ) || exit;
  */
 final class PromptBuilder {
 
-	public const TASKS = array( 'topics', 'article', 'rewrite', 'term', 'meta', 'structure', 'merge', 'alt' );
+	public const TASKS = array( 'topics', 'article', 'rewrite', 'term', 'meta', 'structure', 'merge', 'alt', 'classify' );
 
 	/** Existing items listed for duplicate checks and internal links. */
 	private const RELATED_LIMIT = 60;
@@ -441,6 +441,48 @@ final class PromptBuilder {
 	}
 
 	/**
+	 * Categories and tags for existing posts or products (add only).
+	 *
+	 * @param array $args ids (comma-separated) or kind + scope (next chunk of candidates).
+	 * @throws RuntimeException When there is nothing to classify.
+	 */
+	private static function task_classify( array $args ): array {
+		$ids = array_values( array_filter( array_map( 'intval', explode( ',', (string) ( $args['ids'] ?? '' ) ) ) ) );
+		if ( ! $ids ) {
+			$ids = array_slice( \PaydarWP\PaydarPress\Strategy\Classifier::candidates( (string) ( $args['kind'] ?? 'post' ), (string) ( $args['scope'] ?? 'weak' ) ), 0, \PaydarWP\PaydarPress\Strategy\Classifier::CHUNK );
+		}
+		$ids = array_slice( $ids, 0, \PaydarWP\PaydarPress\Strategy\Classifier::CHUNK );
+		if ( ! $ids ) {
+			throw new RuntimeException( 'مطلبی برای طبقه‌بندی نمانده است.' );
+		}
+		$kind  = 'product' === get_post_type( $ids[0] ) ? 'product' : 'post';
+		$label = 'product' === $kind ? 'محصول' : 'مقاله';
+		$max   = \PaydarWP\PaydarPress\Profile\TaxonomyMap::MAX_TAGS;
+
+		$task = 'Choose better categories and tags for each existing ' . ( 'product' === $kind ? 'product' : 'article' ) . " listed below. Read its title, headings and beginning, then:\n"
+			. "- add_categories: categories from the CATEGORIES list (exact names) that clearly fit its main subject and are missing. Usually 0 or 1; never more than 2. Use the «covers» notes to decide.\n"
+			. "- primary_category: only when the item's current main category is clearly wrong (or it has none / only the default one); otherwise empty.\n"
+			. "- add_tags: tags from EXISTING TAGS (exact names) that describe real topics of the item and are missing. The item may have at most {$max} tags in total including its current ones.\n"
+			. "- new_tags: at most ONE new tag per item, and only if no existing tag fits: a general, reusable term people actually search for (not a sentence, not the title, not a plural, synonym or near-duplicate of an existing tag or a category). Prefer none.\n"
+			. "- misfit: current categories or tags of the item that clearly do not fit it (they will be reported to the owner; nothing is removed).\n"
+			. 'Be conservative: when unsure, add nothing. Never invent category names.'
+			. "\n\n" . \PaydarWP\PaydarPress\Strategy\Classifier::terms_text( $kind )
+			. "\n\n## ITEMS\n" . \PaydarWP\PaydarPress\Strategy\Classifier::items_text( $ids );
+
+		return array(
+			'title'      => 'طبقه‌بندی ' . PersianNormalizer::fa_number( count( $ids ) ) . ' ' . $label,
+			'command'    => '',
+			'task'       => $task,
+			'subject'    => '',
+			'rules'      => self::rules_short(),
+			'output'     => self::output( 'classify' ),
+			'no_related' => true,
+			'minimal'    => true,
+			'object_id'  => null,
+		);
+	}
+
+	/**
 	 * Merge: one rewrite of the article that stays, absorbing what is valuable in the other.
 	 *
 	 * @param array $args from, into.
@@ -641,6 +683,8 @@ final class PromptBuilder {
 				return $head . 'with "term_descriptions": [{"taxonomy": "' . $ctx['taxonomy'] . '", "term_id": ' . (int) $ctx['term_id'] . ', "name": ' . wp_json_encode( $ctx['name'], JSON_UNESCAPED_UNICODE ) . ', "description": "<HTML>"}]';
 			case 'structure':
 				return $head . 'with "structure_suggestions": [{"action": "merge|split|create|rename|noindex|keep", "taxonomy": "category|product_cat", "term_id": 0, "name": "<current name>", "new_name": "<new display name, for create/rename/split>", "into_term_id": 0, "into_name": "<target category, for merge>", "reason": "<one or two sentences in the site language>", "priority": "high|medium|low"}] and "notes": "<short overall assessment in the site language>".';
+			case 'classify':
+				return $head . 'with "classifications": [{"id": <ITEM id>, "add_categories": ["<exact category name>"], "primary_category": "<exact name, only when the current main category is clearly wrong, else empty>", "add_tags": ["<exact existing tag>"], "new_tags": ["<new tag, rarely>"], "misfit": [{"term": "<a CURRENT category or tag of the item that clearly does not fit>", "reason": "<short, site language>"}]}] — one entry for EVERY item listed, even when nothing changes (then empty lists).';
 			case 'alt':
 				return $head . 'with "image_alts": [{"ref": "<ref exactly as listed>", "alt": "<alt text>"}] — one item for EVERY image listed, in the same order.';
 			case 'meta':

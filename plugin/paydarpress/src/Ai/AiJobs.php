@@ -40,6 +40,7 @@ final class AiJobs {
 	private const INLINE_AFTER = 4;
 
 	public const STATUS_LABELS = array(
+		'waiting'   => 'در انتظار نوبت',
 		'queued'    => 'در صف',
 		'running'   => 'در حال نوشتن',
 		'ready'     => 'آماده بررسی',
@@ -181,6 +182,10 @@ final class AiJobs {
 
 		$fields['finished_at'] = current_time( 'mysql', true );
 		$wpdb->update( $table, $fields, array( 'id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+		if ( (int) $row['batch_id'] > 0 ) {
+			self::advance( (int) $row['batch_id'] );
+		}
 	}
 
 	/**
@@ -209,6 +214,7 @@ final class AiJobs {
 			'meta'      => array( 'seo_updates' ),
 			'structure' => array( 'structure_suggestions' ),
 			'alt'       => array( 'image_alts' ),
+			'classify'  => array( 'classifications' ),
 		);
 		$sections = $need[ $task ] ?? array();
 		foreach ( $sections as $section ) {
@@ -318,7 +324,7 @@ final class AiJobs {
 		global $wpdb;
 		$table = Schema::table( 'ai_jobs' );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT id FROM {$table} WHERE status <> 'discarded' ORDER BY id DESC LIMIT %d", max( 1, min( 100, $limit ) ) ), ARRAY_A );
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT id FROM {$table} WHERE status <> 'discarded' AND batch_id = 0 ORDER BY id DESC LIMIT %d", max( 1, min( 100, $limit ) ) ), ARRAY_A );
 		return array_values( array_filter( array_map( static fn( $r ) => self::get( (int) $r['id'] ), (array) $rows ) ) );
 	}
 
@@ -329,7 +335,10 @@ final class AiJobs {
 		global $wpdb;
 		$table = Schema::table( 'ai_jobs' );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE status = 'ready'" );
+		$single = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE status = 'ready' AND batch_id = 0" );
+		// A batch counts once, when all of its jobs have finished.
+		$batches = (int) $wpdb->get_var( "SELECT COUNT(*) FROM (SELECT batch_id FROM {$table} WHERE batch_id > 0 GROUP BY batch_id HAVING SUM(status = 'ready') > 0 AND SUM(status IN ('waiting','queued','running')) = 0) b" );
+		return $single + $batches;
 	}
 
 	/**
@@ -415,6 +424,221 @@ final class AiJobs {
 	private static function close_failed( int $id ): void {
 		global $wpdb;
 		$wpdb->update( Schema::table( 'ai_jobs' ), array( 'status' => 'discarded' ), array( 'id' => $id, 'status' => 'failed' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+	}
+
+	/**
+	 * Starts a batch: one request per chunk, run one after another (they never block single
+	 * jobs). The whole batch is checked against the monthly limit first.
+	 *
+	 * @param string $task   Task.
+	 * @param array  $chunks Task arguments per request.
+	 * @param string $title  Batch title.
+	 * @return array Batch view.
+	 * @throws RuntimeException With a Persian message.
+	 */
+	public static function start_batch( string $task, array $chunks, string $title ): array {
+		global $wpdb;
+		if ( null === Credentials::connection() ) {
+			throw new RuntimeException( 'اتصال هوش مصنوعی تنظیم نشده است. در «تنظیمات ← هوش مصنوعی» کلید API و مدل را وارد کنید.' );
+		}
+		if ( ! $chunks ) {
+			throw new RuntimeException( 'موردی برای اجرا نیست.' );
+		}
+		Usage::assert_allowed( $task );
+		$month = Usage::month();
+		$left  = max( 0, (int) Settings::get( 'ai.monthly_requests', 300 ) - $month['requests'] );
+		if ( count( $chunks ) > $left ) {
+			throw new RuntimeException( sprintf( 'این کار %s درخواست لازم دارد اما از سهمیه این ماه %s درخواست مانده است. سقف ماهانه را در «تنظیمات ← هوش مصنوعی» بیشتر کنید یا دامنه را کوچک‌تر کنید.', PersianNormalizer::fa_number( count( $chunks ) ), PersianNormalizer::fa_number( $left ) ) );
+		}
+		$table = Schema::table( 'ai_jobs' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		if ( (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE batch_id > 0 AND status IN ('waiting','queued','running')" ) > 0 ) {
+			throw new RuntimeException( 'یک اجرای گروهی دیگر در حال انجام است. صبر کنید تمام شود یا آن را متوقف کنید.' );
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$batch = (int) $wpdb->get_var( "SELECT COALESCE(MAX(batch_id), 0) + 1 FROM {$table}" );
+		$now   = current_time( 'mysql', true );
+		$n     = 0;
+		foreach ( $chunks as $args ) {
+			++$n;
+			$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+				$table,
+				array(
+					'task'       => $task,
+					'args'       => wp_json_encode( self::clean_args( $args ) ),
+					'title'      => mb_substr( $title . ' — بخش ' . PersianNormalizer::fa_number( $n ) . ' از ' . PersianNormalizer::fa_number( count( $chunks ) ), 0, 250 ),
+					'status'     => 'waiting',
+					'user_id'    => get_current_user_id(),
+					'created_at' => $now,
+					'batch_id'   => $batch,
+				)
+			);
+		}
+		update_option( 'paydarpress_ai_batch_' . $batch, mb_substr( $title, 0, 200 ), false );
+		self::advance( $batch );
+		Activity::log( 'ai.batch_started', sprintf( 'اجرای گروهی «%s» با %s درخواست شروع شد.', $title, PersianNormalizer::fa_number( count( $chunks ) ) ) );
+		return self::batch( $batch );
+	}
+
+	/**
+	 * Queues the next waiting job of a batch when none is running.
+	 *
+	 * @param int $batch Batch.
+	 */
+	public static function advance( int $batch ): void {
+		global $wpdb;
+		$table = Schema::table( 'ai_jobs' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		if ( (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE batch_id = %d AND status IN ('queued','running')", $batch ) ) > 0 ) {
+			return;
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$next = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE batch_id = %d AND status = 'waiting' ORDER BY id ASC LIMIT 1", $batch ) );
+		if ( $next <= 0 ) {
+			return;
+		}
+		try {
+			$task = (string) $wpdb->get_var( $wpdb->prepare( "SELECT task FROM {$table} WHERE id = %d", $next ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			Usage::assert_allowed( $task );
+		} catch ( RuntimeException $e ) {
+			// Monthly limit reached: the rest of the batch stops with the reason.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET status = 'failed', error = %s, finished_at = %s WHERE batch_id = %d AND status = 'waiting'", mb_substr( $e->getMessage(), 0, 1000 ), current_time( 'mysql', true ), $batch ) );
+			return;
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET status = 'queued', created_at = %s WHERE id = %d AND status = 'waiting'", current_time( 'mysql', true ), $next ) );
+		Queue::schedule( self::ACTION, array( $next ), 0, false );
+	}
+
+	/**
+	 * Batch progress. Runs the current job here when the background queue does not.
+	 *
+	 * @param int $batch Batch.
+	 */
+	public static function poll_batch( int $batch ): ?array {
+		global $wpdb;
+		$table = Schema::table( 'ai_jobs' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$current = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE batch_id = %d AND status IN ('queued','running') ORDER BY id ASC LIMIT 1", $batch ) );
+		if ( $current > 0 ) {
+			self::poll( $current );
+		} else {
+			self::advance( $batch );
+		}
+		return self::batch( $batch );
+	}
+
+	/**
+	 * Batch view.
+	 *
+	 * @param int $batch Batch.
+	 */
+	public static function batch( int $batch ): ?array {
+		global $wpdb;
+		$table = Schema::table( 'ai_jobs' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT id, task, status, error, input_tokens, output_tokens, created_at, finished_at FROM {$table} WHERE batch_id = %d ORDER BY id ASC", $batch ), ARRAY_A );
+		if ( ! $rows ) {
+			return null;
+		}
+		$count = array_fill_keys( array( 'waiting', 'queued', 'running', 'ready', 'failed', 'imported', 'discarded' ), 0 );
+		$tok   = 0;
+		$errs  = array();
+		foreach ( $rows as $r ) {
+			++$count[ $r['status'] ];
+			$tok += (int) $r['input_tokens'] + (int) $r['output_tokens'];
+			if ( 'failed' === $r['status'] && $r['error'] ) {
+				$errs[] = $r['error'];
+			}
+		}
+		$active = $count['waiting'] + $count['queued'] + $count['running'];
+		$status = $active > 0 ? 'running' : ( $count['ready'] > 0 ? 'ready' : ( $count['imported'] > 0 ? 'imported' : ( $count['failed'] > 0 ? 'failed' : 'discarded' ) ) );
+		return array(
+			'id'           => $batch,
+			'batch'        => true,
+			'task'         => $rows[0]['task'],
+			'task_label'   => AiClient::TASK_LABELS[ $rows[0]['task'] ] ?? $rows[0]['task'],
+			'title'        => (string) get_option( 'paydarpress_ai_batch_' . $batch, '' ),
+			'total'        => count( $rows ),
+			'counts'       => $count,
+			'done'         => count( $rows ) - $active,
+			'status'       => $status,
+			'status_label' => array( 'running' => 'در حال اجرا', 'ready' => 'آماده بررسی', 'imported' => 'وارد شد', 'failed' => 'ناموفق', 'discarded' => 'کنار گذاشته شد' )[ $status ],
+			'errors'       => array_slice( array_unique( $errs ), 0, 3 ),
+			'tokens'       => $tok,
+			'created_at'   => self::iso( $rows[0]['created_at'] ),
+		);
+	}
+
+	/**
+	 * Recent batches.
+	 *
+	 * @param int $limit Limit.
+	 * @return array[]
+	 */
+	public static function recent_batches( int $limit = 10 ): array {
+		global $wpdb;
+		$table = Schema::table( 'ai_jobs' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$ids = $wpdb->get_col( $wpdb->prepare( "SELECT batch_id FROM {$table} WHERE batch_id > 0 GROUP BY batch_id HAVING SUM(status <> 'discarded') > 0 ORDER BY batch_id DESC LIMIT %d", $limit ) );
+		return array_values( array_filter( array_map( static fn( $b ) => self::batch( (int) $b ), (array) $ids ) ) );
+	}
+
+	/**
+	 * All finished replies of a batch combined into one import (list sections only).
+	 *
+	 * @param int $batch Batch.
+	 * @throws RuntimeException When nothing is ready.
+	 */
+	public static function batch_response( int $batch ): string {
+		global $wpdb;
+		$table = Schema::table( 'ai_jobs' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$texts = $wpdb->get_col( $wpdb->prepare( "SELECT response FROM {$table} WHERE batch_id = %d AND status = 'ready' ORDER BY id ASC", $batch ) );
+		$out   = array( 'schema' => ImportParser::SCHEMA, 'generator' => 'PaydarPress batch' );
+		$notes = array();
+		foreach ( (array) $texts as $text ) {
+			try {
+				$parsed = ImportParser::parse( (string) $text );
+			} catch ( RuntimeException $e ) {
+				continue;
+			}
+			foreach ( array( 'classifications', 'image_alts' ) as $section ) {
+				if ( ! empty( $parsed[ $section ] ) ) {
+					$out[ $section ] = array_merge( $out[ $section ] ?? array(), $parsed[ $section ] );
+				}
+			}
+			if ( '' !== (string) ( $parsed['notes'] ?? '' ) ) {
+				$notes[] = $parsed['notes'];
+			}
+		}
+		if ( count( $out ) <= 2 ) {
+			throw new RuntimeException( 'پاسخی برای بررسی در این اجرای گروهی نیست.' );
+		}
+		if ( $notes ) {
+			$out['notes'] = mb_substr( implode( ' — ', array_unique( $notes ) ), 0, 2000 );
+		}
+		return (string) wp_json_encode( $out, JSON_UNESCAPED_UNICODE );
+	}
+
+	/**
+	 * Marks the finished jobs of a batch as imported, or the whole batch as discarded.
+	 *
+	 * @param int    $batch  Batch.
+	 * @param string $status imported|discarded.
+	 */
+	public static function close_batch( int $batch, string $status ): void {
+		global $wpdb;
+		$table = Schema::table( 'ai_jobs' );
+		if ( 'imported' === $status ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET status = 'imported', imported_at = %s WHERE batch_id = %d AND status = 'ready'", current_time( 'mysql', true ), $batch ) );
+		} elseif ( 'discarded' === $status ) {
+			// Stops the batch too: waiting and queued jobs are not sent.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET status = 'discarded' WHERE batch_id = %d AND status IN ('waiting','queued','ready','failed')", $batch ) );
+		}
 	}
 
 	/**

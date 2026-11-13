@@ -33,6 +33,7 @@ final class AiClient {
 		'alt'        => 'متن جایگزین تصویر',
 		'structure'  => 'بررسی ساختار دسته‌ها',
 		'merge'      => 'ادغام دو مقاله',
+		'classify'   => 'طبقه‌بندی مطالب',
 	);
 
 	private const TIMEOUT = 180;

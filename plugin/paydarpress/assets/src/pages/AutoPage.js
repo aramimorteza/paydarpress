@@ -5,6 +5,7 @@ import EmptyState from '../components/EmptyState';
 import { AiUsage } from '../components/AiConnection';
 import InlineImport from '../components/InlineImport';
 import { JobProgress, useJobPolling } from '../components/AutoRun';
+import { BatchCard } from '../components/ClassifyPanel';
 import { get, post, errorMessage } from '../lib/api';
 import { ago, num } from '../lib/format';
 
@@ -112,6 +113,13 @@ export default function AutoPage() {
 						</>
 					) }
 				</section>
+			) }
+
+			{ data && data.batches && data.batches.length > 0 && (
+				<>
+					<h2 className="pp-section-title">اجراهای گروهی</h2>
+					{ data.batches.map( ( b ) => <BatchCard key={ b.id } initial={ b } onChange={ load } /> ) }
+				</>
 			) }
 
 			{ data && data.items.length > 0 && (

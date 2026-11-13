@@ -139,6 +139,7 @@ final class ImportService {
 			$seo_items[] = $this->check_seo( $i, $u );
 		}
 		$alt_items = $this->check_alts( (array) ( $parsed['image_alts'] ?? array() ) );
+		$classes   = $this->check_classifications( (array) ( $parsed['classifications'] ?? array() ) );
 		$struct_items = array();
 		foreach ( $parsed['structure_suggestions'] as $i => $st ) {
 			$struct_items[] = $this->check_structure( $i, $st );
@@ -160,6 +161,8 @@ final class ImportService {
 			'seo_updates'      => $seo_items,
 			'structure_suggestions' => $struct_items,
 			'image_alts'       => $alt_items,
+			'new_terms'        => $classes['new_terms'],
+			'classifications'  => $classes['items'],
 		);
 
 		set_transient( $this->transient_key( $token ), $payload, self::TTL );
@@ -218,6 +221,9 @@ final class ImportService {
 			'terms'            => 0,
 			'seo'              => 0,
 			'alts'             => 0,
+			'classified'       => 0,
+			'new_terms'        => 0,
+			'notes'            => array(),
 			'errors'           => array(),
 		);
 		$preview += array(
@@ -225,6 +231,8 @@ final class ImportService {
 			'seo_updates'       => array(),
 			'structure_suggestions' => array(),
 			'image_alts'        => array(),
+			'new_terms'         => array(),
+			'classifications'   => array(),
 		);
 
 		foreach ( $pick( 'topics' ) as $topic ) {
@@ -303,6 +311,41 @@ final class ImportService {
 		foreach ( array_keys( $alt_posts ) as $alt_post ) {
 			\PaydarWP\PaydarPress\Queue\Queue::schedule( \PaydarWP\PaydarPress\Scanner\ScanManager::ACTION_ITEM, array( (int) $alt_post ), 10, true );
 		}
+
+		// Classification: approved new tags first, then the items (add only).
+		$created = array();
+		$made    = array();
+		foreach ( $pick( 'new_terms' ) as $nt ) {
+			$existing = get_term_by( 'name', $nt['name'], $nt['taxonomy'] );
+			if ( $existing instanceof \WP_Term ) {
+				$created[ $nt['name'] ] = (int) $existing->term_id;
+				continue;
+			}
+			$ins = wp_insert_term( $nt['name'], $nt['taxonomy'] );
+			if ( is_wp_error( $ins ) ) {
+				$result['errors'][] = '«' . $nt['name'] . '»: ' . $ins->get_error_message();
+				continue;
+			}
+			$created[ $nt['name'] ] = (int) $ins['term_id'];
+			$made[]                 = (int) $ins['term_id'];
+			++$result['new_terms'];
+		}
+		$undo = array();
+		foreach ( $pick( 'classifications' ) as $c ) {
+			$done = \PaydarWP\PaydarPress\Strategy\Classifier::apply( $c, $created );
+			if ( ! $done['ok'] ) {
+				$result['errors'][] = '«' . $c['title'] . '»: ' . $done['message'];
+				continue;
+			}
+			++$result['classified'];
+			if ( $done['undo']['terms'] || null !== $done['undo']['primary'] ) {
+				$undo[] = $done['undo'];
+			}
+			if ( '' !== $done['message'] ) {
+				$result['notes'][] = '«' . $c['title'] . '»: ' . $done['message'];
+			}
+		}
+		\PaydarWP\PaydarPress\Strategy\Classifier::log( $undo, $made );
 
 		$result['structure'] = \PaydarWP\PaydarPress\Strategy\StructurePlan::add( $pick( 'structure_suggestions' ) );
 
@@ -788,6 +831,192 @@ final class ImportService {
 			);
 		}
 		return $out;
+	}
+
+	/**
+	 * Checks category and tag suggestions for existing items (add only).
+	 *
+	 * @param array $items Parsed classifications.
+	 * @return array{items: array[], new_terms: array[]}
+	 */
+	private function check_classifications( array $items ): array {
+		$map   = \PaydarWP\PaydarPress\Profile\TaxonomyMap::class;
+		$cls   = \PaydarWP\PaydarPress\Strategy\Classifier::class;
+		$out   = array();
+		$new   = array();
+		$norm  = static fn( string $v ): string => preg_replace( '/(\s*ها|\s*های)$/u', '', PersianNormalizer::for_key( $v ) );
+		$known = array();
+		foreach ( $items as $index => $c ) {
+			$post = get_post( (int) $c['id'] );
+			$checks = array();
+			if ( ! $post instanceof \WP_Post || 'publish' !== $post->post_status || ! in_array( $post->post_type, array( 'post', 'product' ), true ) ) {
+				$out[] = $this->with_checks(
+					array(
+						'index'   => $index,
+						'post_id' => (int) $c['id'],
+						'title'   => '#' . (int) $c['id'],
+						'kind'    => '',
+					),
+					array( array( 'error', 'مطلب منتشرشده‌ای با این شناسه پیدا نشد.' ) )
+				);
+				continue;
+			}
+			$kind = 'product' === $post->post_type ? 'product' : 'post';
+			$k    = $cls::KINDS[ $kind ];
+			if ( ! isset( $known[ $kind ] ) ) {
+				$known[ $kind ] = array();
+				foreach ( array( $k['cat'], $k['tag'] ) as $tax ) {
+					foreach ( taxonomy_exists( $tax ) ? (array) get_terms( array( 'taxonomy' => $tax, 'hide_empty' => false, 'number' => 0 ) ) : array() as $t ) {
+						if ( $t instanceof \WP_Term ) {
+							$known[ $kind ][ $tax ][ $norm( html_entity_decode( $t->name, ENT_QUOTES, 'UTF-8' ) ) ] = $t;
+						}
+					}
+				}
+			}
+			$active  = static fn( \WP_Term $t ): bool => in_array( $map::role( (int) $t->term_id ), $map::ACTIVE_ROLES, true );
+			$default = 'category' === $k['cat'] ? (int) get_option( 'default_category' ) : 0;
+			$cur_cat = wp_get_post_terms( $post->ID, $k['cat'], array( 'fields' => 'ids' ) );
+			$cur_tag = taxonomy_exists( $k['tag'] ) ? wp_get_post_terms( $post->ID, $k['tag'], array( 'fields' => 'ids' ) ) : array();
+			$cur_cat = is_array( $cur_cat ) ? array_map( 'intval', $cur_cat ) : array();
+			$cur_tag = is_array( $cur_tag ) ? array_map( 'intval', $cur_tag ) : array();
+
+			$add_cat = array();
+			$skipped = array();
+			foreach ( $c['add_categories'] as $name ) {
+				$t = $known[ $kind ][ $k['cat'] ][ $norm( $name ) ] ?? null;
+				if ( ! $t || (int) $t->term_id === $default || ! $active( $t ) ) {
+					$skipped[] = $name;
+				} elseif ( ! in_array( (int) $t->term_id, $cur_cat, true ) ) {
+					$add_cat[ (int) $t->term_id ] = html_entity_decode( $t->name, ENT_QUOTES, 'UTF-8' );
+				}
+			}
+			$add_cat = array_slice( $add_cat, 0, 2, true );
+
+			$room    = max( 0, $map::MAX_TAGS - count( $cur_tag ) );
+			$add_tag = array();
+			$new_tag = array();
+			foreach ( $c['add_tags'] as $name ) {
+				$t = $known[ $kind ][ $k['tag'] ][ $norm( $name ) ] ?? null;
+				if ( ! $t || ! $active( $t ) || isset( $known[ $kind ][ $k['cat'] ][ $norm( $name ) ] ) ) {
+					$skipped[] = $name;
+				} elseif ( ! in_array( (int) $t->term_id, $cur_tag, true ) ) {
+					$add_tag[ (int) $t->term_id ] = html_entity_decode( $t->name, ENT_QUOTES, 'UTF-8' );
+				}
+			}
+			foreach ( array_slice( $c['new_tags'], 0, 1 ) as $name ) {
+				$key = $norm( $name );
+				if ( isset( $known[ $kind ][ $k['tag'] ][ $key ] ) ) {
+					$t = $known[ $kind ][ $k['tag'] ][ $key ];
+					if ( $active( $t ) && ! in_array( (int) $t->term_id, $cur_tag, true ) ) {
+						$add_tag[ (int) $t->term_id ] = html_entity_decode( $t->name, ENT_QUOTES, 'UTF-8' );
+					}
+				} elseif ( isset( $known[ $kind ][ $k['cat'] ][ $key ] ) || mb_strlen( $name ) > 40 || mb_strlen( $name ) < 2 || preg_match( '/[.!؟?]/u', $name ) ) {
+					$skipped[] = $name;
+				} elseif ( taxonomy_exists( $k['tag'] ) ) {
+					$new_tag[] = $name;
+				}
+			}
+			$add_tag = array_slice( $add_tag, 0, $room, true );
+			$new_tag = count( $add_tag ) < $room ? $new_tag : array();
+
+			$primary_id   = 0;
+			$primary_name = '';
+			$primary_from = '';
+			if ( 'post' === $kind && '' !== $c['primary_category'] ) {
+				$t = $known[ $kind ][ $k['cat'] ][ $norm( $c['primary_category'] ) ] ?? null;
+				$seo_primary = (int) ( \PaydarWP\PaydarPress\Seo\SeoDetector::adapter()->post( $post->ID )['primary_term_id'] ?? 0 );
+				if ( $t && $active( $t ) && (int) $t->term_id !== $default && (int) $t->term_id !== $seo_primary && 'none' !== \PaydarWP\PaydarPress\Seo\SeoDetector::adapter()->key() ) {
+					$primary_id   = (int) $t->term_id;
+					$primary_name = html_entity_decode( $t->name, ENT_QUOTES, 'UTF-8' );
+					$from         = $seo_primary > 0 ? get_term( $seo_primary ) : null;
+					$primary_from = $from instanceof \WP_Term ? html_entity_decode( $from->name, ENT_QUOTES, 'UTF-8' ) : '';
+				}
+			}
+
+			$misfit = array();
+			foreach ( $c['misfit'] as $m ) {
+				foreach ( array( $k['cat'], $k['tag'] ) as $tax ) {
+					$t = $known[ $kind ][ $tax ][ $norm( $m['term'] ) ] ?? null;
+					if ( $t && in_array( (int) $t->term_id, array_merge( $cur_cat, $cur_tag ), true ) ) {
+						$misfit[] = array(
+							'term_id' => (int) $t->term_id,
+							'name'    => html_entity_decode( $t->name, ENT_QUOTES, 'UTF-8' ),
+							'reason'  => $m['reason'],
+						);
+						break;
+					}
+				}
+			}
+
+			foreach ( $new_tag as $name ) {
+				$key = $k['tag'] . '|' . $norm( $name );
+				if ( ! isset( $new[ $key ] ) ) {
+					$new[ $key ] = array(
+						'name'     => $name,
+						'taxonomy' => $k['tag'],
+						'posts'    => array(),
+					);
+				}
+				$new[ $key ]['posts'][] = html_entity_decode( get_the_title( $post ), ENT_QUOTES, 'UTF-8' );
+			}
+
+			$noop = ! $add_cat && ! $add_tag && ! $new_tag && ! $primary_id;
+			if ( $noop ) {
+				$checks[] = array( 'info', 'تغییری لازم نیست' . ( $misfit ? '؛ موارد نامرتبط برای تصمیم شما ثبت می‌شوند.' : '.' ) );
+			}
+			if ( $primary_id && \PaydarWP\PaydarPress\Strategy\Classifier::category_in_url( $kind ) ) {
+				$checks[] = array( 'warning', 'دسته اصلی در آدرس این مطلب است؛ با این تغییر، آدرس طبق وردپرس عوض می‌شود و آدرس قبلی با ۳۰۱ به آدرس جدید می‌رود.' );
+			}
+			if ( $skipped ) {
+				$checks[] = array( 'info', 'نادیده گرفته شد (نیست، کنار گذاشته یا نامعتبر): ' . implode( '، ', array_unique( $skipped ) ) );
+			}
+			if ( $misfit ) {
+				$checks[] = array( 'info', 'نامرتبط به نظر می‌رسد (حذف نمی‌شود؛ برای تصمیم شما ثبت می‌شود): ' . implode( '، ', array_map( static fn( $m ) => $m['name'] . ( '' !== $m['reason'] ? ' — ' . $m['reason'] : '' ), $misfit ) ) );
+			}
+			if ( 'product' === $kind ) {
+				$checks[] = array( 'info', 'محصول: دسته‌ها روی منو و فیلتر فروشگاه اثر دارند؛ پیش از ورود بررسی کنید.' );
+			}
+
+			$out[] = $this->with_checks(
+				array(
+					'index'          => $index,
+					'post_id'        => $post->ID,
+					'title'          => html_entity_decode( get_the_title( $post ), ENT_QUOTES, 'UTF-8' ),
+					'url'            => (string) get_permalink( $post ),
+					'kind'           => $kind,
+					'add_cat_ids'    => array_keys( $add_cat ),
+					'add_cat_names'  => array_values( $add_cat ),
+					'add_tag_ids'    => array_keys( $add_tag ),
+					'add_tag_names'  => array_values( $add_tag ),
+					'new_tags'       => $new_tag,
+					'primary_id'     => $primary_id,
+					'primary_name'   => $primary_name,
+					'primary_from'   => $primary_from,
+					'misfit'         => $misfit,
+					'noop'           => $noop,
+					// Products and new tags are never pre-selected.
+					'manual'         => 'product' === $kind,
+				),
+				$checks
+			);
+		}
+
+		$terms = array();
+		$i     = 0;
+		foreach ( $new as $nt ) {
+			$terms[] = $this->with_checks(
+				$nt + array(
+					'index'  => $i++,
+					'count'  => count( $nt['posts'] ),
+					'manual' => true,
+				),
+				array( array( 'info', 'برچسب تازه فقط با تأیید شما ساخته می‌شود؛ برای: ' . implode( '، ', array_slice( $nt['posts'], 0, 5 ) ) . ( count( $nt['posts'] ) > 5 ? '…' : '' ) ) )
+			);
+		}
+		return array(
+			'items'     => $out,
+			'new_terms' => $terms,
+		);
 	}
 
 	/**

@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Schema {
 
-	public const VERSION = '1.8.0';
+	public const VERSION = '1.9.0';
 
 	public const TABLES = array( 'inventory', 'links', 'audit_findings', 'scans', 'activity', 'imports', 'gsc', 'topics', 'link_suggestions', 'ai_usage', 'changes', 'redirects', 'ai_jobs', 'notfound' );
 
@@ -300,8 +300,10 @@ final class Schema {
   started_at datetime DEFAULT NULL,
   finished_at datetime DEFAULT NULL,
   imported_at datetime DEFAULT NULL,
+  batch_id bigint(20) unsigned NOT NULL DEFAULT 0,
   PRIMARY KEY  (id),
   KEY status (status),
+  KEY batch_id (batch_id),
   KEY created_at (created_at)
 ) {$charset};",
 			"CREATE TABLE {$notfound} (

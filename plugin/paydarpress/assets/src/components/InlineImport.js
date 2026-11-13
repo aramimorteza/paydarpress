@@ -1,4 +1,4 @@
-import { useEffect, useState } from '@wordpress/element';
+import { Fragment, useEffect, useState } from '@wordpress/element';
 import { Button, CheckboxControl, Notice, Spinner, TextareaControl } from '@wordpress/components';
 import { post, errorMessage } from '../lib/api';
 import { num } from '../lib/format';
@@ -11,6 +11,8 @@ const SECTIONS = [
 	[ 'link_suggestions', 'پیشنهاد لینک' ],
 	[ 'structure_suggestions', 'پیشنهاد ساختار' ],
 	[ 'image_alts', 'متن جایگزین' ],
+	[ 'new_terms', 'برچسب تازه' ],
+	[ 'classifications', 'طبقه‌بندی' ],
 ];
 
 const LEVEL = { duplicate: 'pp-check--duplicate', error: 'pp-check--error', warning: 'pp-check--warning', info: 'pp-check--info' };
@@ -37,6 +39,23 @@ function itemTitle( section, item ) {
 	if ( 'structure_suggestions' === section ) {
 		return `${ { merge: 'ادغام', split: 'تقسیم', create: 'دسته تازه', rename: 'تغییر نام', noindex: 'noindex', keep: 'بدون تغییر' }[ item.action ] || item.action } «${ item.name || item.new_name }»${ item.into_name ? ` ← «${ item.into_name }»` : '' }${ item.new_name && item.name ? ` ← «${ item.new_name }»` : '' } — ${ item.reason }`;
 	}
+	if ( 'classifications' === section ) {
+		const parts = [];
+		if ( item.add_cat_names && item.add_cat_names.length ) {
+			parts.push( `+ دسته: ${ item.add_cat_names.join( '، ' ) }` );
+		}
+		if ( item.primary_name ) {
+			parts.push( `دسته اصلی: ${ item.primary_from ? `${ item.primary_from } ← ` : '' }${ item.primary_name }` );
+		}
+		const tags = [ ...( item.add_tag_names || [] ), ...( item.new_tags || [] ).map( ( t ) => `${ t } (تازه)` ) ];
+		if ( tags.length ) {
+			parts.push( `+ برچسب: ${ tags.join( '، ' ) }` );
+		}
+		return `«${ item.title }» — ${ parts.length ? parts.join( ' · ' ) : 'بدون تغییر' }`;
+	}
+	if ( 'new_terms' === section ) {
+		return `«${ item.name }» برای ${ item.count } مطلب`;
+	}
 	if ( 'image_alts' === section ) {
 		return `«${ item.alt }» — ${ 'featured' === item.kind ? 'تصویر شاخص' : 'تصویر' } «${ item.post_title }»${ item.heading ? ` (بخش «${ item.heading }»)` : '' }`;
 	}
@@ -51,9 +70,11 @@ function itemTitle( section, item ) {
  *
  * @param {Object}   props
  * @param {number}   props.job       Automatic-mode job id.
+ * @param {number}   props.batch     Automatic-mode batch id (all finished replies combined).
  * @param {Function} props.onClosed  Called after the job was imported or discarded.
  */
-export default function InlineImport( { job = 0, onClosed } ) {
+export default function InlineImport( { job = 0, batch = 0, onClosed } ) {
+	const source = job || batch;
 	const [ text, setText ] = useState( '' );
 	const [ preview, setPreview ] = useState( null );
 	const [ picked, setPicked ] = useState( {} );
@@ -64,12 +85,13 @@ export default function InlineImport( { job = 0, onClosed } ) {
 	const check = () => {
 		setBusy( true );
 		setError( '' );
-		post( '/cm/preview', job ? { job } : { text } )
+		post( '/cm/preview', job ? { job } : ( batch ? { batch } : { text } ) )
 			.then( ( p ) => {
 				setPreview( p );
 				const sel = {};
 				SECTIONS.forEach( ( [ s ] ) => {
-					sel[ s ] = ( p[ s ] || [] ).filter( ( i ) => ! i.duplicate && ! i.blocked ).map( ( i ) => i.index );
+					// Products and new tags are never pre-selected: the owner ticks them.
+					sel[ s ] = ( p[ s ] || [] ).filter( ( i ) => ! i.duplicate && ! i.blocked && ! i.manual ).map( ( i ) => i.index );
 				} );
 				setPicked( sel );
 			} )
@@ -80,7 +102,7 @@ export default function InlineImport( { job = 0, onClosed } ) {
 	const commit = () => {
 		setBusy( true );
 		setError( '' );
-		post( '/cm/commit', { token: preview.token, job: job || undefined, ...picked } )
+		post( '/cm/commit', { token: preview.token, job: job || undefined, batch: batch || undefined, ...picked } )
 			.then( ( r ) => {
 				setResult( r );
 				setPreview( null );
@@ -96,15 +118,15 @@ export default function InlineImport( { job = 0, onClosed } ) {
 	};
 
 	useEffect( () => {
-		if ( job ) {
+		if ( source ) {
 			check();
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [ job ] );
+	}, [ source ] );
 
 	const discard = () => {
 		setBusy( true );
-		post( `/ai/jobs/${ job }/discard` )
+		post( batch ? `/ai/batches/${ batch }/discard` : `/ai/jobs/${ job }/discard` )
 			.then( () => onClosed && onClosed( 'discarded' ) )
 			.catch( ( e ) => setError( errorMessage( e ) ) )
 			.finally( () => setBusy( false ) );
@@ -125,6 +147,8 @@ export default function InlineImport( { job = 0, onClosed } ) {
 						result.link_suggestions ? `${ num( result.link_suggestions ) } پیشنهاد لینک` : '',
 						result.structure ? `${ num( result.structure ) } پیشنهاد ساختار (در «دسته‌ها و برچسب‌ها»)` : '',
 						result.alts ? `${ num( result.alts ) } متن جایگزین تصویر` : '',
+						result.classified ? `طبقه‌بندی ${ num( result.classified ) } مطلب` : '',
+						result.new_terms ? `${ num( result.new_terms ) } برچسب تازه` : '',
 					].filter( Boolean ).join( '، ' ) || 'موردی' }.
 				</Notice>
 				{ result.articles.length > 0 && (
@@ -132,8 +156,10 @@ export default function InlineImport( { job = 0, onClosed } ) {
 						{ result.articles.map( ( a ) => <li key={ a.id }><a href={ a.edit_url } target="_blank" rel="noreferrer">{ a.title }</a> <span className="pp-muted">{ a.rewrite ? '(بازنویسی — در ویرایشگر «جایگزینی نوشته اصلی»)' : '(پیش‌نویس)' }</span></li> ) }
 					</ul>
 				) }
+				{ result.notes && result.notes.length > 0 && <ul className="pp-checks">{ result.notes.map( ( n, i ) => <li key={ i } className="pp-check pp-check--info">{ n }</li> ) }</ul> }
+				{ result.classified > 0 && <p className="pp-muted">هر وقت لازم شد، این مرحله از «دسته‌ها و برچسب‌ها ← طبقه‌بندی محتوای موجود» یکجا بازگردانده می‌شود.</p> }
 				{ result.errors && result.errors.length > 0 && <ul className="pp-checks">{ result.errors.map( ( e, i ) => <li key={ i } className="pp-check pp-check--error">{ e }</li> ) }</ul> }
-				{ ! job && <Button variant="link" onClick={ () => setResult( null ) }>ورود پاسخ دیگر</Button> }
+				{ ! source && <Button variant="link" onClick={ () => setResult( null ) }>ورود پاسخ دیگر</Button> }
 			</div>
 		);
 	}
@@ -141,7 +167,7 @@ export default function InlineImport( { job = 0, onClosed } ) {
 	return (
 		<div className="pp-inline-import">
 			{ error && <Notice status="error" onRemove={ () => setError( '' ) }>{ error }</Notice> }
-			{ ! preview && job ? (
+			{ ! preview && source ? (
 				<div className="pp-ai-modal__row">
 					{ busy ? <><Spinner /> <span className="pp-muted">در حال بررسی پاسخ…</span></> : <Button variant="secondary" onClick={ check }>بررسی دوباره</Button> }
 				</div>
@@ -153,16 +179,28 @@ export default function InlineImport( { job = 0, onClosed } ) {
 			) : (
 				<>
 					{ ( preview.warnings || [] ).map( ( w, i ) => <Notice key={ i } status="warning" isDismissible={ false }>{ w }</Notice> ) }
-					{ SECTIONS.map( ( [ s, label ] ) => ( preview[ s ] || [] ).map( ( item ) => (
+					{ SECTIONS.map( ( [ s, label ] ) => (
+						<Fragment key={ s }>
+							{ ( preview[ s ] || [] ).length > 5 && (
+						<div className="pp-import-section">
+							<strong>{ label }: { num( ( picked[ s ] || [] ).length ) } از { num( preview[ s ].length ) } انتخاب شده</strong>
+							<Button variant="link" onClick={ () => setPicked( { ...picked, [ s ]: preview[ s ].filter( ( i ) => ! i.blocked ).map( ( i ) => i.index ) } ) }>همه</Button>
+							<Button variant="link" onClick={ () => setPicked( { ...picked, [ s ]: [] } ) }>هیچ</Button>
+							{ 'classifications' === s && <Button variant="link" onClick={ () => setPicked( { ...picked, [ s ]: preview[ s ].filter( ( i ) => ! i.blocked && ! i.noop ).map( ( i ) => i.index ) } ) }>فقط موارد دارای تغییر</Button> }
+						</div>
+					) }
+							{ ( preview[ s ] || [] ).map( ( item ) => (
 						<div key={ `${ s }-${ item.index }` } className={ `pp-import-item${ item.duplicate ? ' is-duplicate' : '' }` }>
 							<CheckboxControl __nextHasNoMarginBottom label={ `${ label }: ${ itemTitle( s, item ) }` } checked={ ( picked[ s ] || [] ).includes( item.index ) } disabled={ item.blocked } onChange={ ( on ) => toggle( s, item.index, on ) } />
 							{ 'articles' === s && item.words > 0 && <div className="pp-muted pp-import-item__meta">{ num( item.words ) } کلمه{ item.internal_links ? ` · ${ num( item.internal_links ) } لینک داخلی` : '' }{ item.faq && item.faq.length ? ` · ${ num( item.faq.length ) } پرسش متداول` : '' }{ item.inline_images && item.inline_images.length ? ` · ${ num( item.inline_images.length ) } پرامپت تصویر داخل متن` : '' }</div> }
 							{ item.checks.length > 0 && <ul className="pp-checks">{ item.checks.map( ( c, i ) => <li key={ i } className={ `pp-check ${ LEVEL[ c.level ] || '' }` }>{ c.text }</li> ) }</ul> }
 						</div>
-					) ) ) }
+							) ) }
+						</Fragment>
+					) ) }
 					<div className="pp-ai-modal__row">
 						<Button variant="primary" onClick={ commit } isBusy={ busy } disabled={ busy || 0 === total }>ورود { num( total ) } مورد</Button>
-						{ job ? <Button variant="tertiary" isDestructive onClick={ discard } disabled={ busy }>کنار گذاشتن این پاسخ</Button> : <Button variant="tertiary" onClick={ () => setPreview( null ) } disabled={ busy }>انصراف</Button> }
+						{ source ? <Button variant="tertiary" isDestructive onClick={ discard } disabled={ busy }>کنار گذاشتن این پاسخ</Button> : <Button variant="tertiary" onClick={ () => setPreview( null ) } disabled={ busy }>انصراف</Button> }
 						{ ( preview.articles || [] ).length > 0 && <span className="pp-muted">مقاله‌ها فقط پیش‌نویس می‌شوند.</span> }{ ( preview.image_alts || [] ).length > 0 && <span className="pp-muted">فقط تصاویری که متن جایگزین ندارند یا متنشان بی‌معناست تغییر می‌کنند؛ نسخه قبلی نوشته در «بازنگری‌ها» می‌ماند.</span> }
 					</div>
 				</>

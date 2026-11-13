@@ -102,6 +102,22 @@ final class AiController {
 				),
 			)
 		);
+		register_rest_route(
+			$ns,
+			'/ai/batch',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'batch_start' ),
+				'permission_callback' => $manage,
+				'args'                => array(
+					'task'  => array( 'type' => 'string', 'required' => true, 'enum' => array( 'classify' ) ),
+					'kind'  => array( 'type' => 'string', 'default' => 'post' ),
+					'scope' => array( 'type' => 'string', 'default' => 'weak' ),
+				),
+			)
+		);
+		register_rest_route( $ns, '/ai/batches/(?P<id>\\d+)', array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'batch_poll' ), 'permission_callback' => $manage ) );
+		register_rest_route( $ns, '/ai/batches/(?P<id>\\d+)/discard', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'batch_discard' ), 'permission_callback' => $manage ) );
 		register_rest_route( $ns, '/ai/jobs', array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'jobs' ), 'permission_callback' => $manage ) );
 		register_rest_route( $ns, '/ai/jobs/(?P<id>\\d+)', array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'job' ), 'permission_callback' => $manage ) );
 		register_rest_route( $ns, '/ai/jobs/(?P<id>\\d+)/(?P<op>retry|discard)', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'job_op' ), 'permission_callback' => $manage ) );
@@ -227,12 +243,52 @@ final class AiController {
 	}
 
 	/**
+	 * Starts a batch (classification of existing content).
+	 *
+	 * @param WP_REST_Request $request Request.
+	 */
+	public function batch_start( WP_REST_Request $request ) {
+		try {
+			$kind   = sanitize_key( (string) $request->get_param( 'kind' ) );
+			$scope  = 'all' === $request->get_param( 'scope' ) ? 'all' : 'weak';
+			$ids    = \PaydarWP\PaydarPress\Strategy\Classifier::candidates( $kind, $scope );
+			$chunks = array_map( static fn( $c ) => array( 'ids' => implode( ',', $c ) ), array_chunk( $ids, \PaydarWP\PaydarPress\Strategy\Classifier::CHUNK ) );
+			$label  = \PaydarWP\PaydarPress\Strategy\Classifier::kind( $kind )['label'];
+			$batch  = AiJobs::start_batch( 'classify', $chunks, 'طبقه‌بندی ' . $label . ( 'all' === $scope ? ' (همه)' : ' (کم‌طبقه‌بندی‌شده)' ) );
+		} catch ( RuntimeException $e ) {
+			return new WP_Error( 'paydarpress_ai_batch', $e->getMessage(), array( 'status' => 400 ) );
+		}
+		return new WP_REST_Response( $batch );
+	}
+
+	/**
+	 * Batch progress.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 */
+	public function batch_poll( WP_REST_Request $request ) {
+		$b = AiJobs::poll_batch( (int) $request['id'] );
+		return null === $b ? new WP_Error( 'paydarpress_ai_batch', 'اجرای گروهی پیدا نشد.', array( 'status' => 404 ) ) : new WP_REST_Response( $b );
+	}
+
+	/**
+	 * Stops and discards a batch.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 */
+	public function batch_discard( WP_REST_Request $request ): WP_REST_Response {
+		AiJobs::close_batch( (int) $request['id'], 'discarded' );
+		return new WP_REST_Response( array( 'ok' => true ) );
+	}
+
+	/**
 	 * Recent jobs.
 	 */
 	public function jobs(): WP_REST_Response {
 		return new WP_REST_Response(
 			array(
-				'items' => AiJobs::recent( 30 ),
+				'items'   => AiJobs::recent( 30 ),
+				'batches' => AiJobs::recent_batches( 10 ),
 				'ready' => AiJobs::ready_count(),
 				'state' => self::payload(),
 			)

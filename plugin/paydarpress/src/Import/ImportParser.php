@@ -60,6 +60,7 @@ final class ImportParser {
 		$links    = self::items( $data['link_suggestions'] ?? array(), self::MAX_SUGGESTIONS, 'link_suggestions', $notices );
 		$terms    = self::items( $data['term_descriptions'] ?? array(), 50, 'term_descriptions', $notices );
 		$alts     = self::items( $data['image_alts'] ?? array(), 200, 'image_alts', $notices );
+		$classes  = self::items( $data['classifications'] ?? array(), 2000, 'classifications', $notices );
 		$seo      = self::items( $data['seo_updates'] ?? array(), 100, 'seo_updates', $notices );
 		$struct   = self::items( $data['structure_suggestions'] ?? array(), 30, 'structure_suggestions', $notices );
 
@@ -73,6 +74,7 @@ final class ImportParser {
 			'link_suggestions' => array_values( array_filter( array_map( array( self::class, 'suggestion' ), $links ) ) ),
 			'term_descriptions' => array_values( array_filter( array_map( array( self::class, 'term_description' ), $terms ) ) ),
 			'image_alts'       => array_values( array_filter( array_map( array( self::class, 'image_alt' ), $alts ) ) ),
+			'classifications'  => array_values( array_filter( array_map( array( self::class, 'classification' ), $classes ) ) ),
 			'seo_updates'      => array_values( array_filter( array_map( array( self::class, 'seo_update' ), $seo ) ) ),
 			'structure_suggestions' => array_values( array_filter( array_map( array( self::class, 'structure_suggestion' ), $struct ) ) ),
 			'notes'            => self::str( $data['notes'] ?? '', 3000 ),
@@ -91,7 +93,7 @@ final class ImportParser {
 			$out['articles'][] = $article;
 		}
 
-		if ( array() === $out['topics'] && array() === $out['articles'] && array() === $out['link_suggestions'] && array() === $out['term_descriptions'] && array() === $out['seo_updates'] && array() === $out['structure_suggestions'] && array() === $out['image_alts'] ) {
+		if ( array() === $out['topics'] && array() === $out['articles'] && array() === $out['link_suggestions'] && array() === $out['term_descriptions'] && array() === $out['seo_updates'] && array() === $out['structure_suggestions'] && array() === $out['image_alts'] && array() === $out['classifications'] ) {
 			if ( '' !== $out['notes'] ) {
 				throw new RuntimeException( 'هوش مصنوعی چیزی برای ورود نساخت و این توضیح را داد: ' . $out['notes'] );
 			}
@@ -294,6 +296,45 @@ final class ImportParser {
 			),
 			'faq'           => $faq,
 			'reverse_links' => $reverse,
+		);
+	}
+
+	/**
+	 * Category and tag suggestions for one existing item.
+	 *
+	 * @param array $raw Raw.
+	 */
+	private static function classification( array $raw ): ?array {
+		$id = self::int( $raw['id'] ?? null );
+		if ( null === $id || $id <= 0 ) {
+			return null;
+		}
+		$list = static function ( $v, int $max ): array {
+			$out = array();
+			foreach ( array_slice( is_array( $v ) ? $v : array(), 0, $max ) as $x ) {
+				$x = is_scalar( $x ) ? self::str( (string) $x, 100 ) : '';
+				if ( '' !== $x ) {
+					$out[] = $x;
+				}
+			}
+			return array_values( array_unique( $out ) );
+		};
+		$misfit = array();
+		foreach ( array_slice( is_array( $raw['misfit'] ?? null ) ? $raw['misfit'] : array(), 0, 5 ) as $m ) {
+			if ( is_array( $m ) && '' !== self::str( $m['term'] ?? '', 100 ) ) {
+				$misfit[] = array(
+					'term'   => self::str( $m['term'], 100 ),
+					'reason' => self::str( $m['reason'] ?? '', 200 ),
+				);
+			}
+		}
+		return array(
+			'id'               => $id,
+			'add_categories'   => $list( $raw['add_categories'] ?? array(), 3 ),
+			'primary_category' => self::str( $raw['primary_category'] ?? '', 100 ),
+			'add_tags'         => $list( $raw['add_tags'] ?? array(), 5 ),
+			'new_tags'         => $list( $raw['new_tags'] ?? array(), 2 ),
+			'misfit'           => $misfit,
 		);
 	}
 

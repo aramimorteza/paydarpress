@@ -88,6 +88,7 @@ return array(
     'PaydarWP\\PaydarPress\\Seo\\SeoDetector' => $baseDir . '/src/Seo/SeoDetector.php',
     'PaydarWP\\PaydarPress\\Seo\\YoastAdapter' => $baseDir . '/src/Seo/YoastAdapter.php',
     'PaydarWP\\PaydarPress\\Strategy\\ChangeLog' => $baseDir . '/src/Strategy/ChangeLog.php',
+    'PaydarWP\\PaydarPress\\Strategy\\Classifier' => $baseDir . '/src/Strategy/Classifier.php',
     'PaydarWP\\PaydarPress\\Strategy\\RedirectOwner' => $baseDir . '/src/Strategy/RedirectOwner.php',
     'PaydarWP\\PaydarPress\\Strategy\\Redirects' => $baseDir . '/src/Strategy/Redirects.php',
     'PaydarWP\\PaydarPress\\Strategy\\ShopStrategy' => $baseDir . '/src/Strategy/ShopStrategy.php',

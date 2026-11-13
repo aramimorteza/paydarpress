@@ -209,3 +209,20 @@ export function altCommand( title = '', id = 0 ) {
 		hint: `برای هر تصویر، سرتیتر بخش، متن قبل و بعد و زیرنویس آن داخل پرامپت است تا متن جایگزین مخصوص همان جا نوشته شود. ${ id ? '' : 'هر بار حداکثر ۲۵ تصویر از نوشته‌هایی که بیشترین کمبود را دارند. ' }با ورود، متن تصویر در نوشته و اگر کتابخانه رسانه متنی نداشت، همان‌جا هم ذخیره می‌شود؛ متن جایگزینِ درست موجود دست نمی‌خورد.`,
 	};
 }
+
+/**
+ * Categories and tags for the next chunk of existing posts or products (manual mode; the
+ * automatic mode runs all chunks as one batch).
+ *
+ * @param {string} kind  post|product.
+ * @param {string} scope weak|all.
+ * @param {string} label Kind label.
+ */
+export function classifyCommand( kind, scope, label ) {
+	return {
+		label: `طبقه‌بندی ۲۵ ${ label } بعدی (دستی)`,
+		summary: `طبقه‌بندی ${ label } موجود`,
+		prompt: { task: 'classify', args: { kind, scope } },
+		hint: 'هر پرامپت ۲۵ مطلب بعدی را دارد (عنوان، سرتیترها و ۳۰۰ کلمه اول) همراه دسته‌ها و برچسب‌های فعال. پس از ورود، دسته بعدی آماده می‌شود. فقط افزودن انجام می‌شود؛ هیچ دسته یا برچسبی حذف نمی‌شود.',
+	};
+}

@@ -2293,3 +2293,37 @@ button.pp-chip {
 	text-align: start;
 	white-space: normal;
 }
+
+/* Classification (0.25.0) */
+
+.pp-import-section {
+	display: flex;
+	gap: var(--pwp-space-2, 8px);
+	align-items: center;
+	padding: 6px 0;
+	border-bottom: 1px solid var(--pwp-border, #e2e5ea);
+	margin-bottom: 6px;
+}
+
+.pp-classify__options {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--pwp-space-3, 12px);
+	align-items: flex-end;
+	margin: var(--pwp-space-2, 8px) 0;
+}
+
+.pp-progress {
+	height: 8px;
+	background: var(--pwp-bg, #f0f1f3);
+	border-radius: 4px;
+	overflow: hidden;
+	margin: 6px 0;
+
+	> span {
+		display: block;
+		height: 100%;
+		background: var(--pwp-primary, #0f766e);
+		transition: width 0.4s;
+	}
+}
