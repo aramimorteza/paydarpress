@@ -368,6 +368,14 @@ final class ImportService {
 		}
 
 		$slug = sanitize_title( $article['slug'] );
+		if ( ! $rewrite ) {
+			$style = (string) \PaydarWP\PaydarPress\Core\Settings::get( 'policy.slug_style', 'english' );
+			if ( 'english' === $style && ( '' === trim( $article['slug'] ) || preg_match( '/[^\x00-\x7F]/', rawurldecode( $article['slug'] ) ) ) ) {
+				$checks[] = array( 'warning', '' === trim( $article['slug'] ) ? 'نامک (اسلاگ) انگلیسی نیامده؛ وردپرس از عنوان فارسی نامک می‌سازد. پیش از انتشار یک نامک کوتاه انگلیسی بنویسید.' : 'نامک انگلیسی نیست (سیاست سایت: نامک انگلیسی). پیش از انتشار اصلاحش کنید.' );
+			} elseif ( mb_strlen( rawurldecode( $slug ) ) > 60 ) {
+				$checks[] = array( 'warning', 'نامک طولانی است (' . PersianNormalizer::fa_number( mb_strlen( rawurldecode( $slug ) ) ) . ' نویسه)؛ ۳ تا ۵ کلمه کافی است.' );
+			}
+		}
 		if ( ! $rewrite && '' !== $slug && get_page_by_path( $slug, OBJECT, array( 'post', 'page' ) ) ) {
 			$checks[] = array( 'warning', 'نامک «' . rawurldecode( $slug ) . '» قبلاً استفاده شده؛ وردپرس عددی به انتهای آن اضافه می‌کند.' );
 		}
@@ -569,6 +577,9 @@ final class ImportService {
 		if ( '' !== $article['image_prompt'] ) {
 			update_post_meta( $post_id, self::META_PROMPT, sanitize_textarea_field( $article['image_prompt'] ) );
 		}
+		if ( ! empty( $article['inline_images'] ) ) {
+			update_post_meta( $post_id, '_paydarpress_inline_images', $article['inline_images'] );
+		}
 		if ( '' !== $article['image_alt'] ) {
 			update_post_meta( $post_id, self::META_ALT, sanitize_text_field( $article['image_alt'] ) );
 		}
@@ -729,6 +740,7 @@ final class ImportService {
 		if ( is_wp_error( $r ) ) {
 			return '«' . $t['name'] . '»: ' . $r->get_error_message();
 		}
+		\PaydarWP\PaydarPress\Strategy\ChangeLog::record( 'term', (int) $term->term_id, 'متن معرفی تازه', 'term' );
 		Activity::log( 'import.term_description', 'متن معرفی «' . $t['name'] . '» به‌روز شد.', 'term', (int) $term->term_id );
 		return true;
 	}
@@ -767,6 +779,7 @@ final class ImportService {
 				'changed_at'       => gmdate( 'c' ),
 			)
 		);
+		\PaydarWP\PaydarPress\Strategy\ChangeLog::record( 'meta', $id, 'عنوان سئو: «' . $u['seo_title'] . '»' );
 		Activity::log( 'import.seo_update', 'عنوان و توضیحات متای «' . $u['title'] . '» به‌روز شد.', 'post', $id );
 		return true;
 	}

@@ -312,6 +312,7 @@ function PagesTable( { tab, compare } ) {
 											<>
 												<bdi dir="ltr" className="pp-url">{ item.url }</bdi>
 												{ item.target && <div className="pp-muted">← { item.target.title }</div> }
+												{ 'missing' === item.state && <div><a className="button button-small" href={ `#/redirects?source=${ encodeURIComponent( item.url ) }` }>ساخت ریدایرکت ۳۰۱</a></div> }
 											</>
 										) : (
 											<>

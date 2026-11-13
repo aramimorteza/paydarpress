@@ -277,6 +277,19 @@ final class ImportParser {
 			'author'        => self::str( $raw['author'] ?? '', 100 ),
 			'image_prompt'  => self::str( $image['prompt'] ?? '', 3000 ),
 			'image_alt'     => self::str( $image['alt'] ?? '', 255 ),
+			'inline_images' => array_values(
+				array_filter(
+					array_map(
+						static fn( $i ) => is_array( $i ) && ! empty( $i['prompt'] ) ? array(
+							'after_heading' => self::str( $i['after_heading'] ?? '', 200 ),
+							'prompt'        => self::str( $i['prompt'], 2000 ),
+							'alt'           => self::str( $i['alt'] ?? '', 255 ),
+							'why'           => self::str( $i['why'] ?? '', 300 ),
+						) : null,
+						array_slice( is_array( $raw['inline_images'] ?? null ) ? $raw['inline_images'] : array(), 0, 5 )
+					)
+				)
+			),
 			'faq'           => $faq,
 			'reverse_links' => $reverse,
 		);

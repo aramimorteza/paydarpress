@@ -26,7 +26,7 @@ defined( 'ABSPATH' ) || exit;
  */
 final class PromptBuilder {
 
-	public const TASKS = array( 'topics', 'article', 'rewrite', 'term', 'meta', 'structure' );
+	public const TASKS = array( 'topics', 'article', 'rewrite', 'term', 'meta', 'structure', 'merge' );
 
 	/** Existing items listed for duplicate checks and internal links. */
 	private const RELATED_LIMIT = 60;
@@ -133,7 +133,9 @@ final class PromptBuilder {
 				$recent[] = '- ' . $p;
 			}
 		}
+		$ratios = 'Aspect ratio: featured image ' . \PaydarWP\PaydarPress\Core\Settings::get( 'images.featured_ratio', '16:9' ) . ', images inside the article ' . \PaydarWP\PaydarPress\Core\Settings::get( 'images.inline_ratio', '4:3' ) . ' (state the ratio in each prompt, e.g. "aspect ratio 16:9").';
 		return "## VISUAL STYLE (same for every image of the site; only the subject changes)
+" . $ratios . "
 "
 			. ( '' !== $style ? $style : 'Not set: choose one clean, realistic style that suits the audience; no text in images.' )
 			. ( $recent ? "
@@ -381,6 +383,28 @@ final class PromptBuilder {
 	}
 
 	/**
+	 * Merge: one rewrite of the article that stays, absorbing what is valuable in the other.
+	 *
+	 * @param array $args from, into.
+	 * @throws RuntimeException When an article is missing.
+	 */
+	private static function task_merge( array $args ): array {
+		$from = get_post( (int) ( $args['from'] ?? 0 ) );
+		$into = (int) ( $args['into'] ?? 0 );
+		if ( ! $from instanceof WP_Post ) {
+			throw new RuntimeException( 'مقاله‌ای که باید ادغام شود پیدا نشد.' );
+		}
+		$spec           = self::task_rewrite( array( 'post_id' => $into, 'reasons' => array( 'merge' ) ) );
+		$html           = mb_substr( self::clean_html( (string) $from->post_content ), 0, self::REWRITE_MAX_CHARS );
+		$spec['title']  = 'ادغام «' . self::title( $from->ID ) . '» در «' . self::title( $into ) . '»';
+		$spec['command'] = 'ادغام: ' . self::url( $from->ID ) . ' در ' . self::url( $into ) . "\nیک نسخه کامل از مقاله دوم بنویس که بخش‌های ارزشمند و غیرتکراری مقاله اول را هم داشته باشد؛ در «خروجی پایدارپرس» با rewrite_of مقاله دوم.";
+		$spec['task']   = 'MERGE two articles with the same search intent into ONE stronger article. The article that stays (its URL is kept): «' . self::title( $into ) . '» (' . self::url( $into ) . "). The article being retired (it will redirect 301 to the one that stays): «" . self::title( $from->ID ) . '» (' . self::url( $from->ID ) . ").\nWrite the FULL new version of the article that stays: keep its main keyword and intent, bring in every valuable, non-duplicate section, example, FAQ and fact from the retired article, remove repetition, and do not link to the retired article.";
+		$spec['extra'] .= "\n\n## ARTICLE BEING RETIRED (merge its valuable parts in)\nTitle: " . self::title( $from->ID ) . "\nHTML:\n```html\n{$html}\n```";
+		$spec['exclude'][] = $from->ID;
+		return $spec;
+	}
+
+	/**
 	 * Review of the category structure (suggestions only; the owner decides).
 	 *
 	 * @param array $args Unused.
@@ -490,7 +514,8 @@ final class PromptBuilder {
 				'- Conclusion: natural, with ONE call to action from CTA OPTIONS framed as the helpful next step.',
 				'- HTML: clean WordPress HTML only: <h2>, <h3>, <p>, <ul>, <ol>, <table> when useful, <a href>, <strong> sparingly. No <h1>, CSS, scripts or Markdown. Optional boxes: <div class="tip-box">, <div class="note-box">, <div class="mistake-box">, <div class="example-box">.',
 				'- FAQ: 3–6 real follow-up questions go ONLY in `faq` (short, direct answers, plain text). Do NOT write a FAQ section inside `html`; the plugin adds it at the end of the article as an accordion with structured data.',
-				'- SEO: title ≤ 60 characters, meta description ≤ 155 characters, short English slug based on intent, tags from the approved tags when given.',
+				'- SEO: title ≤ 60 characters, meta description ≤ 155 characters, ' . ( 'persian' === \PaydarWP\PaydarPress\Core\Settings::get( 'policy.slug_style', 'english' ) ? 'slug: leave empty (the site uses Persian addresses from the title)' : 'slug: short English, 3–5 words, lowercase with hyphens, based on the search intent (not a translation of the whole title)' ) . ', tags from the approved tags when given.',
+				'- inline_images: for articles longer than about 1,200 words, 1–3 images placed where a picture really helps (a process, a comparison, a document, a place). Each with `after_heading` (the exact H2/H3 text it follows), an English `prompt` in the VISUAL STYLE, `alt` in the site language and `why` (one line). Do not add images just for decoration.',
 				'- reverse_links: 2–3 EXISTING CONTENT items that should link to this new article, with an anchor and the sentence where it fits.',
 				'- featured_image: a UNIQUE image brief for THIS article. `prompt` in English: one concrete scene taken from the article\'s own situation (who, where, what is happening, one telling detail), in the VISUAL STYLE below; vary subject, setting, angle and composition; never a generic stock concept (handshake, gavel on desk, laptop on table, person thinking) and never one of the RECENT IMAGES listed; no text, logos or watermarks. `alt` in the site language describes what is actually shown.',
 			)
@@ -534,7 +559,7 @@ final class PromptBuilder {
 		$site = (string) wp_parse_url( home_url(), PHP_URL_HOST );
 		$head = "Reply with ONE ```json code block and nothing else (no text before or after). It must be valid JSON (escape quotes and newlines inside strings). Start with:\n{\"schema\": \"paydarpress-import/1\", \"generator\": \"<your model name>\", \"site\": \"{$site}\", …}\n";
 
-		$article = '{"title": "", "slug": "", "html": "<full article HTML>", "category": "<exact category name>", "tags": [], "seo": {"title": "", "meta_description": "", "focus_keyword": ""}, "excerpt": "", "featured_image": {"prompt": "", "alt": ""}, "faq": [{"q": "", "a": ""}], "reverse_links": [{"source_url": "", "anchor": "", "sentence": ""}]}';
+		$article = '{"title": "", "slug": "", "html": "<full article HTML>", "category": "<exact category name>", "tags": [], "seo": {"title": "", "meta_description": "", "focus_keyword": ""}, "excerpt": "", "featured_image": {"prompt": "", "alt": ""}, "inline_images": [{"after_heading": "", "prompt": "", "alt": "", "why": ""}], "faq": [{"q": "", "a": ""}], "reverse_links": [{"source_url": "", "anchor": "", "sentence": ""}]}';
 
 		switch ( $task ) {
 			case 'topics':

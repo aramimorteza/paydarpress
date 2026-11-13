@@ -89,6 +89,7 @@ final class Plugin {
 				( new AiController() )->routes();
 				( new \PaydarWP\PaydarPress\Rest\TasksController() )->routes();
 				( new \PaydarWP\PaydarPress\Rest\ImagesController() )->routes();
+				( new \PaydarWP\PaydarPress\Rest\StrategyController() )->routes();
 				( new \PaydarWP\PaydarPress\Policy\ReviewGate() )->register();
 			}
 		);
@@ -97,6 +98,9 @@ final class Plugin {
 		( new \PaydarWP\PaydarPress\Images\WebpConverter() )->register();
 		( new \PaydarWP\PaydarPress\Images\ImageHash() )->register();
 		( new \PaydarWP\PaydarPress\Images\BulkConverter() )->register();
+
+		// 301 redirects of merged/deleted content (runs only on 404 requests).
+		( new \PaydarWP\PaydarPress\Strategy\Redirects() )->register();
 
 		// FAQ structured data for imported articles (single views only; reads cached post meta).
 		( new \PaydarWP\PaydarPress\Content\Faq() )->register();

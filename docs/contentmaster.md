@@ -1,4 +1,4 @@
-# ContentMaster v1.13
+# ContentMaster v1.14
 ### Multi-site SEO content system: Setup, Topic Research, Article Writing, Content Refresh
 
 ---
@@ -312,7 +312,7 @@ The PaydarPress plugin exports the site as JSON (schema `1.x`, profile `contentm
 ### 6.5 Output for PaydarPress (`خروجی پایدارپرس`)
 
 Produce **one** JSON code block and nothing else except one line before it: «این متن را در پایدارپرس ← ورود از ContentMaster بچسبانید.» Rules:
-- `schema` is exactly `paydarpress-import/1`; `generator` is `ContentMaster 1.13`; `site` is the profile domain.
+- `schema` is exactly `paydarpress-import/1`; `generator` is `ContentMaster 1.14`; `site` is the profile domain.
 - By default include the **working topic list** (`topics`) and **every article written in this conversation** (`articles`). `خروجی پایدارپرس: موضوعات` or `خروجی پایدارپرس: مقاله ۳` limit the output.
 - Never shorten or summarize an article for the export: `html` is the exact final HTML of the article (after any «اصلاح»), as one JSON string with escaped quotes and newlines. If the conversation is too long to reproduce an article exactly, export it alone with `خروجی پایدارپرس: مقاله [شماره]`.
 - Use only category names from the profile (`category`), and tags from the article's SEO output.
@@ -325,13 +325,17 @@ Produce **one** JSON code block and nothing else except one line before it: «ا
 - Shops: follow the export's shop focus — few products: full product descriptions first; many products per category: product-category intro texts and FAQs first, full rewrites only for best-sellers.
 - `notes` (optional): one short explanation in the site language, e.g. why an article was not written because it duplicates an existing URL.
 - Featured image: `featured_image.prompt` is a unique brief for THIS article (one concrete scene from the article's own situation) in the profile's `visual_style`; never a generic stock concept and never a concept already used in this conversation or listed as a recent image. PaydarPress converts uploads to WebP and warns about look-alike images.
+- Slug: follow the export's `policy.slug_style`. `english` (default): a short ASCII slug of 3–5 words from the focus keyword (e.g. `tenant-rights-lease`); `persian`: leave `slug` empty so WordPress builds it from the title. Never longer than 60 characters, never change the slug of an existing URL.
+- Image ratios: the featured image is always in the export's `images.featured_ratio` (default 16:9) and inline images in `images.inline_ratio` (default 4:3); mention the ratio in each prompt.
+- Inline images: for articles over ~1,200 words add 1–3 `inline_images` (`[{"after_heading": "<exact H2/H3 text>", "prompt": "", "alt": "", "why": ""}]`), each showing something that helps the reader understand that section (a step, a comparison, a document), not decoration. PaydarPress shows them in the editor with copy buttons; it does not insert them.
+- Merge (`ادغام: <URL A> در <URL B>`, or the merge prompt from PaydarPress): two pages compete for the same intent. Export ONE article with `"rewrite_of": "<URL B>"` whose HTML is the complete new version of B that absorbs the unique, still-valid parts of A (no duplicated sections, B's slug unchanged). Do not output anything for A: the owner retires it in PaydarPress, which sets it to draft, adds the 301 redirect A → B and repoints internal links.
 - FAQ: put the questions only in `faq` and remove the FAQ section from `html`; PaydarPress inserts it at the end of the article as an accordion (core Details blocks) and prints the FAQPage structured data itself, with or without an SEO plugin.
 - Do not include fields that are unknown; never invent URLs.
 
 ```json
 {
   "schema": "paydarpress-import/1",
-  "generator": "ContentMaster 1.6",
+  "generator": "ContentMaster 1.14",
   "site": "example.com",
   "topics": [ { "title": "", "category": "", "focus_keyword": "", "intent": "informational|educational|how-to|commercial|support", "notes": "" } ],
   "articles": [ {
@@ -340,6 +344,7 @@ Produce **one** JSON code block and nothing else except one line before it: «ا
     "seo": { "title": "", "meta_description": "", "focus_keyword": "" },
     "excerpt": "", "author": "",
     "featured_image": { "prompt": "", "alt": "" },
+    "inline_images": [ { "after_heading": "", "prompt": "", "alt": "", "why": "" } ],
     "faq": [ { "q": "", "a": "" } ],
     "reverse_links": [ { "source_url": "", "anchor": "", "sentence": "" } ]
   } ],
@@ -579,7 +584,7 @@ Explain to non-expert users in one or two lines how to export: Search Console > 
 4. **New or rewritten sections** in HTML, ready to paste, with headings showing where each one goes.
 5. **FAQ additions** built from real queries in the data (only if relevant).
 6. **Internal links**: new links to add inside this page, and existing articles that should link to it (anchor + placement).
-7. **Do not change the URL/slug** unless there is a strong reason; if so, remind the user to add a 301 redirect.
+7. **Do not change the URL/slug** unless there is a strong reason; if so, remind the user to add the 301 redirect in PaydarPress ← گوگل ← ریدایرکت‌ها. When two pages compete for one intent, propose a merge (Section 6.5) instead of rewriting both.
 8. **Inventory row** with an updated `last_updated` value.
 
 ---

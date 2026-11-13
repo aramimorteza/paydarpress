@@ -190,6 +190,7 @@ final class GscImporter {
 		// The audit is fast (well under a second for thousands of posts), so findings and
 		// refresh scores are up to date when the page reloads.
 		( new AuditEngine() )->run( false );
+		\PaydarWP\PaydarPress\Strategy\ChangeLog::measure();
 
 		return $summary;
 	}

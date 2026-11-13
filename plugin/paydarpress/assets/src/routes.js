@@ -52,9 +52,11 @@ export const SECTIONS = [
 		id: 'google',
 		label: 'گوگل',
 		icon: 'chart-line',
-		hint: 'سرچ کنسول و دسترسی خزنده‌ها',
+		hint: 'سرچ کنسول، نتیجه تغییرات، ریدایرکت‌ها و دسترسی خزنده‌ها',
 		pages: [
 			{ path: '/gsc', label: 'سرچ کنسول' },
+			{ path: '/changes', label: 'نتیجه تغییرات' },
+			{ path: '/redirects', label: 'ریدایرکت‌ها' },
 			{ path: '/visibility', label: 'دسترسی خزنده‌ها' },
 		],
 	},

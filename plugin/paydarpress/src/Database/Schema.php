@@ -21,9 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Schema {
 
-	public const VERSION = '1.5.0';
+	public const VERSION = '1.6.0';
 
-	public const TABLES = array( 'inventory', 'links', 'audit_findings', 'scans', 'activity', 'imports', 'gsc', 'topics', 'link_suggestions', 'ai_usage' );
+	public const TABLES = array( 'inventory', 'links', 'audit_findings', 'scans', 'activity', 'imports', 'gsc', 'topics', 'link_suggestions', 'ai_usage', 'changes', 'redirects' );
 
 	/**
 	 * Full table name for a short name, e.g. `inventory` → `wp_paydarpress_inventory`.
@@ -57,6 +57,8 @@ final class Schema {
 		$gsc            = self::table( 'gsc' );
 		$topics         = self::table( 'topics' );
 		$ai_usage       = self::table( 'ai_usage' );
+		$changes        = self::table( 'changes' );
+		$redirects      = self::table( 'redirects' );
 		$suggestions    = self::table( 'link_suggestions' );
 
 		return array(
@@ -247,6 +249,37 @@ final class Schema {
   created_at datetime NOT NULL,
   PRIMARY KEY  (id),
   KEY created_task (created_at,task)
+) {$charset};",
+
+			"CREATE TABLE {$changes} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  object_kind varchar(10) NOT NULL DEFAULT 'post',
+  object_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  kind varchar(20) NOT NULL DEFAULT '',
+  summary varchar(255) NOT NULL DEFAULT '',
+  before_metrics text DEFAULT NULL,
+  after_metrics text DEFAULT NULL,
+  verdict varchar(20) DEFAULT NULL,
+  user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  created_at datetime NOT NULL,
+  measured_at datetime DEFAULT NULL,
+  PRIMARY KEY  (id),
+  KEY object (object_kind,object_id),
+  KEY created_at (created_at)
+) {$charset};",
+
+			"CREATE TABLE {$redirects} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  source_path varchar(500) NOT NULL DEFAULT '',
+  source_hash char(32) NOT NULL DEFAULT '',
+  target_url varchar(1000) NOT NULL DEFAULT '',
+  target_id bigint(20) unsigned DEFAULT NULL,
+  reason varchar(30) NOT NULL DEFAULT '',
+  hits int(10) unsigned NOT NULL DEFAULT 0,
+  last_hit datetime DEFAULT NULL,
+  created_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  UNIQUE KEY source_hash (source_hash)
 ) {$charset};",
 		);
 	}

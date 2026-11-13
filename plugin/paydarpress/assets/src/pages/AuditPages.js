@@ -6,6 +6,7 @@ import FindingsList from '../components/FindingsList';
 import FindingCard from '../components/FindingCard';
 import AiButton from '../components/AiButton';
 import StructurePanel from '../components/StructurePanel';
+import MergeButton from '../components/MergeButton';
 import { refreshCommand, termCommand, termTextCommand } from '../lib/aiCommands';
 import { get, post, errorMessage } from '../lib/api';
 import { num, date, ago } from '../lib/format';
@@ -206,7 +207,7 @@ export function RefreshPage() {
 								<tr key={ item.id }>
 									<td>
 										<a className="pp-link" href={ item.edit_url }>{ item.title }</a>
-										<div className="pp-row-ai"><AiButton command={ refreshCommand( item.title, item.url, item.reasons, item.id, item.type ) } /></div>
+										<div className="pp-row-ai"><AiButton command={ refreshCommand( item.title, item.url, item.reasons, item.id, item.type ) } /> <MergeButton id={ item.id } title={ item.title } /></div>
 									</td>
 									<td>
 										<div className="pp-score">

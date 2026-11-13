@@ -135,6 +135,7 @@ final class Rewrites {
 		}
 
 		wp_trash_post( $draft->ID );
+		\PaydarWP\PaydarPress\Strategy\ChangeLog::record( 'rewrite', $original->ID, 'متن بازنویسی جایگزین شد' . ( $draft->post_title !== $original->post_title ? '؛ عنوان: «' . $draft->post_title . '»' : '' ) );
 		Activity::log( 'import.rewrite_applied', 'بازنویسی «' . html_entity_decode( get_the_title( $original ), ENT_QUOTES, 'UTF-8' ) . '» جایگزین متن قبلی شد (نسخه قبلی در «بازنگری‌ها» هست).', 'post', $original->ID );
 
 		return $original->ID;

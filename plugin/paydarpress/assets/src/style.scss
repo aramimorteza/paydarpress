@@ -2164,3 +2164,26 @@ button.pp-chip {
 	gap: 6px;
 	margin-block-start: 6px;
 }
+
+.pp-picker__list {
+	list-style: none;
+	margin: 6px 0;
+	padding: 0;
+	border: 1px solid var(--pwp-border, #e2e5ea);
+	border-radius: 6px;
+
+	button {
+		display: block;
+		width: 100%;
+		text-align: start;
+		background: none;
+		border: 0;
+		padding: 8px 10px;
+		cursor: pointer;
+		font: inherit;
+
+		&:hover { background: var(--pwp-primary-soft, #e3f2f1); }
+	}
+
+	li + li { border-block-start: 1px solid var(--pwp-border, #e2e5ea); }
+}

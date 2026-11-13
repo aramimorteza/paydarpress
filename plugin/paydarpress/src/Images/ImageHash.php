@@ -299,6 +299,27 @@ final class ImageHash {
 	 * @param \WP_Post $post   Attachment.
 	 */
 	public function field( $fields, $post ) {
+		// Aspect ratio check against the site's featured / inline ratios.
+		$meta = wp_get_attachment_metadata( $post->ID );
+		if ( is_array( $meta ) && ! empty( $meta['width'] ) && ! empty( $meta['height'] ) ) {
+			$r    = $meta['width'] / $meta['height'];
+			$want = array();
+			foreach ( array( 'images.featured_ratio' => '16:9', 'images.inline_ratio' => '4:3' ) as $key => $def ) {
+				list( $w, $h ) = array_map( 'floatval', explode( ':', (string) \PaydarWP\PaydarPress\Core\Settings::get( $key, $def ) ) + array( 1, 1 ) );
+				$want[]        = $h > 0 ? $w / $h : 1;
+			}
+			$ok = false;
+			foreach ( $want as $x ) {
+				$ok = $ok || abs( $r - $x ) / $x < 0.06;
+			}
+			if ( ! $ok ) {
+				$fields['paydarpress_ratio'] = array(
+					'label' => 'نسبت تصویر',
+					'input' => 'html',
+					'html'  => '<div dir="rtl" style="color:#8a5300">' . esc_html( sprintf( 'این تصویر %d×%d است و با نسبت تصاویر سایت (شاخص %s، داخل متن %s) نمی‌خواند؛ برای یکدستی آن را برش بزنید (ویرایش تصویر ← برش).', $meta['width'], $meta['height'], \PaydarWP\PaydarPress\Core\Settings::get( 'images.featured_ratio', '16:9' ), \PaydarWP\PaydarPress\Core\Settings::get( 'images.inline_ratio', '4:3' ) ) ) . '</div>',
+				);
+			}
+		}
 		$similar = array_filter( array_map( 'intval', (array) get_post_meta( $post->ID, self::META_SIM, true ) ), static fn( $id ) => 'attachment' === get_post_type( $id ) );
 		if ( $similar ) {
 			$links = implode(

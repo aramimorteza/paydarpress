@@ -85,7 +85,18 @@ final class PostMetaBox {
 		}
 
 		if ( '' !== $prompt ) {
-			$this->copy_field( 'پرامپت تصویر شاخص', $prompt, 'ltr', 5 );
+			$this->copy_field( 'پرامپت تصویر شاخص (نسبت ' . strtr( (string) \PaydarWP\PaydarPress\Core\Settings::get( 'images.featured_ratio', '16:9' ), array( '0' => '۰', '1' => '۱', '2' => '۲', '3' => '۳', '4' => '۴', '5' => '۵', '6' => '۶', '7' => '۷', '8' => '۸', '9' => '۹' ) ) . ')', $prompt, 'ltr', 5 );
+		}
+		$inline = get_post_meta( $post->ID, '_paydarpress_inline_images', true );
+		if ( is_array( $inline ) && $inline ) {
+			printf( '<p><strong>%s</strong><br><span class="description">%s</span></p>', esc_html( 'تصاویر داخل متن (' . \PaydarWP\PaydarPress\Text\PersianNormalizer::fa_number( count( $inline ) ) . ')' ), esc_html( 'نسبت ' . strtr( (string) \PaydarWP\PaydarPress\Core\Settings::get( 'images.inline_ratio', '4:3' ), array( '0' => '۰', '1' => '۱', '2' => '۲', '3' => '۳', '4' => '۴', '5' => '۵', '6' => '۶', '7' => '۷', '8' => '۸', '9' => '۹' ) ) . '. هر تصویر را بعد از سرتیتر گفته‌شده قرار دهید و متن جایگزینش را بچسبانید.' ) );
+			foreach ( $inline as $n => $img ) {
+				echo '<p class="description">' . esc_html( ( $n + 1 ) . '. بعد از «' . ( $img['after_heading'] ?? '' ) . '»' . ( ! empty( $img['why'] ) ? ' — ' . $img['why'] : '' ) ) . '</p>';
+				$this->copy_field( 'پرامپت', (string) ( $img['prompt'] ?? '' ), 'ltr', 3 );
+				if ( ! empty( $img['alt'] ) ) {
+					$this->copy_field( 'متن جایگزین', (string) $img['alt'], 'rtl', 1 );
+				}
+			}
 		}
 		if ( '' !== $alt ) {
 			$this->copy_field( 'متن جایگزین (Alt) تصویر شاخص', $alt, 'rtl', 2 );

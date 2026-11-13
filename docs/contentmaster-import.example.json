@@ -1,6 +1,6 @@
 {
   "schema": "paydarpress-import/1",
-  "generator": "ContentMaster 1.6",
+  "generator": "ContentMaster 1.14",
   "site": "vakilkaraj.net",
   "topics": [
     {
@@ -61,6 +61,14 @@
           "source_url": "https://vakilkaraj.net/lawsuit-price/",
           "anchor": "محاسبه مهریه به نرخ روز",
           "sentence": "برای مهریه، محاسبه مهریه به نرخ روز را ببینید."
+        }
+      ],
+      "inline_images": [
+        {
+          "after_heading": "فرمول محاسبه",
+          "prompt": "A notebook page showing a simple worked calculation with a calculator beside it on a wooden desk, natural light, 4:3",
+          "alt": "نمونه محاسبه مهریه به نرخ روز",
+          "why": "قدم‌های فرمول را دیداری نشان می‌دهد"
         }
       ]
     }

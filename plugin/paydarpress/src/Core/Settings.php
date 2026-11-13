@@ -55,6 +55,7 @@ final class Settings {
 				'require_review'     => true,
 				'site_stage'         => 'auto',
 				'shop_focus'         => 'auto',
+				'slug_style'         => 'english',
 			),
 			'images'      => array(
 				'convert_webp'    => true,
@@ -62,6 +63,8 @@ final class Settings {
 				'max_dimension'   => 1920,
 				'webp_quality'    => 80,
 				'min_kb'          => 30,
+				'featured_ratio'  => '16:9',
+				'inline_ratio'    => '4:3',
 			),
 			'ai'          => array(
 				'monthly_articles' => 30,
@@ -166,6 +169,9 @@ final class Settings {
 	public const CHOICES = array(
 		'policy.site_stage' => array( 'auto', 'new', 'growing', 'mature' ),
 		'policy.shop_focus' => array( 'auto', 'product', 'category', 'mixed' ),
+		'policy.slug_style' => array( 'english', 'persian' ),
+		'images.featured_ratio' => array( '16:9', '3:2', '4:3', '1:1' ),
+		'images.inline_ratio'   => array( '16:9', '3:2', '4:3', '1:1' ),
 	);
 
 	/**
@@ -197,7 +203,7 @@ final class Settings {
 					}
 					$out[ $group ][ $key ] = $value;
 				} elseif ( is_string( $default ) ) {
-					$value                 = sanitize_key( (string) $value );
+					$value                 = (string) preg_replace( '/[^a-z0-9_:\-]/', '', strtolower( (string) $value ) );
 					$out[ $group ][ $key ] = in_array( $value, self::CHOICES[ $path ] ?? array( $default ), true ) ? $value : $default;
 				} elseif ( is_array( $default ) ) {
 					// Only list of IDs is supported (orphan_exclude_ids).
