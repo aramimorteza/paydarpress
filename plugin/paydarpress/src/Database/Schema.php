@@ -21,9 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Schema {
 
-	public const VERSION = '1.7.0';
+	public const VERSION = '1.8.0';
 
-	public const TABLES = array( 'inventory', 'links', 'audit_findings', 'scans', 'activity', 'imports', 'gsc', 'topics', 'link_suggestions', 'ai_usage', 'changes', 'redirects', 'ai_jobs' );
+	public const TABLES = array( 'inventory', 'links', 'audit_findings', 'scans', 'activity', 'imports', 'gsc', 'topics', 'link_suggestions', 'ai_usage', 'changes', 'redirects', 'ai_jobs', 'notfound' );
 
 	/**
 	 * Full table name for a short name, e.g. `inventory` → `wp_paydarpress_inventory`.
@@ -59,6 +59,7 @@ final class Schema {
 		$ai_usage       = self::table( 'ai_usage' );
 		$changes        = self::table( 'changes' );
 		$ai_jobs        = self::table( 'ai_jobs' );
+		$notfound       = self::table( 'notfound' );
 		$redirects      = self::table( 'redirects' );
 		$suggestions    = self::table( 'link_suggestions' );
 
@@ -302,6 +303,26 @@ final class Schema {
   PRIMARY KEY  (id),
   KEY status (status),
   KEY created_at (created_at)
+) {$charset};",
+			"CREATE TABLE {$notfound} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  path_hash char(32) NOT NULL DEFAULT '',
+  url varchar(1000) NOT NULL DEFAULT '',
+  last_crawled date DEFAULT NULL,
+  state varchar(20) NOT NULL DEFAULT '',
+  status varchar(20) NOT NULL DEFAULT 'open',
+  candidate_id bigint(20) unsigned DEFAULT NULL,
+  candidate_reason varchar(30) NOT NULL DEFAULT '',
+  clicks int(10) unsigned NOT NULL DEFAULT 0,
+  impressions int(10) unsigned NOT NULL DEFAULT 0,
+  inbound int(10) unsigned NOT NULL DEFAULT 0,
+  valuable tinyint(1) NOT NULL DEFAULT 0,
+  note varchar(255) NOT NULL DEFAULT '',
+  first_seen datetime NOT NULL,
+  seen_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  UNIQUE KEY path_hash (path_hash),
+  KEY status_value (status,valuable)
 ) {$charset};",
 		);
 	}

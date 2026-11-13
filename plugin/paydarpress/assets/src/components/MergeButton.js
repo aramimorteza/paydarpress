@@ -38,7 +38,7 @@ export default function MergeButton( { id, title } ) {
 					{ error && <Notice status="error" onRemove={ () => setError( '' ) }>{ error }</Notice> }
 					{ result ? (
 						<Notice status="success" isDismissible={ false }>
-							ادغام انجام شد: «{ title }» پیش‌نویس شد، آدرسش با ۳۰۱ به «{ into.title }» می‌رود و لینک‌های { num( result.links ) } نوشته اصلاح شد. نتیجه در «گوگل ← نتیجه تغییرات» سنجیده می‌شود.
+							ادغام انجام شد: «{ title }» پیش‌نویس شد و لینک‌های { num( result.links ) } نوشته به «{ into.title }» اصلاح شد. { result.message } نتیجه در «گوگل ← نتیجه تغییرات» سنجیده می‌شود.
 						</Notice>
 					) : (
 						<>

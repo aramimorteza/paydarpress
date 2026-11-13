@@ -208,6 +208,7 @@ final class AdminPage {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			'topics'  => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$topics} WHERE status = 'new'" ),
 			'tasks'   => \PaydarWP\PaydarPress\Tasks\TaskBoard::count(),
+			'notfound' => \PaydarWP\PaydarPress\Gsc\NotFound::counts()['valuable'],
 		);
 	}
 

@@ -10,6 +10,7 @@ import LinksPage from './pages/LinksPage';
 import AutoPage from './pages/AutoPage';
 import TasksPage from './pages/TasksPage';
 import { ChangesPage, RedirectsPage } from './pages/ChangesPages';
+import NotFoundPage from './pages/NotFoundPage';
 import Inventory from './pages/Inventory';
 import { WizardPage, ProfilePage, ExportPage } from './pages/ProfilePages';
 import { AuditPage, ImagesPage, OrphansPage, RefreshPage, TaxonomiesPage, VisibilityPage } from './pages/AuditPages';
@@ -76,6 +77,8 @@ export default function App() {
 		page = <ChangesPage />;
 	} else if ( '/redirects' === path ) {
 		page = <RedirectsPage />;
+	} else if ( '/notfound' === path ) {
+		page = <NotFoundPage />;
 	} else if ( '/tasks' === path ) {
 		page = <TasksPage />;
 	} else if ( '/auto' === path ) {

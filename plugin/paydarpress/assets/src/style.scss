@@ -2277,3 +2277,19 @@ button.pp-chip {
 	color: inherit;
 	opacity: 0.85;
 }
+
+/* Search Console 404s (0.24.0) */
+
+.pp-nf__url a {
+	word-break: break-all;
+}
+
+.pp-actions-cell .components-button {
+	margin-bottom: 4px;
+}
+
+.pp-actions-cell .pp-picker {
+	margin-top: 6px;
+	text-align: start;
+	white-space: normal;
+}

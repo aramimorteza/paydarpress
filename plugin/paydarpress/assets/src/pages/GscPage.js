@@ -128,7 +128,7 @@ function HowTo( { compact } ) {
  * @param {Object}   props.data   Summary payload.
  * @param {Function} props.onDone Called with the new summary.
  */
-function Uploader( { data, onDone } ) {
+export function Uploader( { data, onDone } ) {
 	const input = useRef( null );
 	const [ busy, setBusy ] = useState( false );
 	const [ error, setError ] = useState( '' );
@@ -151,7 +151,10 @@ function Uploader( { data, onDone } ) {
 		setError( '' );
 		apiFetch( { path: `/${ config.restNamespace }/gsc/import`, method: 'POST', body } )
 			.then( ( d ) => {
-				setDone( d.import ? d.import.summary : null );
+				setDone( {
+					perf: d.performance_imported && d.import ? d.import.summary : null,
+					nf: d.notfound_result || null,
+				} );
 				onDone( d );
 			} )
 			.catch( ( e ) => setError( errorMessage( e ) ) )
@@ -161,7 +164,12 @@ function Uploader( { data, onDone } ) {
 	return (
 		<section className="pp-card pp-card--section">
 			{ error && <Notice status="error" isDismissible={ false }>{ error }</Notice> }
-			{ done && <Notice status="success" isDismissible={ false }>داده وارد شد: { num( done.pages ) } صفحه و { num( done.queries ) } عبارت. یافته‌ها و پیشنهاد بازنویسی بروز شدند.</Notice> }
+			{ done && done.perf && <Notice status="success" isDismissible={ false }>داده عملکرد وارد شد: { num( done.perf.pages ) } صفحه و { num( done.perf.queries ) } عبارت. یافته‌ها و پیشنهاد بازنویسی بروز شدند.</Notice> }
+			{ done && done.nf && (
+				<Notice status="success" isDismissible={ false }>
+					خروجی ۴۰۴ وارد شد: { num( done.nf.total ) } آدرس، { num( done.nf.counts.valuable ) } آدرس باارزش که هنوز ۴۰۴ است. <a href="#/notfound">بررسی ۴۰۴ها</a>
+				</Notice>
+			) }
 			<div
 				className={ `pp-dropzone${ over ? ' is-over' : '' }` }
 				onDragOver={ ( e ) => {
@@ -180,7 +188,7 @@ function Uploader( { data, onDone } ) {
 				) : (
 					<>
 						<p className="pp-dropzone__title">فایل zip خروجی سرچ کنسول را اینجا رها کنید</p>
-						<p className="pp-muted">یا فایل‌های Pages.csv و Queries.csv را جداگانه انتخاب کنید. فایل روی سرور ذخیره نمی‌شود؛ فقط ارقام و آدرس‌ها.</p>
+						<p className="pp-muted">خروجی «Performance» (عملکرد) و خروجی «Pages ← Not found (404)» را می‌توانید با هم انتخاب کنید. فایل روی سرور ذخیره نمی‌شود؛ فقط ارقام و آدرس‌ها.</p>
 						<Button variant="primary" onClick={ () => input.current && input.current.click() } __next40pxDefaultSize>انتخاب فایل</Button>
 					</>
 				) }

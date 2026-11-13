@@ -127,7 +127,7 @@ final class TaskBoard {
 			'setup:gsc-refresh:' . (int) ( $import['id'] ?? 0 ),
 			'setup',
 			'داده سرچ کنسول را تازه کنید',
-			sprintf( '%s روز از آخرین ورود گذشته است%s. هفته‌ای یک بار در سرچ کنسول: «Performance» ← بازه «Last 3 months» ← «Export» ← دانلود CSV (فایل zip)، و همین‌جا وارد کنید. فرصت‌ها، افت کلیک و نتیجه تغییرات با داده تازه دقیق می‌شوند.', PersianNormalizer::fa_number( $days ), $stale ? '؛ پیشنهادهای گوگل بر اساس داده قدیمی‌اند' : '' ),
+			sprintf( '%s روز از آخرین ورود گذشته است%s. هفته‌ای یک بار دو خروجی بگیرید و با هم وارد کنید: (۱) «Performance» ← بازه «Last 3 months» ← «Export» ← «Download CSV»؛ (۲) «Indexing» ← «Pages» ← ردیف «Not found (404)» ← «Export» ← «Download CSV». فرصت‌ها، افت کلیک، نتیجه تغییرات و آدرس‌های ۴۰۴ با داده تازه دقیق می‌شوند.', PersianNormalizer::fa_number( $days ), $stale ? '؛ پیشنهادهای گوگل بر اساس داده قدیمی‌اند' : '' ),
 			$stale ? 75 : 62,
 			3,
 			array( 'route' => '/gsc', 'label' => 'ورود خروجی تازه' )
@@ -204,6 +204,12 @@ final class TaskBoard {
 				20,
 				array( 'url' => $d['edit_url'], 'label' => 'باز کردن در ویرایشگر' )
 			);
+		}
+
+		// Valuable Search Console 404s (had traffic or internal links).
+		$nf = \PaydarWP\PaydarPress\Gsc\NotFound::counts();
+		if ( $nf['valuable'] > 0 ) {
+			$tasks[] = self::task( 'gsc:notfound', 'fix', sprintf( '%s آدرس باارزش در گوگل ۴۰۴ می‌دهد', PersianNormalizer::fa_number( $nf['valuable'] ) ), 'این آدرس‌ها از گوگل بازدید داشته‌اند یا از داخل سایت به آن‌ها لینک داده شده، ولی صفحه‌ای ندارند. برای هر کدام ریدایرکت به مطلب جایگزین، بازگردانی از زباله‌دان یا اصلاح لینک پیشنهاد شده است.', 78, 10, array( 'route' => '/notfound', 'label' => 'بررسی ۴۰۴ها' ) );
 		}
 
 		// 4. Link queue.

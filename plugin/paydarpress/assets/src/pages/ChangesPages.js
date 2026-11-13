@@ -96,6 +96,11 @@ export function RedirectsPage() {
 	return (
 		<Page title="ریدایرکت‌ها" helpKey="redirects">
 			{ error && <Notice status="error" onRemove={ () => setError( '' ) }>{ error }</Notice> }
+			{ data && data.owner && (
+				<Notice status="info" isDismissible={ false }>
+					ریدایرکت‌های سایت شما در <a href={ data.owner.url }>{ data.owner.name }</a> مدیریت می‌شود. پایدارپرس ریدایرکت تکراری نمی‌سازد: پس از ادغام یا تغییر آدرس بررسی می‌کند آدرس قبلی آنجا ریدایرکت شده یا نه، و فقط اگر نشده بود خودش ریدایرکت می‌سازد. ریدایرکت‌های پایدارپرس فقط روی آدرس‌هایی اجرا می‌شوند که صفحه‌ای ندارند، پس با آن افزونه تداخلی ندارند.
+				</Notice>
+			) }
 			{ canManage && (
 				<section className="pp-card pp-card--section">
 					<h2 className="pp-card__title">ریدایرکت ۳۰۱ تازه</h2>

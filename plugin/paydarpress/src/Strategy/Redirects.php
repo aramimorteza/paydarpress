@@ -147,7 +147,7 @@ final class Redirects {
 	 *
 	 * @param int $from Article being retired.
 	 * @param int $into Article that stays.
-	 * @return array{redirect: int, links: int}
+	 * @return array{redirect: int, message: string, links: int}
 	 * @throws RuntimeException On invalid input.
 	 */
 	public static function merge( int $from, int $into ): array {
@@ -162,8 +162,6 @@ final class Redirects {
 		}
 		$old_url = (string) get_permalink( $from );
 		$new_url = (string) get_permalink( $into );
-
-		$redirect = self::add( $old_url, $new_url, $into, 'merge' );
 
 		// Internal links: every published item that links to the old address now links to the target.
 		$urls   = new UrlNormalizer( home_url( '/' ) );
@@ -194,13 +192,18 @@ final class Redirects {
 		wp_update_post( array( 'ID' => $from, 'post_status' => 'draft' ) );
 		update_post_meta( $from, '_paydarpress_merged_into', $into );
 
+		// One owner per redirect: verify an existing redirect manager first (the old address
+		// is a 404 now), otherwise PaydarPress redirects it.
+		$redirect = RedirectOwner::ensure( $old_url, $into, 'merge' );
+
 		$title_a = html_entity_decode( get_the_title( $from ), ENT_QUOTES, 'UTF-8' );
 		$title_b = html_entity_decode( get_the_title( $into ), ENT_QUOTES, 'UTF-8' );
 		ChangeLog::record( 'merge', $into, '«' . $title_a . '» در این مقاله ادغام شد (ریدایرکت ۳۰۱)' );
-		Activity::log( 'import.merge', sprintf( '«%s» در «%s» ادغام شد: ریدایرکت ۳۰۱ ساخته شد و %d نوشته لینک‌شان اصلاح شد.', $title_a, $title_b, $changed ), 'post', $into );
+		Activity::log( 'import.merge', sprintf( '«%s» در «%s» ادغام شد: %s %d نوشته لینک‌شان اصلاح شد.', $title_a, $title_b, $redirect['message'], $changed ), 'post', $into );
 
 		return array(
-			'redirect' => $redirect,
+			'redirect' => $redirect['created'] ? 1 : 0,
+			'message'  => $redirect['message'],
 			'links'    => $changed,
 		);
 	}

@@ -101,6 +101,8 @@ final class GscController {
 			)
 		);
 		register_rest_route( self::NAMESPACE, '/gsc/import', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'import' ), 'permission_callback' => $manage ) );
+		register_rest_route( self::NAMESPACE, '/gsc/notfound', array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'notfound' ), 'permission_callback' => $view ) );
+		register_rest_route( self::NAMESPACE, '/gsc/notfound/(?P<id>\\d+)/(?P<op>redirect|restore|ignore|reopen)', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'notfound_act' ), 'permission_callback' => $manage ) );
 		register_rest_route( self::NAMESPACE, '/gsc/clear', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'clear' ), 'permission_callback' => $manage ) );
 		register_rest_route(
 			self::NAMESPACE,
@@ -157,12 +159,49 @@ final class GscController {
 		}
 
 		try {
-			( new GscImporter() )->import_uploads( $uploads );
+			$result = ( new GscImporter() )->import_uploads( $uploads );
 		} catch ( Throwable $e ) {
 			return new WP_Error( 'paydarpress_gsc_import', $e->getMessage(), array( 'status' => 422 ) );
 		}
 
-		return new WP_REST_Response( $this->summary_payload() );
+		$notfound = 'notfound' === ( $result['type'] ?? '' ) ? $result : ( $result['notfound'] ?? null );
+		return new WP_REST_Response(
+			$this->summary_payload() + array(
+				'performance_imported' => 'notfound' !== ( $result['type'] ?? '' ),
+				'notfound_result'      => $notfound,
+			)
+		);
+	}
+
+	/**
+	 * Search Console 404 addresses.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 */
+	public function notfound( WP_REST_Request $request ): WP_REST_Response {
+		$view = sanitize_key( (string) ( $request->get_param( 'view' ) ?: 'todo' ) );
+		return new WP_REST_Response(
+			array(
+				'items'  => \PaydarWP\PaydarPress\Gsc\NotFound::list( $view ),
+				'counts' => \PaydarWP\PaydarPress\Gsc\NotFound::counts(),
+				'owner'  => \PaydarWP\PaydarPress\Strategy\RedirectOwner::detect(),
+				'view'   => $view,
+			)
+		);
+	}
+
+	/**
+	 * Decision on one 404 address.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 */
+	public function notfound_act( WP_REST_Request $request ) {
+		try {
+			$r = \PaydarWP\PaydarPress\Gsc\NotFound::act( (int) $request['id'], (string) $request['op'], (int) $request->get_param( 'target' ) );
+		} catch ( \RuntimeException $e ) {
+			return new WP_Error( 'paydarpress_notfound', $e->getMessage(), array( 'status' => 400 ) );
+		}
+		return new WP_REST_Response( $r + array( 'counts' => \PaydarWP\PaydarPress\Gsc\NotFound::counts() ) );
 	}
 
 	/**

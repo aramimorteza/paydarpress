@@ -63,7 +63,20 @@ final class GscImporter {
 			}
 		}
 
-		return $this->import( $files, implode( '، ', $names ) );
+		// The «Not found (404)» export of the Pages report goes to its own list and never
+		// replaces the performance data. Both zips can be uploaded together.
+		$label = implode( '، ', $names );
+		$nf    = NotFound::detect( $files );
+		$nf_r  = null === $nf ? null : NotFound::import( $nf['rows'], $label );
+		try {
+			$summary = $this->import( $files, $label );
+		} catch ( RuntimeException $e ) {
+			if ( null === $nf_r ) {
+				throw $e;
+			}
+			return $nf_r;
+		}
+		return $summary + array( 'notfound' => $nf_r );
 	}
 
 	/**

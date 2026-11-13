@@ -39,7 +39,7 @@ final class StrategyController {
 				array(
 					'methods'             => WP_REST_Server::READABLE,
 					'permission_callback' => $view,
-					'callback'            => static fn() => new WP_REST_Response( array( 'items' => Redirects::all() ) ),
+					'callback'            => static fn() => new WP_REST_Response( array( 'items' => Redirects::all(), 'owner' => \PaydarWP\PaydarPress\Strategy\RedirectOwner::detect() ) ),
 				),
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
@@ -56,7 +56,7 @@ final class StrategyController {
 						} catch ( RuntimeException $e ) {
 							return new WP_Error( 'paydarpress_redirect', $e->getMessage(), array( 'status' => 400 ) );
 						}
-						return new WP_REST_Response( array( 'items' => Redirects::all() ) );
+						return new WP_REST_Response( array( 'items' => Redirects::all(), 'owner' => \PaydarWP\PaydarPress\Strategy\RedirectOwner::detect() ) );
 					},
 				),
 			)
@@ -70,7 +70,7 @@ final class StrategyController {
 				'args'                => array( 'id' => array( 'type' => 'integer', 'required' => true ) ),
 				'callback'            => static function ( WP_REST_Request $r ) {
 					Redirects::delete( (int) $r['id'] );
-					return new WP_REST_Response( array( 'items' => Redirects::all() ) );
+					return new WP_REST_Response( array( 'items' => Redirects::all(), 'owner' => \PaydarWP\PaydarPress\Strategy\RedirectOwner::detect() ) );
 				},
 			)
 		);
