@@ -96,6 +96,7 @@ class ComposerStaticInitfb42b83d6c8d640da5884eda2eaeec31
         'PaydarWP\\PaydarPress\\Seo\\SeoAdapter' => __DIR__ . '/../..' . '/src/Seo/SeoAdapter.php',
         'PaydarWP\\PaydarPress\\Seo\\SeoDetector' => __DIR__ . '/../..' . '/src/Seo/SeoDetector.php',
         'PaydarWP\\PaydarPress\\Seo\\YoastAdapter' => __DIR__ . '/../..' . '/src/Seo/YoastAdapter.php',
+        'PaydarWP\\PaydarPress\\Strategy\\Structure' => __DIR__ . '/../..' . '/src/Strategy/Structure.php',
         'PaydarWP\\PaydarPress\\Tasks\\TaskBoard' => __DIR__ . '/../..' . '/src/Tasks/TaskBoard.php',
         'PaydarWP\\PaydarPress\\Text\\PersianNormalizer' => __DIR__ . '/../..' . '/src/Text/PersianNormalizer.php',
         'PaydarWP\\PaydarPress\\Text\\YearDetector' => __DIR__ . '/../..' . '/src/Text/YearDetector.php',

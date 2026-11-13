@@ -209,6 +209,8 @@ final class ProfileRepository {
 						'link_categories' => array_values( array_unique( array_filter( array_map( 'intval', array_slice( (array) ( $item['link_categories'] ?? array() ), 0, 30 ) ), static fn( $c ) => $c > 0 && term_exists( $c, 'category' ) ) ) ),
 						'anchors'     => $anchors,
 						'priority'    => 'high' === ( $item['priority'] ?? '' ) ? 'high' : 'normal',
+						'page_type'   => in_array( $item['page_type'] ?? '', array( 'service', 'landing', 'product', 'category', 'contact', 'about', 'other' ), true ) ? $item['page_type'] : self::guess_page_type( $post ),
+						'main_keyword' => mb_substr( sanitize_text_field( (string) ( $item['main_keyword'] ?? '' ) ), 0, 120 ),
 						'detected_by' => sanitize_key( (string) ( $item['detected_by'] ?? 'manual' ) ),
 					);
 				}
@@ -249,12 +251,37 @@ final class ProfileRepository {
 						'count'           => (int) $term->count,
 						'scope'           => mb_substr( sanitize_textarea_field( (string) ( $item['scope'] ?? '' ) ), 0, 500 ),
 						'search_patterns' => mb_substr( sanitize_text_field( (string) ( $item['search_patterns'] ?? '' ) ), 0, 300 ),
+						'importance'      => in_array( $item['importance'] ?? '', array( 'high', 'normal', 'low' ), true ) ? $item['importance'] : 'normal',
 					);
 				}
 				return array_values( $out );
 		}
 
 		return null;
+	}
+
+	/**
+	 * Page type from the address and title (contact / about / product / category / service).
+	 *
+	 * @param WP_Post $post Page.
+	 */
+	public static function guess_page_type( WP_Post $post ): string {
+		if ( 'product' === $post->post_type ) {
+			return 'product';
+		}
+		$text = \PaydarWP\PaydarPress\Text\PersianNormalizer::normalize( rawurldecode( $post->post_name ) . ' ' . $post->post_title );
+		foreach ( array(
+			'contact' => array( 'contact', 'تماس', 'ارتباط با' ),
+			'about'   => array( 'about', 'درباره', 'معرفی ما' ),
+			'landing' => array( 'landing', 'campaign', 'جشنواره', 'تخفیف', 'رزرو', 'نوبت', 'مشاوره رایگان' ),
+		) as $type => $words ) {
+			foreach ( $words as $w ) {
+				if ( false !== mb_strpos( $text, $w ) ) {
+					return $type;
+				}
+			}
+		}
+		return 'post' === $post->post_type ? 'other' : 'service';
 	}
 
 	/**

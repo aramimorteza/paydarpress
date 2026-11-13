@@ -2121,3 +2121,20 @@ button.pp-chip {
 	tr.is-diff td:last-child { color: var(--pwp-warning, #b26a00); font-weight: 600; }
 	.pp-table { max-width: 520px; margin-block: 8px; }
 }
+
+.pp-keypage-meta {
+	display: grid;
+	grid-template-columns: 200px 1fr;
+	gap: 12px;
+	margin-block: 8px;
+}
+
+.pp-cluster {
+	font-size: 13px;
+	padding: 6px 10px;
+	border-radius: 6px;
+	background: var(--pwp-primary-soft, #e3f2f1);
+	margin-block-end: 8px;
+
+	&.is-short { background: #fff7e6; }
+}

@@ -81,6 +81,7 @@ return array(
     'PaydarWP\\PaydarPress\\Seo\\SeoAdapter' => $baseDir . '/src/Seo/SeoAdapter.php',
     'PaydarWP\\PaydarPress\\Seo\\SeoDetector' => $baseDir . '/src/Seo/SeoDetector.php',
     'PaydarWP\\PaydarPress\\Seo\\YoastAdapter' => $baseDir . '/src/Seo/YoastAdapter.php',
+    'PaydarWP\\PaydarPress\\Strategy\\Structure' => $baseDir . '/src/Strategy/Structure.php',
     'PaydarWP\\PaydarPress\\Tasks\\TaskBoard' => $baseDir . '/src/Tasks/TaskBoard.php',
     'PaydarWP\\PaydarPress\\Text\\PersianNormalizer' => $baseDir . '/src/Text/PersianNormalizer.php',
     'PaydarWP\\PaydarPress\\Text\\YearDetector' => $baseDir . '/src/Text/YearDetector.php',

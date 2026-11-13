@@ -246,6 +246,11 @@ export function RefreshPage() {
  */
 export function TaxonomiesPage() {
 	const { data, error, loading } = useLoad( '/taxonomies' );
+	const [ plan, setPlan ] = useState( {} );
+	useEffect( () => {
+		get( '/structure' ).then( ( s ) => setPlan( Object.fromEntries( s.categories.map( ( c ) => [ c.id, c ] ) ) ) ).catch( () => {} );
+	}, [] );
+	const IMPORTANCE = { high: 'مهم', normal: 'عادی', low: 'کم‌اهمیت' };
 
 	const table = ( items, emptyText, kind ) =>
 		items.length ? (
@@ -255,6 +260,7 @@ export function TaxonomiesPage() {
 						<tr>
 							<th>نام</th>
 							<th className="pp-num">تعداد مطلب</th>
+							{ 'category' === kind && <th>هدف (اهمیت)</th> }
 							<th className="pp-num">توضیحات</th>
 							<th>ایندکس</th>
 							<th>مشکلات</th>
@@ -273,6 +279,16 @@ export function TaxonomiesPage() {
 									</div>
 								</td>
 								<td className="pp-num">{ num( t.count ) }</td>
+								{ 'category' === kind && (
+									<td>
+										{ plan[ t.id ] ? (
+											<>
+												{ num( plan[ t.id ].target ) } <span className="pp-muted">({ IMPORTANCE[ plan[ t.id ].importance ] })</span>
+												{ plan[ t.id ].gap > 0 ? <div className="pp-missing">{ num( plan[ t.id ].gap ) } مطلب کم دارد</div> : <div className="pp-ok">کامل</div> }
+											</>
+										) : <span className="pp-muted">—</span> }
+									</td>
+								) }
 								<td className="pp-num">{ t.description > 0 ? `${ num( t.description ) } نویسه` : <span className="pp-missing">ندارد</span> }</td>
 								<td>{ t.noindex ? <span className="pp-badge">noindex</span> : 'قابل ایندکس' }</td>
 								<td className="pp-reasons">
@@ -294,6 +310,7 @@ export function TaxonomiesPage() {
 			{ data && (
 				<>
 					<h2 className="pp-section-title">دسته‌بندی‌ها ({ num( data.categories.length ) })</h2>
+					<p className="pp-muted">«هدف» تعداد مطلب مناسب هر دسته است و از مرحله سایت و اهمیت دسته می‌آید. اهمیت هر دسته را در <a href="#/profile">پروفایل ← محدوده موضوعی دسته‌ها</a> تعیین کنید.</p>
 					{ table( data.categories, 'دسته‌بندی‌ای وجود ندارد.', 'category' ) }
 					<h2 className="pp-section-title">برچسب‌ها ({ num( data.tags.length ) })</h2>
 					{ table( data.tags, 'برچسبی وجود ندارد.', 'tag' ) }

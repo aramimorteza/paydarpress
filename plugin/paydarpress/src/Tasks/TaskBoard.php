@@ -214,7 +214,18 @@ final class TaskBoard {
 			foreach ( $topics as $t ) {
 				$tasks[] = self::task( 'topic:' . $t['id'], 'write', 'نوشتن مقاله «' . $t['title'] . '»', sprintf( 'موضوع %s. سهمیه این ماه: %s از %s مقاله.', 'accepted' === $t['status'] ? 'پذیرفته‌شده' : 'پیشنهادی', PersianNormalizer::fa_number( $policy['published'] ), PersianNormalizer::fa_number( $policy['budget'] ) ), 'accepted' === $t['status'] ? 48 : 40, 60, array( 'route' => '/topics', 'label' => 'موضوعات پیشنهادی' ), array( 'kind' => 'topic', 'id' => $t['id'], 'title' => $t['title'] ) );
 			}
+			// Money pages without enough supporting articles come first.
+			foreach ( array_slice( array_filter( \PaydarWP\PaydarPress\Strategy\Structure::clusters(), static fn( $c ) => $c['gap'] > 0 ), 0, 2 ) as $c ) {
+				$tasks[] = self::task( 'cluster:' . $c['id'], 'write', 'مقاله پشتیبان برای «' . $c['name'] . '»', sprintf( '%s %s مقاله پشتیبان دارد (هدف %s). هر مقاله پشتیبان یک پرسش مشتری را جواب می‌دهد و به این صفحه لینک می‌دهد؛ این صفحه را برای «%s» قوی‌تر می‌کند.', \PaydarWP\PaydarPress\Strategy\Structure::PAGE_TYPES[ $c['type'] ] ?? '', PersianNormalizer::fa_number( $c['supports'] ), PersianNormalizer::fa_number( $c['target'] ), '' !== $c['main_keyword'] ? $c['main_keyword'] : $c['name'] ), 'high' === $c['priority'] ? 52 : 46, 60, array( 'route' => '/profile', 'label' => 'صفحات کلیدی' ), array( 'kind' => 'support', 'id' => $c['id'], 'title' => $c['name'], 'url' => $c['url'], 'type' => 'page', 'reasons' => array() ) );
+			}
 			if ( ! $topics ) {
+				$gap = array_values( array_filter( \PaydarWP\PaydarPress\Strategy\Structure::categories(), static fn( $c ) => $c['gap'] > 0 ) );
+				if ( $gap ) {
+					$c       = $gap[0];
+					$tasks[] = self::task( 'category:' . $c['id'], 'write', 'موضوع تازه برای دسته «' . $c['name'] . '»', sprintf( 'این دسته %s مطلب دارد و هدفش %s است (اهمیت: %s). از هوش مصنوعی برای همین دسته موضوع بگیرید.', PersianNormalizer::fa_number( $c['count'] ), PersianNormalizer::fa_number( $c['target'] ), \PaydarWP\PaydarPress\Strategy\Structure::IMPORTANCE_LABELS[ $c['importance'] ] ), 38, 10, array( 'route' => '/taxonomies', 'label' => 'دسته‌ها' ), array( 'kind' => 'category', 'id' => $c['id'], 'title' => $c['name'] ) );
+				}
+			}
+			if ( ! $topics && empty( $gap ) ) {
 				$tasks[] = self::task( 'topics:new', 'write', 'موضوع تازه انتخاب کنید', sprintf( 'از سهمیه این ماه %s مقاله باقی است و موضوع پذیرفته‌شده‌ای ندارید. از جست‌وجوهای بی‌مقاله سرچ کنسول یا «پیشنهاد موضوع» شروع کنید.', PersianNormalizer::fa_number( $left ) ), 35, 10, array( 'route' => GscRepository::has_data() ? '/gsc?tab=gaps' : '/topics', 'label' => GscRepository::has_data() ? 'جست‌وجوهای بی‌مقاله' : 'موضوعات پیشنهادی' ), array( 'kind' => 'topics' ) );
 			}
 		}

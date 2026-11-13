@@ -1,5 +1,6 @@
 import { useEffect, useState } from '@wordpress/element';
 import { get } from '../lib/api';
+import { num } from '../lib/format';
 import { Button, SelectControl, TextControl, TextareaControl } from '@wordpress/components';
 
 /** Field name → key of the industry example used as placeholder. */
@@ -151,6 +152,8 @@ export function ProfileField( { name, def, value, field, choices, onChange, indu
 	}
 }
 
+const PAGE_TYPES = [ [ 'service', 'صفحه خدمت' ], [ 'landing', 'صفحه فرود' ], [ 'product', 'محصول اصلی' ], [ 'category', 'دسته اصلی' ], [ 'contact', 'تماس' ], [ 'about', 'درباره ما' ], [ 'other', 'سایر' ] ];
+
 const ANCHOR_TYPES = { exact: 'دقیق', partial: 'بخشی', branded: 'برند', generic: 'بی‌معنی', other: 'سایر' };
 
 /**
@@ -227,8 +230,14 @@ function KeyPagesEditor( { label, help, ex, value, pages, categories, onChange }
 	const remove = ( index ) => onChange( value.filter( ( _, i ) => i !== index ) );
 	const available = pages.filter( ( p ) => ! value.some( ( v ) => v.id === p.id ) );
 
+	const [ clusters, setClusters ] = useState( {} );
+	const [ types, setTypes ] = useState( {} );
 	useEffect( () => {
 		get( '/profile/key-pages/stats' ).then( ( r ) => setStats( Object.fromEntries( ( r.pages || [] ).map( ( s ) => [ s.id, s ] ) ) ) ).catch( () => {} );
+		get( '/structure' ).then( ( r ) => {
+			setClusters( Object.fromEntries( ( r.clusters || [] ).map( ( c ) => [ c.id, c ] ) ) );
+			setTypes( r.types || {} );
+		} ).catch( () => {} );
 	}, [] );
 
 	const suggest = ( id ) => {
@@ -261,6 +270,28 @@ function KeyPagesEditor( { label, help, ex, value, pages, categories, onChange }
 							/>
 							<Button variant="tertiary" isDestructive size="small" onClick={ () => remove( index ) }>حذف</Button>
 						</div>
+						<div className="pp-keypage-meta">
+							<SelectControl
+								__nextHasNoMarginBottom
+								label="نوع صفحه"
+								value={ page.page_type || types[ page.id ] || 'service' }
+								options={ PAGE_TYPES.map( ( [ v, l ] ) => ( { value: v, label: l } ) ) }
+								onChange={ ( v ) => update( index, { page_type: v } ) }
+							/>
+							<TextControl
+								__nextHasNoMarginBottom
+								label="کلمه کلیدی اصلی این صفحه"
+								help="عبارتی که این صفحه باید در گوگل برایش اول باشد. مقاله‌ها این عبارت را هدف نمی‌گیرند؛ پشتیبان این صفحه‌اند."
+								value={ page.main_keyword || '' }
+								onChange={ ( v ) => update( index, { main_keyword: v } ) }
+							/>
+						</div>
+						{ clusters[ page.id ] && (
+							<div className={ `pp-cluster${ clusters[ page.id ].gap > 0 ? ' is-short' : '' }` }>
+								خوشه: { num( clusters[ page.id ].supports ) } مقاله پشتیبان به این صفحه لینک می‌دهند (هدف { num( clusters[ page.id ].target ) }).
+								{ clusters[ page.id ].gap > 0 && ' کمبود در «کارهای این هفته» پیشنهاد می‌شود.' }
+							</div>
+						) }
 						<CategoryPicker categories={ categories } value={ page.link_categories } onChange={ ( v ) => update( index, { link_categories: v } ) } />
 						{ page.link_when && ! ( page.link_categories || [] ).length && (
 							<div className="pp-help-text">توضیح قبلی شما: «{ page.link_when }» — دسته‌های مربوط را بالا انتخاب کنید.</div>
@@ -352,6 +383,14 @@ function CategoriesEditor( { label, help, ex, patterns, value, onChange } ) {
 						<strong>{ cat.name }</strong>
 						{ undefined !== cat.count && <span className="pp-muted">{ Number( cat.count ).toLocaleString( 'fa-IR' ) } مطلب</span> }
 					</div>
+					<SelectControl
+						__nextHasNoMarginBottom
+						label="اهمیت این دسته برای کسب‌وکار"
+						help="دسته مهم دو برابر دسته عادی مطلب هدف دارد و در پیشنهاد موضوع و کارهای هفته جلوتر است؛ دسته کم‌اهمیت نصف."
+						value={ cat.importance || 'normal' }
+						options={ [ { value: 'high', label: 'مهم (نزدیک به فروش یا خدمت اصلی)' }, { value: 'normal', label: 'عادی' }, { value: 'low', label: 'کم‌اهمیت' } ] }
+						onChange={ ( v ) => update( index, { importance: v } ) }
+					/>
 					<TextareaControl
 						__nextHasNoMarginBottom
 						label="این دسته چه موضوعاتی را پوشش می‌دهد؟"

@@ -582,6 +582,8 @@ final class PromptBuilder {
 			$cats = array_filter( array_map( static fn( $c ) => ( $t = get_term( (int) $c, 'category' ) ) instanceof WP_Term ? $t->name : '', (array) ( $page['link_categories'] ?? array() ) ) );
 			$st   = $stats[ $id ] ?? null;
 			$lines[] = '- ' . self::title( $id ) . ' | ' . self::url( $id )
+				. ' | type: ' . \PaydarWP\PaydarPress\Strategy\Structure::type_of( (int) $id, $page )
+				. ( ! empty( $page['main_keyword'] ) ? ' | main keyword: ' . $page['main_keyword'] . ' (never use it as the main keyword of an article; articles support this page)' : '' )
 				. ' | priority: ' . ( $page['priority'] ?? 'normal' )
 				. ' | link from categories: ' . ( $cats ? implode( '، ', $cats ) : 'all' )
 				. ( ! empty( $page['anchors'] ) ? ' | allowed anchors: ' . implode( '، ', (array) $page['anchors'] ) : '' )
@@ -614,12 +616,10 @@ final class PromptBuilder {
 			}
 		}
 		$lines = array();
-		foreach ( (array) get_terms( array( 'taxonomy' => 'category', 'hide_empty' => false, 'number' => 80 ) ) as $t ) {
-			if ( $t instanceof WP_Term && 'uncategorized' !== $t->slug ) {
-				$lines[] = '- ' . $t->name . ' (' . $t->count . ' posts)' . ( ! empty( $scopes[ $t->term_id ] ) ? ' — ' . $scopes[ $t->term_id ] : '' );
-			}
+		foreach ( \PaydarWP\PaydarPress\Strategy\Structure::categories() as $c ) {
+			$lines[] = '- ' . $c['name'] . ' (' . $c['count'] . ' posts, target ' . $c['target'] . ', importance ' . $c['importance'] . ( $c['gap'] > 0 ? ', needs ' . $c['gap'] . ' more' : ', target reached' ) . ')' . ( ! empty( $scopes[ $c['id'] ] ) ? ' — ' . $scopes[ $c['id'] ] : '' );
 		}
-		return $lines ? implode( "\n", $lines ) : '- (no categories yet)';
+		return $lines ? implode( "\n", $lines ) . "\n(Prefer categories that need more posts, important ones first; for categories that reached their target, propose only clearly missing intents.)" : '- (no categories yet)';
 	}
 
 	/**

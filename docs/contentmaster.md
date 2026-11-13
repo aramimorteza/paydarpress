@@ -1,4 +1,4 @@
-# ContentMaster v1.11
+# ContentMaster v1.12
 ### Multi-site SEO content system: Setup, Topic Research, Article Writing, Content Refresh
 
 ---
@@ -284,6 +284,9 @@ The PaydarPress plugin exports the site as JSON (schema `1.x`, profile `contentm
 
 **Read**
 - `profile.<field>.value` → SITE PROFILE fields with the same names (Section 5). `key_pages`, `cta_options` and `categories_scope` are lists of objects with `id`, `name`, `url` and their own fields (`link_categories` + `link_categories_names` = categories whose articles should link to the page, empty = all articles; older exports may only have the free-text `link_when`; `anchors`, `priority`, `scope`, `use_when`).
+- `profile.main_keywords.value` → the business's main keywords (one per line). Each should have one main page (a key page, category or product); articles support those pages and never target a main keyword themselves.
+- Key pages also carry `page_type` (service, landing, product, category, contact, about, other) and `main_keyword`. Service, landing, product and category pages need a cluster of supporting articles that answer customer questions and link to them.
+- `categories_scope[].importance` (high, normal, low) sets how many articles each category should have; when proposing topics, prefer important categories that are below their target.
 - `profile.link_rules` → `max_key_page_links_per_article` (2) and `exact_anchor_max_share` (0.3). `key_page_anchor_stats` lists, per key page, how many links it already has and what share uses the exact main phrase (`over_cap: true` = already above 30%: do **not** use the exact phrase as anchor for that page in new articles).
 - `profile.<field>.source` is `detected`, `inferred` or `manual`; `confirmed: false` means the owner has not confirmed it. Use unconfirmed values, but ask about them in the same single question as the missing fields.
 - `profile.missing_fields` → the only fields to ask about. Ask for all of them in **one** short round (numbered questions, one example each), then continue. Never re-run the full Setup interview.
@@ -309,7 +312,7 @@ The PaydarPress plugin exports the site as JSON (schema `1.x`, profile `contentm
 ### 6.5 Output for PaydarPress (`خروجی پایدارپرس`)
 
 Produce **one** JSON code block and nothing else except one line before it: «این متن را در پایدارپرس ← ورود از ContentMaster بچسبانید.» Rules:
-- `schema` is exactly `paydarpress-import/1`; `generator` is `ContentMaster 1.11`; `site` is the profile domain.
+- `schema` is exactly `paydarpress-import/1`; `generator` is `ContentMaster 1.12`; `site` is the profile domain.
 - By default include the **working topic list** (`topics`) and **every article written in this conversation** (`articles`). `خروجی پایدارپرس: موضوعات` or `خروجی پایدارپرس: مقاله ۳` limit the output.
 - Never shorten or summarize an article for the export: `html` is the exact final HTML of the article (after any «اصلاح»), as one JSON string with escaped quotes and newlines. If the conversation is too long to reproduce an article exactly, export it alone with `خروجی پایدارپرس: مقاله [شماره]`.
 - Use only category names from the profile (`category`), and tags from the article's SEO output.

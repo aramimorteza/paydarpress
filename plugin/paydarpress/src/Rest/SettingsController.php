@@ -55,6 +55,22 @@ final class SettingsController {
 		$manage = static fn() => current_user_can( Capabilities::MANAGE );
 		$view   = static fn() => current_user_can( Capabilities::VIEW );
 
+		register_rest_route(
+			self::NAMESPACE,
+			'/structure',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'permission_callback' => $view,
+				'callback'            => static fn() => new WP_REST_Response(
+					array(
+						'categories' => \PaydarWP\PaydarPress\Strategy\Structure::categories(),
+						'clusters'   => \PaydarWP\PaydarPress\Strategy\Structure::clusters(),
+						'types'      => (object) array_map( static fn( $p ) => \PaydarWP\PaydarPress\Strategy\Structure::type_of( (int) $p['id'], $p ), \PaydarWP\PaydarPress\Links\KeyPageLinks::pages() ),
+						'stage'      => \PaydarWP\PaydarPress\Policy\SiteStage::current(),
+					)
+				),
+			)
+		);
 		register_rest_route( self::NAMESPACE, '/policy/stage', array( 'methods' => WP_REST_Server::READABLE, 'callback' => static fn() => new WP_REST_Response( \PaydarWP\PaydarPress\Policy\SiteStage::info() ), 'permission_callback' => $view ) );
 		register_rest_route(
 			self::NAMESPACE,

@@ -241,7 +241,7 @@ function GscSuggestions( { values, onChange } ) {
 	};
 
 	const f = data.fields || {};
-	const hasAny = f.primary_keyword_patterns || f.audience_problems || f.geographic_scope || ( data.key_pages || [] ).length;
+	const hasAny = f.main_keywords || f.primary_keyword_patterns || f.audience_problems || f.geographic_scope || ( data.key_pages || [] ).length;
 	if ( ! hasAny ) {
 		return null;
 	}
@@ -258,6 +258,16 @@ function GscSuggestions( { values, onChange } ) {
 						<ul>{ data.patterns.map( ( p ) => <li key={ p.pattern }><code>{ p.pattern }</code> — { num( p.queries ) } جست‌وجو، { num( p.impressions ) } نمایش؛ مثل «{ p.examples.slice( 0, 2 ).join( '»، «' ) }»</li> ) }</ul>
 					</div>
 					<Button variant="secondary" size="small" disabled={ used.patterns } onClick={ () => append( 'primary_keyword_patterns', f.primary_keyword_patterns, 'patterns' ) }>{ used.patterns ? 'اضافه شد' : 'افزودن' }</Button>
+				</div>
+			) }
+			{ f.main_keywords && (
+				<div className="pp-gsc-suggest__row">
+					<div>
+						<strong>کلمات کلیدی اصلی (پرنمایش‌ترین جست‌وجوهای غیرسؤالی)</strong>
+						<ul>{ f.main_keywords.split( '\n' ).map( ( k ) => <li key={ k }>{ k }</li> ) }</ul>
+						<div className="pp-muted">فقط مواردی را نگه دارید که واقعاً خدمت یا محصول اصلی شما هستند.</div>
+					</div>
+					<Button variant="secondary" size="small" disabled={ used.main } onClick={ () => append( 'main_keywords', f.main_keywords, 'main' ) }>{ used.main ? 'اضافه شد' : 'افزودن' }</Button>
 				</div>
 			) }
 			{ f.audience_problems && (

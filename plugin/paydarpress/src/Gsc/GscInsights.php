@@ -91,6 +91,12 @@ final class GscInsights {
 		if ( $questions ) {
 			$fields['audience_problems'] = implode( "\n", array_map( static fn( $q ) => $q['query'], array_slice( $questions, 0, 8 ) ) );
 		}
+		// Main keyword candidates: the most-shown searches that are not questions.
+		$questions_set = array_flip( array_column( $questions, 'query' ) );
+		$main          = array_slice( array_values( array_filter( $queries, static fn( $q ) => ! isset( $questions_set[ $q['query'] ] ) && substr_count( $q['norm'], ' ' ) >= 1 && substr_count( $q['norm'], ' ' ) <= 4 ) ), 0, 10 );
+		if ( $main ) {
+			$fields['main_keywords'] = implode( "\n", array_column( $main, 'query' ) );
+		}
 		if ( $places ) {
 			$total = array_sum( array_column( $places, 'impressions' ) );
 			$top   = $places[0];
