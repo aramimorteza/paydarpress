@@ -49,9 +49,9 @@ final class ImportParser {
 
 		if ( ( $data['schema'] ?? '' ) !== self::SCHEMA ) {
 			if ( isset( $data['export_meta'] ) ) {
-				throw new RuntimeException( 'این فایل خروجی خود پایدارپرس است، نه خروجی ContentMaster. در ContentMaster فرمان «خروجی پایدارپرس» را بزنید و متن حاصل را اینجا بچسبانید.' );
+				throw new RuntimeException( 'این فایل «خروجی سایت» خود پایدارپرس است، نه پاسخ هوش مصنوعی. پاسخ JSON دستیار هوش مصنوعی را اینجا بچسبانید.' );
 			}
-			throw new RuntimeException( 'قالب متن شناخته نشد. در ContentMaster فرمان «خروجی پایدارپرس» را بزنید و کل بلوک کد را بچسبانید.' );
+			throw new RuntimeException( 'قالب متن شناخته نشد. کل بلوک JSON پاسخ هوش مصنوعی را کپی کنید و بچسبانید (پرامپت را از دکمه‌های «… با هوش مصنوعی» پایدارپرس بگیرید).' );
 		}
 
 		$notices  = array();
@@ -158,14 +158,14 @@ final class ImportParser {
 			$start = strpos( $text, '{' );
 			$end   = strrpos( $text, '}' );
 			if ( false === $start || false === $end || $end <= $start ) {
-				throw new RuntimeException( 'متنی با قالب JSON پیدا نشد. کل بلوک کد خروجی ContentMaster را کپی کنید.' );
+				throw new RuntimeException( 'متنی با قالب JSON پیدا نشد. کل بلوک کد پاسخ هوش مصنوعی را کپی کنید.' );
 			}
 			$text = substr( $text, $start, $end - $start + 1 );
 		}
 
 		$data = json_decode( $text, true, 64 );
 		if ( ! is_array( $data ) ) {
-			throw new RuntimeException( 'متن JSON ناقص یا خراب است (' . json_last_error_msg() . '). احتمالاً بخشی از متن هنگام کپی جا مانده؛ دوباره کل بلوک کد را کپی کنید یا در ContentMaster هر مقاله را جداگانه خروجی بگیرید.' );
+			throw new RuntimeException( 'متن JSON ناقص یا خراب است (' . json_last_error_msg() . '). احتمالاً بخشی از متن هنگام کپی جا مانده؛ دوباره کل بلوک کد را کپی کنید یا از هوش مصنوعی بخواهید هر مقاله را در پاسخی جداگانه بدهد.' );
 		}
 
 		return $data;

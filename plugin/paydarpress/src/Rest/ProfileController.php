@@ -259,7 +259,7 @@ final class ProfileController {
 			),
 			array(
 				'key'   => 'export',
-				'title' => 'ساخت خروجی برای ContentMaster',
+				'title' => 'ساخت خروجی سایت (JSON)',
 				'done'  => false !== get_option( InventoryExporter::OPTION_LAST, false ),
 				'link'  => '#/export',
 			),

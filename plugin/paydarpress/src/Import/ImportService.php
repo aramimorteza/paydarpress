@@ -82,7 +82,7 @@ final class ImportService {
 		$site = rtrim( (string) strtok( $site, '/' ), '/' );
 		$home = strtolower( (string) preg_replace( '/^www\./', '', (string) wp_parse_url( home_url(), PHP_URL_HOST ) ) );
 		if ( '' !== $site && $site !== $home ) {
-			$warnings[] = sprintf( 'این خروجی برای سایت «%s» ساخته شده، اما این سایت «%s» است. اگر پروژه ContentMaster را اشتباه انتخاب کرده‌اید، ورود را ادامه ندهید.', $site, $home );
+			$warnings[] = sprintf( 'این خروجی برای سایت «%s» ساخته شده، اما این سایت «%s» است. احتمالاً پرامپت سایت دیگری را استفاده کرده‌اید؛ ورود را ادامه ندهید.', $site, $home );
 		}
 
 		$categories = $this->categories();
@@ -203,7 +203,7 @@ final class ImportService {
 			Schema::table( 'imports' ),
 			array(
 				'type'       => 'contentmaster',
-				'file_name'  => mb_substr( (string) ( $preview['meta']['generator'] ?: 'ContentMaster' ), 0, 255 ),
+				'file_name'  => mb_substr( (string) ( $preview['meta']['generator'] ?: 'AI' ), 0, 255 ),
 				'status'     => 'running',
 				'user_id'    => get_current_user_id(),
 				'created_at' => $now,
@@ -330,7 +330,7 @@ final class ImportService {
 		Activity::log(
 			'import.contentmaster',
 			sprintf(
-				'ورود از ContentMaster: %s موضوع، %s پیش‌نویس، %s پیشنهاد لینک، %s متن دسته، %s متا، %s متن جایگزین تصویر.',
+				'ورود پاسخ هوش مصنوعی: %s موضوع، %s پیش‌نویس، %s پیشنهاد لینک، %s متن دسته، %s متا، %s متن جایگزین تصویر.',
 				PersianNormalizer::fa_number( $result['topics'] ),
 				PersianNormalizer::fa_number( count( $result['articles'] ) ),
 				PersianNormalizer::fa_number( $result['link_suggestions'] ),

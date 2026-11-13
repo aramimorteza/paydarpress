@@ -152,13 +152,13 @@ export function ImportPage() {
 				<section className="pp-card pp-card--section">
 					<h2 className="pp-card__title">متن خروجی را بچسبانید</h2>
 					<ol className="pp-howto">
-						<li>پاسخ JSON هوش مصنوعی را کپی کنید: اگر از دکمه‌های «تولید با هوش مصنوعی» و «کپی پرامپت کامل» استفاده کرده‌اید، پاسخ ChatGPT، Claude یا Gemini همان بلوک JSON است؛ در گفتگوی ContentMaster هم فرمان <strong>«خروجی پایدارپرس»</strong> را بفرستید.</li>
+						<li>پاسخ JSON هوش مصنوعی را کپی کنید: اگر از دکمه‌های «تولید با هوش مصنوعی» و «کپی پرامپت کامل» استفاده کرده‌اید، پاسخ ChatGPT، Claude یا Gemini همان بلوک JSON است.</li>
 						<li>متن را اینجا بچسبانید (یا فایل ‎.json را انتخاب کنید).</li>
 						<li>پیش‌نمایش را بررسی کنید و موارد دلخواه را وارد کنید. مقالات فقط پیش‌نویس می‌شوند.</li>
 					</ol>
 					<TextareaControl
 						__nextHasNoMarginBottom
-						label="پاسخ هوش مصنوعی یا خروجی ContentMaster"
+						label="پاسخ هوش مصنوعی"
 						hideLabelFromVision
 						className="pp-paste"
 						rows={ 10 }

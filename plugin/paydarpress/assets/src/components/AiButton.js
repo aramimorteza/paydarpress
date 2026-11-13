@@ -62,7 +62,7 @@ export default function AiButton( { command, small = true, variant = 'secondary'
 	const [ copied, setCopied ] = useState( '' );
 	const [ showPrompt, setShowPrompt ] = useState( false );
 
-	if ( ! command ) {
+	if ( ! command || ! command.prompt ) {
 		return null;
 	}
 
@@ -86,7 +86,6 @@ export default function AiButton( { command, small = true, variant = 'secondary'
 			.catch( () => setError( 'کپی خودکار ممکن نشد؛ متن را از کادر انتخاب و کپی کنید.' ) );
 	};
 
-	const shortCommand = data ? data.command : command.command;
 
 	return (
 		<>
@@ -113,7 +112,7 @@ export default function AiButton( { command, small = true, variant = 'secondary'
 
 					{ command.prompt && (
 						<section className="pp-ai-modal__block">
-							<h3>{ data && data.ai_ready ? 'یا دستی: با ChatGPT، Claude یا Gemini' : 'روش ۱: با ChatGPT، Claude یا Gemini (بدون نیاز به چیز دیگر)' }</h3>
+							<h3>{ data && data.ai_ready ? 'یا دستی: با ChatGPT، Claude یا Gemini' : 'با ChatGPT، Claude یا Gemini' }</h3>
 							<ol className="pp-ai-steps">
 								<li>
 									<strong>پرامپت کامل را کپی کنید.</strong> قوانین نوشتن، پروفایل سایت، صفحات کلیدی، مطالب مرتبط و قالب خروجی، مخصوص همین مورد، داخل آن است.
@@ -146,19 +145,6 @@ export default function AiButton( { command, small = true, variant = 'secondary'
 							</ol>
 						</section>
 					) }
-
-					<section className="pp-ai-modal__block">
-						<h3>{ command.prompt ? 'روش ۲: در گفتگوی ContentMaster همین سایت' : 'در گفتگوی ContentMaster همین سایت' }</h3>
-						<p className="pp-muted">اگر پروژه ContentMaster با فایل خروجی سایت دارید، فقط این فرمان کوتاه کافی است؛ بعد فرمان «خروجی پایدارپرس» را بزنید.</p>
-						<TextareaControl __nextHasNoMarginBottom label="فرمان" hideLabelFromVision readOnly rows={ 3 } value={ shortCommand } onChange={ () => {} } />
-						<Button variant="secondary" onClick={ () => copy( 'cmd', shortCommand ) }>{ 'cmd' === copied ? '✓ فرمان کپی شد' : 'کپی فرمان' }</Button>
-						{ ! command.prompt && (
-							<div className="pp-ai-modal__import">
-								<p className="pp-muted">خروجی «خروجی پایدارپرس» را همین‌جا بچسبانید:</p>
-								{ canImport ? <InlineImport /> : <span className="pp-muted"> ورود فقط برای مدیر سایت ممکن است.</span> }
-							</div>
-						) }
-					</section>
 
 					{ command.hint && <p className="pp-muted">{ command.hint }</p> }
 					{ command.prompt && data && ! data.ai_ready && canImport && (

@@ -85,6 +85,19 @@ final class DashboardWidget {
 		}
 		echo '</ul>';
 
+		// Weekly Search Console reminder (respects «later» on the task list).
+		if ( \PaydarWP\PaydarPress\Gsc\GscRepository::needs_refresh() ) {
+			$task = \PaydarWP\PaydarPress\Tasks\TaskBoard::gsc_refresh_task();
+			if ( ! \PaydarWP\PaydarPress\Tasks\TaskBoard::is_hidden( $task['key'] ) ) {
+				printf(
+					'<p style="margin:0 0 12px;padding:8px 10px;background:#fdf1de;border-radius:4px">%1$s <a href="%2$s">%3$s</a></p>',
+					esc_html( sprintf( '%s روز از آخرین ورود داده سرچ کنسول گذشته است.', PersianNormalizer::fa_number( (int) \PaydarWP\PaydarPress\Gsc\GscRepository::days_since() ) ) ),
+					esc_url( $url . '#/gsc' ),
+					esc_html( 'ورود خروجی تازه' )
+				);
+			}
+		}
+
 		printf( '<p style="margin:0"><a class="button" href="%1$s">%2$s</a></p>', esc_url( $url ), esc_html( 'باز کردن پایدارپرس' ) );
 		echo '</div>';
 	}

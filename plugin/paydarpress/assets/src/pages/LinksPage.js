@@ -15,7 +15,7 @@ const TABS = [
 	{ key: 'rejected', label: 'ردشده' },
 ];
 
-const ORIGIN = { contentmaster: 'ContentMaster', paydarpress: 'پایدارپرس' };
+const ORIGIN = { contentmaster: 'هوش مصنوعی', paydarpress: 'پایدارپرس' };
 
 function initialStatus() {
 	const m = window.location.hash.match( /[?&]status=([a-z]+)/ );
@@ -99,7 +99,7 @@ export default function LinksPage() {
 				<div className="pp-card">
 					<EmptyState
 						title={ 'pending' === status ? 'پیشنهادی در انتظار تأیید نیست' : 'موردی نیست' }
-						text={ 'pending' === status ? 'پیشنهادها از ContentMaster (لینک از مقالات قدیمی به مقاله جدید) و از «محتوای یتیم» اینجا می‌آیند.' : '' }
+						text={ 'pending' === status ? 'پیشنهادها از پاسخ‌های هوش مصنوعی (لینک از مقالات قدیمی به مقاله جدید) و از «محتوای یتیم» اینجا می‌آیند.' : '' }
 						action={ 'pending' === status && canManage && <a className="button button-primary" href="#/orphans">ساخت پیشنهاد برای محتوای یتیم</a> }
 					/>
 				</div>
@@ -201,7 +201,7 @@ function LinkCard( { item, canManage, checked, onCheck, onChange } ) {
 			{ open && ! item.found && (
 				<p className="pp-missing">
 					متن لنگر «{ item.anchor }» در متن نوشته مبدأ پیدا نشد. یک عبارت از همان نوشته را بنویسید که به موضوع مقصد اشاره دارد.
-					{ item.sentence && <span className="pp-muted"> پیشنهاد ContentMaster: «{ item.sentence }»</span> }
+					{ item.sentence && <span className="pp-muted"> جمله پیشنهادی: «{ item.sentence }»</span> }
 				</p>
 			) }
 			{ ! open && <p className="pp-link-card__anchor">متن لنگر: «{ item.anchor }»</p> }

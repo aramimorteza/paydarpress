@@ -23,6 +23,9 @@ final class GscRepository {
 	/** Days after which imported data is considered stale. */
 	public const STALE_DAYS = 60;
 
+	/** Days after which the owner is reminded to upload fresh exports (weekly routine). */
+	public const REMIND_DAYS = 7;
+
 	/**
 	 * Latest completed (not cleared) Search Console import with decoded summary.
 	 */
@@ -48,6 +51,22 @@ final class GscRepository {
 	 */
 	public static function has_data(): bool {
 		return null !== self::latest_import();
+	}
+
+	/**
+	 * Whole days since the latest import (null without data).
+	 */
+	public static function days_since(): ?int {
+		$import = self::latest_import();
+		return null === $import ? null : (int) floor( ( time() - strtotime( $import['created_at'] . ' UTC' ) ) / DAY_IN_SECONDS );
+	}
+
+	/**
+	 * Whether the weekly refresh is due.
+	 */
+	public static function needs_refresh(): bool {
+		$days = self::days_since();
+		return null !== $days && $days >= self::REMIND_DAYS;
 	}
 
 	/**

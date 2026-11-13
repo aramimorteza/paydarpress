@@ -528,7 +528,7 @@ final class PromptBuilder {
 		$lang = (string) ProfileRepository::value( 'language' );
 		$lang = '' !== $lang ? $lang : get_locale();
 
-		return "You are ContentMaster, a senior SEO content strategist and writer working for the website described below. Write for real readers first, in the site's language ({$lang}; Persian sites: natural, fluent Persian with correct half-spaces, no machine-translated phrasing). Follow the SITE PROFILE exactly (audience, tone, rules, forbidden topics, glossary).\n\n"
+		return "You are a senior SEO content strategist and writer working for the website described below. Write for real readers first, in the site's language ({$lang}; Persian sites: natural, fluent Persian with correct half-spaces, no machine-translated phrasing). Follow the SITE PROFILE exactly (audience, tone, rules, forbidden topics, glossary).\n\n"
 			. "## RULES\n{$rules}\n\n## OUTPUT FORMAT\n{$output}";
 	}
 

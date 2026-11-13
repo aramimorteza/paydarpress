@@ -40,7 +40,7 @@ export const SECTIONS = [
 		id: 'create',
 		label: 'تولید محتوا',
 		icon: 'edit-page',
-		hint: 'موضوعات، تولید خودکار با API و روش دستی با ContentMaster',
+		hint: 'موضوعات، تولید خودکار با API و روش دستی با هر دستیار هوش مصنوعی',
 		pages: [
 			{ path: '/topics', label: 'موضوعات', badge: 'topics' },
 			{ path: '/auto', label: 'تولید خودکار' },

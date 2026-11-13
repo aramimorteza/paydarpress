@@ -377,7 +377,7 @@ final class GscInsights {
 				'title'         => $query,
 				'focus_keyword' => $query,
 				'intent'        => '',
-				'notes'         => sprintf( 'از سرچ کنسول: %s نمایش، جایگاه میانگین %s. عنوان را ContentMaster یا خودتان بازنویسی کنید.', PersianNormalizer::fa_number( $impressions ), PersianNormalizer::fa_number( $position ) ),
+				'notes'         => sprintf( 'از سرچ کنسول: %s نمایش، جایگاه میانگین %s. عنوان را با هوش مصنوعی یا خودتان بازنویسی کنید.', PersianNormalizer::fa_number( $impressions ), PersianNormalizer::fa_number( $position ) ),
 			)
 		);
 		return array( 'id' => $id, 'created' => true );

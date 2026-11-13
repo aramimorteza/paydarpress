@@ -50,9 +50,9 @@ export default function GscPage() {
 			{ error && <Notice status="error" isDismissible={ false }>{ error }</Notice> }
 			{ ! data && ! error && <Spinner /> }
 
-			{ data && data.stale && (
-				<Notice status="warning" isDismissible={ false }>
-					داده سرچ کنسول بیش از ۲ ماه پیش وارد شده است. برای پیشنهادهای دقیق، خروجی تازه را آپلود کنید.
+			{ data && data.needs_refresh && (
+				<Notice status={ data.stale ? 'warning' : 'info' } isDismissible={ false }>
+					{ num( data.days_since ) } روز از آخرین ورود گذشته است{ data.stale ? ' و پیشنهادها بر اساس داده قدیمی‌اند' : '' }. هفته‌ای یک بار خروجی «۳ ماه گذشته» را تازه کنید؛ هر ورود جای داده قبلی را می‌گیرد.
 				</Notice>
 			) }
 

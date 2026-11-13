@@ -144,7 +144,7 @@ export default function Dashboard() {
 					<h2 className="pp-card__title">تکمیل پروفایل</h2>
 					<div className="pp-big">{ onboarding ? `${ num( onboarding.completion.percent ) }٪` : '—' }</div>
 					<div className="pp-bar"><span style={ { width: `${ onboarding ? Math.max( 3, onboarding.completion.percent ) : 0 }%` } } /></div>
-					<p className="pp-muted">پروفایل کامل یعنی محتوای دقیق‌تر در ContentMaster.</p>
+					<p className="pp-muted">پروفایل کامل یعنی محتوای دقیق‌تر و مخصوص سایت شما.</p>
 					<a href="#/profile">مشاهده پروفایل ←</a>
 				</section>
 				<section className="pp-card">

@@ -50,7 +50,7 @@ final class PostMetaBox {
 			return;
 		}
 		$rewrite = null !== Rewrites::original_of( $post->ID );
-		add_meta_box( 'paydarpress-import', $rewrite ? 'پایدارپرس: بازنویسی' : 'پایدارپرس: از ContentMaster', array( $this, 'render' ), $post_type, 'side', $rewrite ? 'high' : 'default' );
+		add_meta_box( 'paydarpress-import', $rewrite ? 'پایدارپرس: بازنویسی' : 'پایدارپرس: تولید با هوش مصنوعی', array( $this, 'render' ), $post_type, 'side', $rewrite ? 'high' : 'default' );
 	}
 
 	/**

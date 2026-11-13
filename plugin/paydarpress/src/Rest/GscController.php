@@ -325,6 +325,8 @@ final class GscController {
 				'summary'     => $import['summary'],
 			),
 			'stale'         => GscRepository::is_stale(),
+			'days_since'    => GscRepository::days_since(),
+			'needs_refresh' => GscRepository::needs_refresh(),
 			'counts'        => array(
 				'near'   => (int) ( $codes['GSC_NEAR_PAGE_ONE'] ?? 0 ),
 				'ctr'    => (int) ( $codes['GSC_LOW_CTR'] ?? 0 ),

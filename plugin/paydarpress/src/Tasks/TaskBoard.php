@@ -116,6 +116,35 @@ final class TaskBoard {
 	}
 
 	/**
+	 * Weekly Search Console refresh (one key per import, so «later» hides it for a week and a
+	 * new import starts the next cycle).
+	 */
+	public static function gsc_refresh_task(): array {
+		$days   = (int) GscRepository::days_since();
+		$import = GscRepository::latest_import();
+		$stale  = GscRepository::is_stale();
+		return self::task(
+			'setup:gsc-refresh:' . (int) ( $import['id'] ?? 0 ),
+			'setup',
+			'داده سرچ کنسول را تازه کنید',
+			sprintf( '%s روز از آخرین ورود گذشته است%s. هفته‌ای یک بار در سرچ کنسول: «Performance» ← بازه «Last 3 months» ← «Export» ← دانلود CSV (فایل zip)، و همین‌جا وارد کنید. فرصت‌ها، افت کلیک و نتیجه تغییرات با داده تازه دقیق می‌شوند.', PersianNormalizer::fa_number( $days ), $stale ? '؛ پیشنهادهای گوگل بر اساس داده قدیمی‌اند' : '' ),
+			$stale ? 75 : 62,
+			3,
+			array( 'route' => '/gsc', 'label' => 'ورود خروجی تازه' )
+		);
+	}
+
+	/**
+	 * Whether the owner put a task off («later») or finished it recently.
+	 *
+	 * @param string $key Task key.
+	 */
+	public static function is_hidden( string $key ): bool {
+		$mark = self::state()[ $key ] ?? null;
+		return is_array( $mark ) && (int) $mark['until'] > time();
+	}
+
+	/**
 	 * Stored marks.
 	 *
 	 * @return array<string, array{state: string, at: int, until: int}>
@@ -143,8 +172,8 @@ final class TaskBoard {
 		}
 		if ( ! GscRepository::has_data() ) {
 			$tasks[] = self::task( 'setup:gsc', 'setup', 'خروجی ۳ ماهه سرچ کنسول را وارد کنید', 'فرصت‌های نزدیک صفحه اول، افت کلیک و جست‌وجوهای بی‌مقاله فقط با داده سرچ کنسول پیدا می‌شوند.', 80, 3, array( 'route' => '/gsc', 'label' => 'ورود فایل سرچ کنسول' ) );
-		} elseif ( GscRepository::is_stale() ) {
-			$tasks[] = self::task( 'setup:gsc-stale', 'setup', 'داده سرچ کنسول را تازه کنید', 'آخرین خروجی بیش از ۶۰ روز پیش وارد شده است؛ پیشنهادها بر اساس داده قدیمی هستند.', 60, 3, array( 'route' => '/gsc', 'label' => 'ورود خروجی تازه' ) );
+		} elseif ( GscRepository::needs_refresh() ) {
+			$tasks[] = self::gsc_refresh_task();
 		}
 
 		// New sites: the pages that sell come before articles.

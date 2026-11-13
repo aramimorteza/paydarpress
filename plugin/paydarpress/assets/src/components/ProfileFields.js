@@ -176,7 +176,7 @@ function CategoryPicker( { categories, value, onChange } ) {
 	return (
 		<div className="pp-catpick">
 			<div className="pp-catpick__label">از مقالات کدام دسته‌ها به این صفحه لینک داده شود؟</div>
-			<div className="pp-help-text">هیچ دسته‌ای انتخاب نشود یعنی «همه مقالات». ContentMaster و صف لینک‌ها از این انتخاب پیروی می‌کنند.</div>
+			<div className="pp-help-text">هیچ دسته‌ای انتخاب نشود یعنی «همه مقالات». پرامپت‌های هوش مصنوعی و صف لینک‌ها از این انتخاب پیروی می‌کنند.</div>
 			{ categories.length > 12 && (
 				<TextControl __nextHasNoMarginBottom placeholder="جست‌وجوی دسته…" value={ filter } onChange={ setFilter } />
 			) }

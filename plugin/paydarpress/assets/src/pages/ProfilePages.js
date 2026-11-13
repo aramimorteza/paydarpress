@@ -427,7 +427,7 @@ export function ExportPage() {
 
 			{ completion && completion.percent < 100 && (
 				<Notice status="warning" isDismissible={ false }>
-					پروفایل سایت { num( completion.percent ) }٪ تکمیل شده است. خروجی ساخته می‌شود، اما ContentMaster این موارد را از شما می‌پرسد: { completion.missing.map( ( m ) => ( defs[ m ] ? defs[ m ].label : m ) ).join( '، ' ) }. <a href="#/wizard">تکمیل پروفایل</a>
+					پروفایل سایت { num( completion.percent ) }٪ تکمیل شده است. خروجی ساخته می‌شود، اما این موارد در آن خالی است: { completion.missing.map( ( m ) => ( defs[ m ] ? defs[ m ].label : m ) ).join( '، ' ) }. <a href="#/wizard">تکمیل پروفایل</a>
 				</Notice>
 			) }
 
@@ -469,11 +469,12 @@ export function ExportPage() {
 			) }
 
 			<section className="pp-card pp-card--section">
-				<h2 className="pp-card__title">نحوه استفاده در ContentMaster</h2>
+				<h2 className="pp-card__title">این فایل به چه کار می‌آید؟</h2>
+				<p className="pp-muted">برای تولید محتوا به این فایل نیازی ندارید؛ دکمه‌های «… با هوش مصنوعی» پرامپت کامل و مخصوص هر کار را می‌سازند. این فایل برای این موارد است:</p>
 				<ol className="pp-howto">
-					<li>در Claude یک Project برای این سایت بسازید و متن ContentMaster را در Instructions پروژه قرار دهید.</li>
-					<li>فایل JSON دانلودشده را به فایل‌های پروژه اضافه کنید (هر بار پس از تغییرات مهم، فایل جدید را جایگزین کنید).</li>
-					<li>گفتگو را با «منو» یا «موضوع جدید» شروع کنید. ContentMaster پروفایل و فهرست محتوا را از فایل می‌خواند و فقط اطلاعات ناقص را می‌پرسد.</li>
+					<li>پیوست به یک پروژه در ChatGPT یا Claude، تا دستیار کل سایت شما را بشناسد و در گفتگوهای آزاد (برنامه‌ریزی، تحلیل رقبا، ایده‌پردازی) از آن استفاده کند.</li>
+					<li>بررسی سایت توسط مشاور سئو یا تیم محتوا، بدون دسترسی به پیشخوان وردپرس.</li>
+					<li>پس از تغییرات مهم، فایل تازه بسازید و جایگزین نسخه قبلی کنید.</li>
 				</ol>
 			</section>
 		</Page>

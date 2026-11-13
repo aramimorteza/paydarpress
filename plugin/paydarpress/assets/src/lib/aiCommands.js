@@ -1,6 +1,5 @@
 /**
  * "Create with AI" actions. Each one carries:
- * - `command`: the short command for a ContentMaster conversation (for users who have one);
  * - `prompt`: task + args for /prompt, which builds a complete, self-contained prompt for any
  *   chat assistant (ChatGPT, Claude, Gemini). Automatic mode sends the same prompt to the API.
  */
@@ -61,7 +60,6 @@ export function refreshCommand( title, url, reasons = [], id = 0, type = 'post' 
 	return {
 		label: product ? 'بازنویسی توضیحات محصول با هوش مصنوعی' : 'بازنویسی با هوش مصنوعی',
 		summary: `${ product ? 'بازنویسی توضیحات محصول' : 'بازنویسی' } «${ title }»`,
-		command: `بروزرسانی: ${ safeDecode( url ) }${ reasons.length ? `\nمشکلاتی که پایدارپرس پیدا کرده: ${ reasons.join( '، ' ) }` : '' }`,
 		prompt: id ? { task: 'rewrite', args: { post_id: id, reasons } } : null,
 		hint: 'متن فعلی خودکار داخل پرامپت کامل است. بازنویسی به‌صورت پیش‌نویس جدا وارد می‌شود و نوشته فعلی فقط با دکمه «جایگزینی» در ویرایشگر عوض می‌شود.',
 	};
@@ -78,7 +76,6 @@ export function supportCommand( title, url, id = 0 ) {
 	return {
 		label: 'تولید مقاله پشتیبان با هوش مصنوعی',
 		summary: `مقاله جدید با لینک به «${ title }»`,
-		command: `مقاله آزاد: یک موضوع جدید و غیرتکراری مرتبط با «${ title }» پیدا کن و مقاله کامل بنویس که در متن، به‌طور طبیعی به این صفحه لینک بدهد: ${ safeDecode( url ) }`,
 		prompt: id ? { task: 'article', args: { link_to: id } } : null,
 		hint: IMPORT_HINT,
 	};
@@ -96,7 +93,6 @@ export function termCommand( name, kind, id = 0 ) {
 	return {
 		label: `پیشنهاد موضوع برای این ${ label }`,
 		summary: `موضوعات جدید برای ${ label } «${ name }»`,
-		command: `موضوع جدید: ${ name }`,
 		prompt: id && 'tag' !== kind ? { task: 'topics', args: { category_id: id } } : { task: 'topics', args: {} },
 		hint: 'موضوع‌ها به «موضوعات پیشنهادی» می‌روند؛ از آنجا برای هر موضوع مقاله بخواهید.',
 	};
@@ -112,7 +108,6 @@ export function termTextCommand( name, id ) {
 	return {
 		label: 'نوشتن متن معرفی با هوش مصنوعی',
 		summary: `متن معرفی «${ name }»`,
-		command: `متن دسته: ${ name }\nیک متن معرفی ۱۵۰ تا ۳۰۰ کلمه‌ای برای بالای صفحه این دسته بنویس و در «خروجی پایدارپرس» در بخش term_descriptions بده.`,
 		prompt: { task: 'term', args: { term_id: id } },
 		hint: 'با ورود، متن پیش‌نمایش می‌شود و پس از تأیید شما در توضیحات همین دسته قرار می‌گیرد.',
 	};
@@ -129,7 +124,6 @@ export function metaCommand( title, url, id ) {
 	return {
 		label: 'عنوان و متای تازه با هوش مصنوعی',
 		summary: `عنوان و توضیحات متای «${ title }»`,
-		command: `بروزرسانی: ${ safeDecode( url ) }\nفقط عنوان سئو و توضیحات متای تازه بده (رتبه خوب، کلیک کم) و در «خروجی پایدارپرس» در بخش seo_updates قرار بده.`,
 		prompt: id ? { task: 'meta', args: { post_id: id } } : null,
 		hint: 'با ورود، متن فعلی و جدید کنار هم نمایش داده می‌شوند و پس از تأیید در افزونه سئو ذخیره می‌شوند.',
 	};
@@ -144,7 +138,6 @@ export function queryCommand( query ) {
 	return {
 		label: 'تولید مقاله برای این عبارت',
 		summary: `مقاله برای عبارت «${ query }»`,
-		command: `مقاله آزاد: ${ query }\n(این عبارت در سرچ کنسول سایت نمایش دارد؛ اگر مقاله‌ای در سایت همین موضوع را پوشش می‌دهد، به‌جای مقاله جدید پیشنهاد بروزرسانی بده.)`,
 		prompt: { task: 'article', args: { query } },
 		hint: IMPORT_HINT,
 	};
@@ -157,7 +150,6 @@ export function topicsCommand() {
 	return {
 		label: 'پیشنهاد موضوع با هوش مصنوعی',
 		summary: 'پیشنهاد ۱۰ موضوع تازه برای سایت',
-		command: 'موضوع جدید',
 		prompt: { task: 'topics', args: { count: 10 } },
 		hint: 'موضوع‌ها پس از ورود در همین صفحه می‌آیند؛ تکراری‌ها خودکار علامت می‌خورند.',
 	};
@@ -172,7 +164,6 @@ export function topicArticleCommand( topic ) {
 	return {
 		label: 'نوشتن مقاله',
 		summary: `نوشتن مقاله «${ topic.title }»`,
-		command: `مقاله: ${ topic.title }`,
 		prompt: { task: 'article', args: { topic_id: topic.id } },
 		hint: IMPORT_HINT,
 	};
@@ -198,7 +189,6 @@ export function structureCommand() {
 	return {
 		label: 'پیشنهاد ساختار دسته‌بندی با هوش مصنوعی',
 		summary: 'بررسی ساختار دسته‌بندی سایت',
-		command: 'بررسی ساختار دسته‌بندی سایت\nفقط تغییرات لازم (ادغام، تقسیم، دسته تازه، تغییر نام نمایشی، noindex) را با دلیل بده و در «خروجی پایدارپرس» در بخش structure_suggestions قرار بده.',
 		prompt: { task: 'structure', args: {} },
 		hint: 'پیشنهادها فقط به فهرست «پیشنهادهای ساختار» در همین صفحه اضافه می‌شوند؛ هیچ دسته‌ای خودکار تغییر نمی‌کند و تصمیم با شماست.',
 	};
@@ -215,7 +205,6 @@ export function altCommand( title = '', id = 0 ) {
 	return {
 		label: id ? 'متن جایگزین تصاویر با هوش مصنوعی' : 'نوشتن متن جایگزین با هوش مصنوعی',
 		summary: id ? `متن جایگزین تصاویر «${ title }»` : 'متن جایگزین تصاویر بدون alt',
-		command: id ? `متن جایگزین تصاویر: ${ title }` : 'متن جایگزین تصاویر بدون alt',
 		prompt: { task: 'alt', args: id ? { post_id: id } : {} },
 		hint: `برای هر تصویر، سرتیتر بخش، متن قبل و بعد و زیرنویس آن داخل پرامپت است تا متن جایگزین مخصوص همان جا نوشته شود. ${ id ? '' : 'هر بار حداکثر ۲۵ تصویر از نوشته‌هایی که بیشترین کمبود را دارند. ' }با ورود، متن تصویر در نوشته و اگر کتابخانه رسانه متنی نداشت، همان‌جا هم ذخیره می‌شود؛ متن جایگزینِ درست موجود دست نمی‌خورد.`,
 	};

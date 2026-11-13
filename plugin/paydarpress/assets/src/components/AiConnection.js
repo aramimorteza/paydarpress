@@ -69,7 +69,7 @@ export function AiConnection( { onChange } ) {
 				{ c.configured ? <span className="pp-badge pp-badge--success">تنظیم شده</span> : <span className="pp-badge pp-badge--warning">تنظیم نشده</span> }
 			</h2>
 			<p className="pp-help-text">
-				برای «تولید خودکار» لازم است. بدون آن، حالت دستی (ContentMaster و ورود فایل) کامل کار می‌کند. کلید رمزنگاری‌شده ذخیره می‌شود، فقط مدیر سایت آن را تنظیم می‌کند و هرگز در خروجی JSON، گزارش فعالیت یا مرورگر نمایش داده نمی‌شود.
+				برای «تولید خودکار» لازم است. بدون آن، حالت دستی (کپی پرامپت کامل و چسباندن پاسخ) کامل کار می‌کند. کلید رمزنگاری‌شده ذخیره می‌شود، فقط مدیر سایت آن را تنظیم می‌کند و هرگز در خروجی JSON، گزارش فعالیت یا مرورگر نمایش داده نمی‌شود.
 			</p>
 			{ notice && <Notice status={ notice.status } onRemove={ () => setNotice( null ) }>{ notice.text }</Notice> }
 			{ c.key_unreadable && (
