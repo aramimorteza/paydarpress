@@ -272,6 +272,11 @@ final class TaskBoard {
 			}
 		}
 
+		// Categories and tags waiting for the owner's decision (at most 3 a day).
+		foreach ( \PaydarWP\PaydarPress\Strategy\TermDecisions::today() as $d ) {
+			$tasks[] = self::task( 'term:' . $d['id'], 'fix', 'تصمیم درباره ' . $d['tax'] . ' «' . $d['name'] . '» (' . $d['reason'] . ')', 'نگه داشتن (با برنامه پر کردن)، ادغام در مورد مشابه، حذف با ریدایرکت، یا بعداً. جست‌وجوی گوگل و مطالب مناسب برای تصمیم کنارش نمایش داده می‌شود.', 42, 3, array( 'route' => '/decisions?term=' . $d['id'], 'label' => 'تصمیم' ) );
+		}
+
 		// Content clusters: a pillar first, then the pillar ↔ member links.
 		foreach ( \PaydarWP\PaydarPress\Strategy\Clusters::all() as $c ) {
 			if ( ! $c['pillar_ok'] && $c['published'] >= 2 ) {

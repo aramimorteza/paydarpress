@@ -307,7 +307,7 @@ export function TaxonomiesPage() {
 		);
 
 	return (
-		<Page title="دسته‌ها و برچسب‌ها" helpKey="taxonomies">
+		<Page title="دسته‌ها و برچسب‌ها" helpKey="taxonomies" actions={ <Button variant="secondary" href="#/decisions">تصمیم برای خالی و کم‌مطلب‌ها</Button> }>
 			{ error && <Notice status="error" isDismissible={ false }>{ error }</Notice> }
 			{ loading && <Spinner /> }
 			{ data && (

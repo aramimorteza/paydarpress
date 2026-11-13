@@ -11,6 +11,7 @@ import AutoPage from './pages/AutoPage';
 import TasksPage from './pages/TasksPage';
 import { ChangesPage, RedirectsPage } from './pages/ChangesPages';
 import NotFoundPage from './pages/NotFoundPage';
+import DecisionsPage from './pages/DecisionsPage';
 import ClustersPage from './pages/ClustersPage';
 import Inventory from './pages/Inventory';
 import { WizardPage, ProfilePage, ExportPage } from './pages/ProfilePages';
@@ -80,6 +81,8 @@ export default function App() {
 		page = <RedirectsPage />;
 	} else if ( '/clusters' === path ) {
 		page = <ClustersPage />;
+	} else if ( '/decisions' === path ) {
+		page = <DecisionsPage />;
 	} else if ( '/notfound' === path ) {
 		page = <NotFoundPage />;
 	} else if ( '/tasks' === path ) {

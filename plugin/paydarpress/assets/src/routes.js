@@ -28,6 +28,7 @@ export const SECTIONS = [
 			{ path: '/images', label: 'تصاویر' },
 			{ path: '/clusters', label: 'خوشه‌های محتوایی' },
 			{ path: '/taxonomies', label: 'دسته‌ها و برچسب‌ها' },
+			{ path: '/decisions', label: 'تصمیم دسته و برچسب', badge: 'decisions' },
 		],
 	},
 	{

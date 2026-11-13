@@ -209,6 +209,7 @@ final class AdminPage {
 			'topics'  => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$topics} WHERE status = 'new'" ),
 			'tasks'   => \PaydarWP\PaydarPress\Tasks\TaskBoard::count(),
 			'notfound' => \PaydarWP\PaydarPress\Gsc\NotFound::counts()['valuable'],
+			'decisions' => count( \PaydarWP\PaydarPress\Strategy\TermDecisions::pending() ),
 		);
 	}
 

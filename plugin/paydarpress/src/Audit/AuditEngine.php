@@ -64,6 +64,8 @@ final class AuditEngine {
 	 * @return array Stats.
 	 */
 	public function run( bool $check_crawlers = false ): array {
+		// Kept terms that now have enough posts are indexed again (only those PaydarPress noindexed).
+		\PaydarWP\PaydarPress\Strategy\TermDecisions::sync();
 		$this->found            = array();
 		$this->codes_by_content = array();
 

@@ -155,6 +155,11 @@ final class PromptBuilder {
 		$category = self::category( (int) ( $args['category_id'] ?? 0 ) );
 		$query    = self::text( $args['query'] ?? '', 200 );
 		$focus    = $category ? 'all in the category «' . $category->name . '»' : 'spread across the categories, weighted toward thin categories and the primary content goal; at most 4 per category';
+		$tag      = ! empty( $args['tag_id'] ) ? get_term( (int) $args['tag_id'], 'post_tag' ) : null;
+		if ( $tag instanceof WP_Term ) {
+			// A kept tag with too few posts: articles whose real topic is this tag.
+			$focus = 'each one an article whose main subject really belongs to the tag «' . html_entity_decode( $tag->name, ENT_QUOTES, 'UTF-8' ) . '» (it will get this tag), in the most fitting category';
+		}
 
 		$task = "Suggest {$count} NEW article topics for this website, {$focus}.";
 		if ( '' !== $query ) {
@@ -167,7 +172,7 @@ final class PromptBuilder {
 		}
 
 		return array(
-			'title'       => $category ? 'پیشنهاد موضوع برای دسته «' . $category->name . '»' : ( '' !== $query ? 'پیشنهاد موضوع از جست‌وجوی «' . $query . '»' : 'پیشنهاد موضوع تازه' ),
+			'title'       => $tag instanceof WP_Term ? 'پیشنهاد موضوع برای برچسب «' . html_entity_decode( $tag->name, ENT_QUOTES, 'UTF-8' ) . '»' : ( $category ? 'پیشنهاد موضوع برای دسته «' . $category->name . '»' : ( '' !== $query ? 'پیشنهاد موضوع از جست‌وجوی «' . $query . '»' : 'پیشنهاد موضوع تازه' ) ),
 			'command'     => $category ? 'موضوع جدید: ' . $category->name : ( '' !== $query ? "موضوع جدید\n(بر اساس جست‌وجوی «{$query}» در سرچ کنسول)" : 'موضوع جدید' ),
 			'task'        => $task,
 			'subject'     => trim( ( $category ? $category->name : '' ) . ' ' . $query ),

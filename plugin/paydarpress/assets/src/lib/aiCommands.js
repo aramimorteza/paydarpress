@@ -241,3 +241,18 @@ export function clusterCommand( name, args ) {
 		hint: 'هوش مصنوعی مقاله ستون و ۸ تا ۱۵ زیرموضوع پیشنهاد می‌دهد و مقاله‌های موجود را به زیرموضوع‌ها نگاشت می‌کند. با ورود، خوشه ساخته یا تکمیل می‌شود، مقاله‌های موجود عضو می‌شوند و برای جاهای خالی موضوع (با دسته، برچسب و خوشه) ثبت می‌شود.',
 	};
 }
+
+/**
+ * Topics for a kept tag that has too few posts.
+ *
+ * @param {string} name Tag name.
+ * @param {number} id   Tag ID.
+ */
+export function tagTopicsCommand( name, id ) {
+	return {
+		label: 'موضوع برای این برچسب با هوش مصنوعی',
+		summary: `موضوع برای برچسب «${ name }»`,
+		prompt: { task: 'topics', args: { tag_id: id, count: 3 } },
+		hint: 'موضوع‌ها از سهمیه ماهانه سیاست محتوا هستند و با همین برچسب (و خوشه مرتبط، اگر باشد) به «موضوعات» می‌روند.',
+	};
+}

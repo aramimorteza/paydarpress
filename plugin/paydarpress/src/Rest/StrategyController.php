@@ -82,6 +82,65 @@ final class StrategyController {
 		register_rest_route( $ns, '/clusters/(?P<id>\\d+)/pillar', array( 'methods' => WP_REST_Server::CREATABLE, 'permission_callback' => $manage, 'callback' => $wrap( static function ( $r ) use ( $cl ) { $cl::set_pillar( (int) $r['id'], (int) $r->get_param( 'post_id' ) ); return $cl::get( (int) $r['id'] ); } ) ) );
 		register_rest_route( $ns, '/clusters/(?P<id>\\d+)/links', array( 'methods' => WP_REST_Server::CREATABLE, 'permission_callback' => $manage, 'callback' => $wrap( static fn( $r ) => array( 'queued' => $cl::queue_links( (int) $r['id'] ) ) ) ) );
 		register_rest_route( $ns, '/clusters/remove-post/(?P<post>\\d+)', array( 'methods' => WP_REST_Server::CREATABLE, 'permission_callback' => $manage, 'callback' => $wrap( static function ( $r ) use ( $cl ) { $cl::remove_post( (int) $r['post'] ); return array( 'ok' => true ); } ) ) );
+		$td = \PaydarWP\PaydarPress\Strategy\TermDecisions::class;
+		register_rest_route(
+			$ns,
+			'/decisions',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'permission_callback' => $view,
+				'callback'            => static function ( $r ) use ( $td ) {
+					$tax  = sanitize_key( (string) $r->get_param( 'taxonomy' ) );
+					$page = $td::page( $tax, max( 1, (int) $r->get_param( 'page' ) ) );
+					$only = (int) $r->get_param( 'term' );
+					if ( $only > 0 ) {
+						// Opened from Today: that card first.
+						$reason = '';
+						foreach ( $td::pending() as $p ) {
+							if ( $p['id'] === $only ) {
+								$reason = $p['reason'];
+							}
+						}
+						// A card already decided (e.g. a stale task link) is not shown again.
+						$card          = '' !== $reason ? $td::card( $only, $reason ) : null;
+						$page['items'] = array_values( array_merge( $card ? array( $card ) : array(), array_filter( $page['items'], static fn( $i ) => $i['id'] !== $only ) ) );
+					}
+					return new WP_REST_Response(
+						$page + array(
+							'taxonomies' => \PaydarWP\PaydarPress\Profile\TaxonomyMap::taxonomies(),
+							'grown'      => $td::GROWN,
+						)
+					);
+				},
+			)
+		);
+		register_rest_route( $ns, '/decisions/(?P<id>\\d+)/(?P<op>keep|merge|delete|later|remove_posts|hide)', array( 'methods' => WP_REST_Server::CREATABLE, 'permission_callback' => $manage, 'callback' => $wrap( static fn( $r ) => $td::decide( (int) $r['id'], (string) $r['op'], array( 'into' => (int) $r->get_param( 'into' ), 'posts' => (array) $r->get_param( 'posts' ) ) ) ) ) );
+		register_rest_route(
+			$ns,
+			'/decisions/bulk',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'permission_callback' => $manage,
+				'callback'            => $wrap(
+					static function ( $r ) use ( $td ) {
+						$op = (string) $r->get_param( 'op' );
+						if ( ! in_array( $op, array( 'delete', 'later', 'keep' ), true ) ) {
+							throw new \RuntimeException( 'اقدام گروهی نامعتبر.' );
+						}
+						$n = 0;
+						foreach ( array_slice( array_map( 'intval', (array) $r->get_param( 'ids' ) ), 0, 500 ) as $id ) {
+							try {
+								$td::decide( $id, $op );
+								++$n;
+							} catch ( \RuntimeException $e ) {
+								continue;
+							}
+						}
+						return array( 'done' => $n );
+					}
+				),
+			)
+		);
 		register_rest_route(
 			$ns,
 			'/classify',

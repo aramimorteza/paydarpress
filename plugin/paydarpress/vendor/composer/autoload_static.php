@@ -110,6 +110,7 @@ class ComposerStaticInitfb42b83d6c8d640da5884eda2eaeec31
         'PaydarWP\\PaydarPress\\Strategy\\ShopStrategy' => __DIR__ . '/../..' . '/src/Strategy/ShopStrategy.php',
         'PaydarWP\\PaydarPress\\Strategy\\Structure' => __DIR__ . '/../..' . '/src/Strategy/Structure.php',
         'PaydarWP\\PaydarPress\\Strategy\\StructurePlan' => __DIR__ . '/../..' . '/src/Strategy/StructurePlan.php',
+        'PaydarWP\\PaydarPress\\Strategy\\TermDecisions' => __DIR__ . '/../..' . '/src/Strategy/TermDecisions.php',
         'PaydarWP\\PaydarPress\\Tasks\\TaskBoard' => __DIR__ . '/../..' . '/src/Tasks/TaskBoard.php',
         'PaydarWP\\PaydarPress\\Text\\PersianNormalizer' => __DIR__ . '/../..' . '/src/Text/PersianNormalizer.php',
         'PaydarWP\\PaydarPress\\Text\\YearDetector' => __DIR__ . '/../..' . '/src/Text/YearDetector.php',

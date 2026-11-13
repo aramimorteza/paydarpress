@@ -2351,3 +2351,31 @@ button.pp-chip {
 		margin: 0;
 	}
 }
+
+/* Term decision cards (0.27) */
+.pp-decision__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 8px;
+	.components-base-control { margin: 0; }
+}
+.pp-decision__facts {
+	margin: 0 0 8px;
+	padding: 0;
+	list-style: none;
+	li { margin-bottom: 4px; }
+}
+.pp-decision__rec { margin: 8px 0; }
+.pp-decision__list {
+	margin: 8px 0;
+	padding: 8px 12px;
+	background: #f6f7f7;
+	border-radius: 4px;
+	max-height: 220px;
+	overflow-y: auto;
+	.components-checkbox-control { margin-top: 4px; }
+}
+.pp-decision.is-done { opacity: .85; border-inline-start: 3px solid #1e7e34; }
+.pp-decision.is-target { box-shadow: 0 0 0 2px #2271b1; }

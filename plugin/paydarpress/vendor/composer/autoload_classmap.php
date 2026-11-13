@@ -95,6 +95,7 @@ return array(
     'PaydarWP\\PaydarPress\\Strategy\\ShopStrategy' => $baseDir . '/src/Strategy/ShopStrategy.php',
     'PaydarWP\\PaydarPress\\Strategy\\Structure' => $baseDir . '/src/Strategy/Structure.php',
     'PaydarWP\\PaydarPress\\Strategy\\StructurePlan' => $baseDir . '/src/Strategy/StructurePlan.php',
+    'PaydarWP\\PaydarPress\\Strategy\\TermDecisions' => $baseDir . '/src/Strategy/TermDecisions.php',
     'PaydarWP\\PaydarPress\\Tasks\\TaskBoard' => $baseDir . '/src/Tasks/TaskBoard.php',
     'PaydarWP\\PaydarPress\\Text\\PersianNormalizer' => $baseDir . '/src/Text/PersianNormalizer.php',
     'PaydarWP\\PaydarPress\\Text\\YearDetector' => $baseDir . '/src/Text/YearDetector.php',

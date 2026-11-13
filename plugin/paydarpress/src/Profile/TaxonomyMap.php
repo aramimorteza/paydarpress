@@ -202,6 +202,12 @@ final class TaxonomyMap {
 		$notes   = self::notes();
 		$current = $notes[ $term_id ] ?? array( 'id' => $term_id );
 		$merged  = array_merge( $current, array_intersect_key( $patch, array_flip( array( 'scope', 'search_patterns', 'role', 'target', 'key_page' ) ) ) );
+		// «Navigation only» is a decision: such a term is not asked about when empty. A retired
+		// term stays a candidate for merge or delete.
+		if ( isset( $patch['role'] ) && 'nav' === $patch['role'] ) {
+			$merged['decision']   = 'keep';
+			$merged['decided_at'] = time();
+		}
 		$clean   = self::clean( $term, $merged );
 
 		$default = self::is_default( $clean );
@@ -226,7 +232,7 @@ final class TaxonomyMap {
 	public static function clean( WP_Term $term, array $raw ): array {
 		$role = self::role_of( $raw );
 		$page = (int) ( $raw['key_page'] ?? 0 );
-		return array(
+		$out  = array(
 			'id'              => (int) $term->term_id,
 			'taxonomy'        => $term->taxonomy,
 			'name'            => html_entity_decode( $term->name, ENT_QUOTES, 'UTF-8' ),
@@ -239,6 +245,16 @@ final class TaxonomyMap {
 			'target'          => max( 0, min( 500, (int) ( $raw['target'] ?? 0 ) ) ),
 			'key_page'        => $page > 0 && 'publish' === get_post_status( $page ) ? $page : 0,
 		);
+		// The owner's decision on an empty / thin term (see TermDecisions).
+		if ( in_array( $raw['decision'] ?? '', array( 'keep', 'later' ), true ) ) {
+			$out['decision']   = $raw['decision'];
+			$out['decided_at'] = (int) ( $raw['decided_at'] ?? 0 );
+			$out['until']      = (int) ( $raw['until'] ?? 0 );
+		}
+		if ( ! empty( $raw['pp_noindex'] ) ) {
+			$out['pp_noindex'] = 1;
+		}
+		return $out;
 	}
 
 	/**
@@ -327,7 +343,7 @@ final class TaxonomyMap {
 	 * @param array $c Clean notes.
 	 */
 	private static function is_default( array $c ): bool {
-		return '' === $c['scope'] && '' === $c['search_patterns'] && 'normal' === $c['role'] && 0 === $c['target'] && 0 === $c['key_page'];
+		return '' === $c['scope'] && '' === $c['search_patterns'] && 'normal' === $c['role'] && 0 === $c['target'] && 0 === $c['key_page'] && empty( $c['decision'] ) && empty( $c['pp_noindex'] );
 	}
 
 	/**
