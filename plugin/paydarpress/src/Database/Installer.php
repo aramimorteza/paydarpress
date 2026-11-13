@@ -52,6 +52,7 @@ final class Installer {
 		if ( function_exists( 'as_unschedule_all_actions' ) ) {
 			as_unschedule_all_actions( '', array(), 'paydarpress' );
 		}
+		wp_clear_scheduled_hook( 'paydarpress_license_check' );
 	}
 
 	/**
@@ -153,11 +154,14 @@ final class Installer {
 			'paydarpress_tasks',
 			'paydarpress_webp_stats',
 			'paydarpress_webp_bulk',
+			'paydarpress_license',
+			'paydarpress_term_flags',
 		);
 
 		foreach ( $options as $option ) {
 			delete_option( $option );
 		}
+		delete_site_transient( 'paydarpress_update' );
 
 		// Post meta written by ContentMaster imports (the drafts themselves are the user's content and stay).
 		foreach ( array( '_paydarpress_import_id', '_paydarpress_image_prompt', '_paydarpress_image_alt', '_paydarpress_faq', '_paydarpress_seo' ) as $meta_key ) {

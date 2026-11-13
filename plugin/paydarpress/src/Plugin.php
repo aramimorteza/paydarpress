@@ -90,6 +90,7 @@ final class Plugin {
 				( new \PaydarWP\PaydarPress\Rest\TasksController() )->routes();
 				( new \PaydarWP\PaydarPress\Rest\ImagesController() )->routes();
 				( new \PaydarWP\PaydarPress\Rest\StrategyController() )->routes();
+				( new \PaydarWP\PaydarPress\Rest\SupportController() )->routes();
 				( new \PaydarWP\PaydarPress\Policy\ReviewGate() )->register();
 			}
 		);
@@ -101,6 +102,10 @@ final class Plugin {
 
 		// Automatic mode: AI requests run in the background (Action Scheduler).
 		( new \PaydarWP\PaydarPress\Ai\AiJobs() )->register();
+
+		// License check (daily) and updates from the PaydarWP server; inactive until the server is set.
+		( new \PaydarWP\PaydarPress\Commerce\License() )->register();
+		( new \PaydarWP\PaydarPress\Commerce\Updater() )->register();
 
 		// Content clusters: missing pillar/member links go to the link queue when posts publish.
 		( new \PaydarWP\PaydarPress\Strategy\Clusters() )->register();

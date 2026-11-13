@@ -4,6 +4,19 @@ import { get, post, errorMessage } from '../lib/api';
 import { num, ago } from '../lib/format';
 
 /**
+ * Which ready-made gateway a provider + address matches ('' = custom).
+ *
+ * @param {Object} gateways Gateways from the server.
+ * @param {string} provider Provider.
+ * @param {string} baseUrl  Address ('' = provider default).
+ */
+function gatewayOf( gateways, provider, baseUrl ) {
+	const url = ( baseUrl || '' ).trim().toLowerCase().replace( /\/+$/, '' );
+	const hit = Object.entries( gateways ).find( ( [ , g ] ) => g.provider === provider && ( ( '' === url && '' === g.base_url ) || [ g.base_url, g.mirror ].filter( Boolean ).map( ( u ) => u.toLowerCase().replace( /\/+$/, '' ) ).includes( url ) ) );
+	return hit ? hit[ 0 ] : '';
+}
+
+/**
  * AI connection form: service, address, key, model, connection test.
  *
  * @param {Object}   props
@@ -34,6 +47,8 @@ export function AiConnection( { onChange } ) {
 
 	const c = state.connection;
 	const set = ( patch ) => setForm( { ...form, ...patch } );
+	const gateway = gatewayOf( c.gateways || {}, form.provider, form.base_url );
+	const gw = gateway ? c.gateways[ gateway ] : null;
 	const dirty = form.provider !== c.provider || form.base_url !== c.base_url || form.model !== c.model || '' !== form.key;
 
 	const run = ( name, request, success ) => {
@@ -76,6 +91,27 @@ export function AiConnection( { onChange } ) {
 				<Notice status="warning" isDismissible={ false }>کلید ذخیره‌شده دیگر خوانده نمی‌شود (احتمالاً کلیدهای امنیتی wp-config.php عوض شده‌اند، مثلاً پس از انتقال سایت). کلید را دوباره وارد کنید.</Notice>
 			) }
 
+			<div className="pp-gateways">
+				<strong>اتصال آماده:</strong>
+				{ Object.entries( c.gateways || {} ).map( ( [ key, g ] ) => (
+					<Button
+						key={ key }
+						variant={ gateway === key ? 'primary' : 'secondary' }
+						size="small"
+						onClick={ () => set( { provider: g.provider, base_url: g.base_url, model: form.model && gateway === key ? form.model : g.model } ) }
+					>
+						{ g.label }{ g.iran ? ' · ایرانی' : '' }
+					</Button>
+				) ) }
+				<Button variant={ '' === gateway ? 'primary' : 'tertiary' } size="small" onClick={ () => set( { base_url: form.base_url || 'https://' } ) }>سفارشی</Button>
+			</div>
+			{ gw && (
+				<p className="pp-help-text">
+					{ gw.iran ? 'درگاه ایرانی: از هاست‌های داخل ایران بدون فیلترشکن و واسط در دسترس است و با ریال شارژ می‌شود. ' : 'از بسیاری از هاست‌های داخل ایران در دسترس نیست؛ اگر آزمایش اتصال خطای اتصال داد، یک درگاه ایرانی انتخاب کنید. ' }
+					کلید را از{ ' ' }<a href={ gw.site } target="_blank" rel="noreferrer">پنل { gw.label }</a>{ ' ' }بگیرید.
+					{ gw.mirror && <> اگر آدرس اصلی در دسترس نبود، آدرس جایگزین را بنویسید: <code dir="ltr">{ gw.mirror }</code></> }
+				</p>
+			) }
 			<div className="pp-form">
 				<SelectControl
 					__nextHasNoMarginBottom

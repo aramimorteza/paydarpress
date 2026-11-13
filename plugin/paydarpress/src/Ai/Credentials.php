@@ -28,6 +28,105 @@ final class Credentials {
 	);
 
 	/**
+	 * Ready-made connections. Choosing one fills the service, address and a model; the owner
+	 * can still edit them. `iran` marks gateways reachable from Iranian hosts without a relay.
+	 * Filter: paydarpress/ai_gateways.
+	 */
+	public const GATEWAYS = array(
+		'avalai'     => array(
+			'label'    => 'AvalAI (اول‌ای‌آی)',
+			'provider' => 'openai',
+			'base_url' => 'https://api.avalai.ir/v1',
+			'mirror'   => 'https://api.avalapis.ir/v1',
+			'model'    => 'gpt-4o',
+			'site'     => 'https://avalai.ir',
+			'iran'     => true,
+		),
+		'gapgpt'     => array(
+			'label'    => 'GapGPT (گپ جی‌پی‌تی)',
+			'provider' => 'openai',
+			'base_url' => 'https://api.gapgpt.app/v1',
+			'model'    => 'gpt-4o',
+			'site'     => 'https://gapgpt.app',
+			'iran'     => true,
+		),
+		'metis'      => array(
+			'label'    => 'Metis (متیس)',
+			'provider' => 'openai',
+			'base_url' => 'https://api.metisai.ir/api/v1/wrapper/openai_chat_completion',
+			'model'    => 'gpt-4o',
+			'site'     => 'https://metisai.ir',
+			'iran'     => true,
+		),
+		'openrouter' => array(
+			'label'    => 'OpenRouter',
+			'provider' => 'openai',
+			'base_url' => 'https://openrouter.ai/api/v1',
+			'model'    => 'openai/gpt-4o',
+			'site'     => 'https://openrouter.ai/keys',
+			'iran'     => false,
+		),
+		'openai'     => array(
+			'label'    => 'OpenAI',
+			'provider' => 'openai',
+			'base_url' => '',
+			'model'    => 'gpt-4o',
+			'site'     => 'https://platform.openai.com/api-keys',
+			'iran'     => false,
+		),
+		'anthropic'  => array(
+			'label'    => 'Claude (Anthropic)',
+			'provider' => 'anthropic',
+			'base_url' => '',
+			'model'    => '',
+			'site'     => 'https://console.anthropic.com/settings/keys',
+			'iran'     => false,
+		),
+	);
+
+	/**
+	 * Gateways after the filter (invalid entries dropped).
+	 */
+	public static function gateways(): array {
+		$list = apply_filters( 'paydarpress/ai_gateways', self::GATEWAYS );
+		$out  = array();
+		foreach ( is_array( $list ) ? $list : array() as $key => $g ) {
+			if ( is_array( $g ) && isset( $g['label'], $g['provider'] ) && isset( self::PROVIDERS[ $g['provider'] ] ) ) {
+				$out[ sanitize_key( (string) $key ) ] = array(
+					'label'    => (string) $g['label'],
+					'provider' => (string) $g['provider'],
+					'base_url' => (string) ( $g['base_url'] ?? '' ),
+					'mirror'   => (string) ( $g['mirror'] ?? '' ),
+					'model'    => (string) ( $g['model'] ?? '' ),
+					'site'     => (string) ( $g['site'] ?? '' ),
+					'iran'     => ! empty( $g['iran'] ),
+				);
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Which ready-made gateway the stored settings match ('' = custom).
+	 *
+	 * @param string $provider Provider.
+	 * @param string $base_url Stored base URL ('' = provider default).
+	 */
+	public static function gateway_of( string $provider, string $base_url ): string {
+		$url = rtrim( strtolower( $base_url ), '/' );
+		foreach ( self::gateways() as $key => $g ) {
+			if ( $g['provider'] !== $provider ) {
+				continue;
+			}
+			$urls = array_filter( array( $g['base_url'], $g['mirror'] ) );
+			if ( ( '' === $url && '' === $g['base_url'] ) || in_array( $url, array_map( static fn( $u ) => rtrim( strtolower( $u ), '/' ), $urls ), true ) ) {
+				return $key;
+			}
+		}
+		return '';
+	}
+
+	/**
 	 * Raw stored settings.
 	 *
 	 * @return array{provider: string, base_url: string, model: string, key: string, updated_at: string}
@@ -81,6 +180,8 @@ final class Credentials {
 			'key_unreadable' => $broken,
 			'configured'   => null !== self::connection(),
 			'providers'    => self::PROVIDERS,
+			'gateways'     => self::gateways(),
+			'gateway'      => self::gateway_of( $s['provider'], $s['base_url'] ),
 			'updated_at'   => $s['updated_at'],
 		);
 	}

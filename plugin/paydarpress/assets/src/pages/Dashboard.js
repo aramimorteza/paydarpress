@@ -84,14 +84,14 @@ export default function Dashboard() {
 				</section>
 			) }
 
-			{ onboarding && onboarding.done < onboarding.total && (
+			{ onboarding && ! onboarding.dismissed && onboarding.done < onboarding.total && (
 				<section className="pp-card pp-card--section pp-onboarding">
 					<h2 className="pp-card__title">شروع کار ({ num( onboarding.done ) } از { num( onboarding.total ) })</h2>
 					<ol className="pp-checklist">
 						{ onboarding.steps.map( ( s ) => (
 							<li key={ s.key } className={ s.done ? 'is-done' : '' }>
 								<span className="pp-checklist__mark">{ s.done ? '✓' : '' }</span>
-								{ s.done ? s.title : <a href={ s.link }>{ s.title }</a> }
+								{ s.done ? s.title : <a href={ `#/welcome?step=${ s.key }` }>{ s.title }</a> }
 							</li>
 						) ) }
 					</ol>

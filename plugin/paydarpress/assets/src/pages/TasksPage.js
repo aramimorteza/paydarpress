@@ -98,10 +98,12 @@ export default function TasksPage() {
 	const [ data, setData ] = useState( null );
 	const [ error, setError ] = useState( '' );
 	const [ showLater, setShowLater ] = useState( false );
+	const [ setup, setSetup ] = useState( null );
 
 	useEffect( () => {
 		const load = () => get( '/tasks' ).then( setData ).catch( ( e ) => setError( errorMessage( e ) ) );
 		load();
+		get( '/onboarding' ).then( setSetup ).catch( () => {} );
 		window.addEventListener( 'paydarpress:imported', load );
 		return () => window.removeEventListener( 'paydarpress:imported', load );
 	}, [] );
@@ -111,6 +113,12 @@ export default function TasksPage() {
 	return (
 		<Page title="کارهای این هفته" helpKey="tasks">
 			{ error && <Notice status="error" isDismissible={ false }>{ error }</Notice> }
+			{ setup && ! setup.dismissed && setup.done < setup.total && (
+				<Notice status="info" isDismissible={ false } className="pp-setup-banner">
+					راه‌اندازی: { num( setup.done ) } از { num( setup.total ) } قدم انجام شده. قدم بعد: «{ ( setup.steps.find( ( s ) => ! s.done ) || {} ).title }».{ ' ' }
+					<a href="#/welcome">ادامه راه‌اندازی</a>
+				</Notice>
+			) }
 			{ ! data && ! error && <Spinner /> }
 			{ data && (
 				<>

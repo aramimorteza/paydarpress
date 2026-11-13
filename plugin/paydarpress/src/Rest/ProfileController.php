@@ -126,6 +126,7 @@ final class ProfileController {
 		);
 
 		register_rest_route( $ns, '/onboarding', array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'onboarding' ), 'permission_callback' => $view ) );
+		register_rest_route( $ns, '/onboarding/mark', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'onboarding_mark' ), 'permission_callback' => $manage ) );
 	}
 
 	/**
@@ -243,30 +244,53 @@ final class ProfileController {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$handled = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE state IN ('reviewed', 'ignored', 'resolved')" );
 
+		$imports = Schema::table( 'imports' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$imported = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$imports}" );
+		$ai       = \PaydarWP\PaydarPress\Ai\Credentials::public_view();
+
 		$steps = array(
 			array(
 				'key'   => 'scan',
 				'title' => 'اسکن سایت',
+				'text'  => 'شناسایی مطالب، دسته‌ها، لینک‌ها و تصاویر در پس‌زمینه.',
 				'done'  => null !== $latest && 'completed' === $latest['status'],
 				'link'  => '#/welcome',
 			),
 			array(
 				'key'   => 'profile',
-				'title' => 'تکمیل پروفایل سایت',
+				'title' => 'تکمیل پروفایل و صفحات کلیدی',
+				'text'  => 'حوزه کاری، مخاطب، لحن و صفحاتی که باید لینک بگیرند؛ بیشترش خودکار پیشنهاد شده است.',
 				'done'  => ! empty( $state['wizard_done'] ) || 100 === $completion['percent'],
 				'link'  => '#/wizard',
 			),
 			array(
-				'key'   => 'findings',
-				'title' => 'بررسی اولین مشکلات ممیزی',
-				'done'  => $handled > 0,
-				'link'  => '#/audit',
+				'key'   => 'taxmap',
+				'title' => 'نقشه دسته‌ها و برچسب‌ها',
+				'text'  => 'نقش هر دسته و برچسب (اصلی، عادی، فقط ناوبری، کنار گذاشته) تا پیشنهادها درست طبقه‌بندی شوند.',
+				'done'  => ! empty( $state['taxmap_done'] ) || array() !== \PaydarWP\PaydarPress\Profile\TaxonomyMap::notes(),
+				'link'  => '#/profile',
 			),
 			array(
-				'key'   => 'export',
-				'title' => 'ساخت خروجی سایت (JSON)',
-				'done'  => false !== get_option( InventoryExporter::OPTION_LAST, false ),
-				'link'  => '#/export',
+				'key'   => 'ai',
+				'title' => 'روش تولید محتوا',
+				'text'  => 'اتصال هوش مصنوعی (درگاه ایرانی یا خارجی) برای تولید خودکار، یا حالت دستی با هر دستیار هوش مصنوعی.',
+				'done'  => $ai['configured'] || $imported > 0 || ! empty( $state['manual_chosen'] ),
+				'link'  => '#/auto',
+			),
+			array(
+				'key'   => 'gsc',
+				'title' => 'بارگذاری خروجی سرچ کنسول',
+				'text'  => 'برای اولویت‌بندی با داده واقعی گوگل و پیدا کردن صفحات ۴۰۴. اختیاری ولی توصیه‌شده.',
+				'done'  => null !== \PaydarWP\PaydarPress\Gsc\GscRepository::latest_import() || ! empty( $state['gsc_skipped'] ),
+				'link'  => '#/gsc',
+			),
+			array(
+				'key'   => 'findings',
+				'title' => 'اولین کارهای امروز',
+				'text'  => 'بررسی چند مشکل مهم یا انجام اولین کار پیشنهادی.',
+				'done'  => $handled > 0,
+				'link'  => '#/tasks',
 			),
 		);
 
@@ -276,8 +300,26 @@ final class ProfileController {
 				'done'       => count( array_filter( $steps, static fn( $s ) => $s['done'] ) ),
 				'total'      => count( $steps ),
 				'completion' => $completion,
+				'dismissed'  => ! empty( $state['dismissed'] ),
 			)
 		);
+	}
+
+	/**
+	 * Marks an onboarding choice: manual (content method), gsc_skipped, taxmap, dismissed.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 */
+	public function onboarding_mark( WP_REST_Request $request ): WP_REST_Response {
+		$map   = array( 'manual' => 'manual_chosen', 'gsc_skip' => 'gsc_skipped', 'taxmap' => 'taxmap_done', 'dismiss' => 'dismissed', 'restore' => 'dismissed' );
+		$what  = (string) $request->get_param( 'what' );
+		$state = get_option( 'paydarpress_onboarding', array() );
+		$state = is_array( $state ) ? $state : array();
+		if ( isset( $map[ $what ] ) ) {
+			$state[ $map[ $what ] ] = 'restore' !== $what;
+			update_option( 'paydarpress_onboarding', $state, false );
+		}
+		return $this->onboarding();
 	}
 
 	/**
@@ -464,6 +506,10 @@ final class ProfileController {
 	 */
 	public function taxmap_confirm(): WP_REST_Response {
 		\PaydarWP\PaydarPress\Profile\ProfileRepository::save_user( array( 'categories_scope' => array_values( \PaydarWP\PaydarPress\Profile\TaxonomyMap::notes() ) ) );
+		$state                = get_option( 'paydarpress_onboarding', array() );
+		$state                = is_array( $state ) ? $state : array();
+		$state['taxmap_done'] = true;
+		update_option( 'paydarpress_onboarding', $state, false );
 		return new WP_REST_Response( array( 'ok' => true ) );
 	}
 

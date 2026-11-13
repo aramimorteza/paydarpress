@@ -1,5 +1,5 @@
 /**
- * Navigation: six sections. Each section opens its first page; its other pages are tabs at
+ * Navigation: seven sections. Each section opens its first page; its other pages are tabs at
  * the top of the page (SectionTabs). Every finding has one home page; other pages only link
  * to it, so nothing is listed twice.
  * `badge` names a count from window.paydarpress.badges.
@@ -74,6 +74,17 @@ export const SECTIONS = [
 			{ path: '/activity', label: 'گزارش فعالیت' },
 		],
 	},
+	{
+		id: 'help',
+		label: 'آموزش و پشتیبانی',
+		icon: 'sos',
+		hint: 'راهنمای شروع، آموزش، پشتیبانی پایدار وردپرس، لایسنس و به‌روزرسانی',
+		pages: [
+			{ path: '/support', label: 'آموزش و پشتیبانی' },
+			{ path: '/welcome', label: 'راه‌اندازی' },
+			{ path: '/license', label: 'لایسنس و به‌روزرسانی' },
+		],
+	},
 ];
 
 /**
@@ -90,6 +101,5 @@ export function sectionOf( path ) {
  */
 export const ROUTES = [
 	...SECTIONS.flatMap( ( s ) => s.pages ),
-	{ path: '/welcome', label: 'خوش آمدید', hidden: true },
 	{ path: '/wizard', label: 'راه‌اندازی پروفایل', hidden: true },
 ];
