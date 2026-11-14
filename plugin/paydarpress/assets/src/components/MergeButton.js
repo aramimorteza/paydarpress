@@ -12,10 +12,13 @@ import { num } from '../lib/format';
  * @param {Object} props
  * @param {number} props.id    Article being retired.
  * @param {string} props.title Its title.
+ * @param {Object} props.into  Optional article that stays: { id, title } (preselected).
+ * @param {string} props.label Optional button label.
+ * @param {Function} props.onDone Called when the dialog closes after a successful merge.
  */
-export default function MergeButton( { id, title } ) {
+export default function MergeButton( { id, title, into: preset = null, label = 'ادغام در مقاله دیگر', onDone } ) {
 	const [ open, setOpen ] = useState( false );
-	const [ into, setInto ] = useState( null );
+	const [ into, setInto ] = useState( preset );
 	const [ confirm, setConfirm ] = useState( false );
 	const [ busy, setBusy ] = useState( false );
 	const [ result, setResult ] = useState( null );
@@ -32,9 +35,14 @@ export default function MergeButton( { id, title } ) {
 
 	return (
 		<>
-			<Button variant="tertiary" size="small" onClick={ () => setOpen( true ) }>ادغام در مقاله دیگر</Button>
+			<Button variant="tertiary" size="small" onClick={ () => setOpen( true ) }>{ label }</Button>
 			{ open && (
-				<Modal title={ `ادغام «${ title }»` } onRequestClose={ () => setOpen( false ) } className="pp-modal pp-ai-modal" size="medium">
+				<Modal title={ `ادغام «${ title }»` } onRequestClose={ () => {
+					setOpen( false );
+					if ( result && onDone ) {
+						onDone( result );
+					}
+				} } className="pp-modal pp-ai-modal" size="medium">
 					{ error && <Notice status="error" onRemove={ () => setError( '' ) }>{ error }</Notice> }
 					{ result ? (
 						<Notice status="success" isDismissible={ false }>

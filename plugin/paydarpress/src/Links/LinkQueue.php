@@ -276,15 +276,34 @@ final class LinkQueue {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$targets = $wpdb->get_col( "SELECT object_id FROM {$findings} WHERE code IN ('ORPHAN_POST', 'ORPHAN_PAGE', 'ORPHAN_PRODUCT', 'WEAK_INBOUND') AND state IN ('open', 'reviewed') ORDER BY id LIMIT " . self::GENERATE_TARGETS );
 
+		return $this->generate_for( array_fill_keys( array_map( 'intval', (array) $targets ), 3 ), PHP_INT_MAX, 'محتوای یتیم' );
+	}
+
+	/**
+	 * Creates suggestions for the given targets: the best related posts in which one of the
+	 * target's phrases already appears as plain text.
+	 *
+	 * @param array<int,int> $targets Target id => max new suggestions for it.
+	 * @param int            $max     Max suggestions in total.
+	 * @param string         $label   What the targets are (for the activity log).
+	 * @return array{targets:int, created:int}
+	 */
+	public function generate_for( array $targets, int $max, string $label = 'برنامه لینک داخلی' ): array {
+		global $wpdb;
+
 		$suggester = new LinkSuggester();
 		$created   = 0;
 
-		foreach ( array_map( 'intval', (array) $targets ) as $target_id ) {
+		foreach ( $targets as $target_id => $per_target ) {
+			$target_id = (int) $target_id;
+			if ( $created >= $max ) {
+				break;
+			}
 			$phrases = $this->phrases( $target_id );
 			$added   = 0;
 
 			foreach ( $suggester->for_target( $target_id, 8 ) as $candidate ) {
-				if ( $added >= 3 ) {
+				if ( $added >= (int) $per_target || $created >= $max ) {
 					break;
 				}
 				$source = get_post( (int) $candidate['id'] );
@@ -313,7 +332,7 @@ final class LinkQueue {
 		}
 
 		if ( $created > 0 ) {
-			Activity::log( 'links.generated', sprintf( '%s پیشنهاد لینک برای محتوای یتیم ساخته شد.', PersianNormalizer::fa_number( $created ) ), 'links', 0 );
+			Activity::log( 'links.generated', sprintf( '%s پیشنهاد لینک برای %s ساخته شد.', PersianNormalizer::fa_number( $created ), $label ), 'links', 0 );
 		}
 
 		return array(

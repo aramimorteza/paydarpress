@@ -267,18 +267,32 @@ final class TaskBoard {
 			$tasks[] = self::content_task( $f, 'meta', 'عنوان و توضیحات متای «%s» را جذاب‌تر کنید', 'رتبه خوب دارد اما کمتر از ۲٪ بینندگان کلیک می‌کنند. ۵ دقیقه کار، اثر سریع.', 75, 5 );
 		}
 
-		// 6. Refresh share of the monthly capacity.
-		$policy  = PromptBuilder::policy();
-		$share   = (int) Settings::get( 'policy.refresh_share', 40 );
-		$per_wk  = $share > 0 ? max( 1, (int) ceil( max( 1, $policy['budget'] ) * $share / 100 / 4 ) ) : 0;
-		foreach ( $per_wk > 0 ? self::refresh_candidates( $per_wk ) : array() as $r ) {
-			$tasks[] = self::task( 'refresh:' . $r['id'], 'refresh', 'بازنویسی «' . $r['title'] . '»', $r['why'], 55 + min( 20, (int) ( $r['score'] / 5 ) ), 40, array( 'url' => $r['edit_url'], 'label' => 'ویرایش' ), array( 'kind' => 'refresh', 'id' => $r['id'], 'title' => $r['title'], 'url' => $r['url'], 'type' => 'post', 'reasons' => $r['reasons'] ) );
+		$policy = PromptBuilder::policy();
+
+		// 6. Article program: rewrites (refresh share of the monthly capacity), the pages Google
+		// already shows first; then one group of competing articles per week.
+		$quota    = \PaydarWP\PaydarPress\Improve\ArticleProgram::quota() - \PaydarWP\PaydarPress\Improve\ArticleProgram::done_this_week();
+		foreach ( $quota > 0 ? \PaydarWP\PaydarPress\Improve\ArticleProgram::items( $quota ) : array() as $r ) {
+			$demand = $r['impressions'] > 0 ? sprintf( ' گوگل آن را %s بار در ۳ ماه نشان داده؛ بهتر شدنش زود دیده می‌شود.', PersianNormalizer::fa_number( $r['impressions'] ) ) : '';
+			$why    = sprintf( 'امتیاز بازنویسی %s از ۱۰۰%s.%s', PersianNormalizer::fa_number( $r['score'] ), $r['reasons'] ? ' (' . implode( '، ', array_slice( $r['reasons'], 0, 3 ) ) . ')' : '', $demand );
+			$tasks[] = self::task( 'refresh:' . $r['id'], 'refresh', 'بازنویسی «' . $r['title'] . '»', $why, 55 + min( 20, (int) ( $r['priority'] / 10 ) ), 40, array( 'url' => $r['edit_url'], 'label' => 'ویرایش' ), array( 'kind' => 'refresh', 'id' => $r['id'], 'title' => $r['title'], 'url' => $r['url'], 'type' => $r['type'], 'reasons' => $r['reasons'] ) );
+		}
+		$compete = \PaydarWP\PaydarPress\Improve\ArticleProgram::competing( 1 );
+		if ( $compete ) {
+			$g       = $compete[0];
+			$tasks[] = self::task( 'compete:' . $g['keep']['id'], 'fix', sprintf( '%s مقاله با «%s» رقابت می‌کنند', PersianNormalizer::fa_number( count( $g['merge'] ) ), $g['keep']['title'] ), sprintf( '%s. دو مقاله برای یک جست‌وجو، رتبه هم را پایین می‌آورند. ادغام در مقاله قوی‌تر (با ریدایرکت ۳۰۱) یا «هر دو بمانند» اگر زاویه‌شان فرق دارد.', $g['why'] ), 58, 20, array( 'route' => '/progress?section=articles', 'label' => 'مقاله‌های رقیب' ) );
 		}
 
 		// 7. Orphans, within the weekly link budget.
 		$orphans = max( 1, (int) floor( (int) Settings::get( 'policy.links_per_week', 15 ) / 5 ) );
 		foreach ( self::findings( array( 'ORPHAN_POST', 'ORPHAN_PAGE', 'ORPHAN_PRODUCT' ), 'content', $orphans ) as $f ) {
 			$tasks[] = self::content_task( $f, 'support', 'به «%s» لینک بدهید', 'هیچ صفحه‌ای به آن لینک نمی‌دهد؛ گوگل و خواننده پیدایش نمی‌کنند. از ۲ تا ۳ مقاله مرتبط لینک بدهید یا مقاله پشتیبان بنویسید.', 50, 10, '/orphans' );
+		}
+
+		// Link program: weekly discovery for articles below their inbound target.
+		$lp = \PaydarWP\PaydarPress\Improve\LinkProgram::state();
+		if ( $lp['below'] > 0 && 0 === $lp['pending'] && ( '' === $lp['next_run'] || $lp['next_run'] <= wp_date( 'Y-m-d' ) ) ) {
+			$tasks[] = self::task( 'improve:links', 'links', sprintf( 'کشف لینک داخلی این هفته برای %s مطلب', PersianNormalizer::fa_number( min( $lp['below'], 60 ) ) ), sprintf( '%s مطلب کمتر از هدف لینک ورودی دارند (هدف: %s، صفحات کلیدی %s). پایدارپرس جمله‌هایی را پیدا می‌کند که همین حالا عبارت مقصد را دارند؛ تا تأیید نکنید چیزی درج نمی‌شود.', PersianNormalizer::fa_number( $lp['below'] ), PersianNormalizer::fa_number( $lp['target'] ), PersianNormalizer::fa_number( $lp['key_target'] ) ), 46, 3, array( 'route' => '/progress?section=links', 'label' => 'برنامه لینک داخلی' ) );
 		}
 
 		// 8. New content, within the monthly budget.
@@ -485,30 +499,6 @@ final class TaskBoard {
 		$table = Schema::table( 'link_suggestions' );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE status = %s", $status ) );
-	}
-
-	/**
-	 * Highest refresh scores.
-	 *
-	 * @param int $limit Limit.
-	 */
-	private static function refresh_candidates( int $limit ): array {
-		global $wpdb;
-		$table = Schema::table( 'inventory' );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT object_id, refresh_score FROM {$table} WHERE status = 'publish' AND refresh_score >= 20 ORDER BY refresh_score DESC LIMIT %d", $limit ), ARRAY_A );
-		return array_map(
-			static fn( $r ) => array(
-				'id'       => (int) $r['object_id'],
-				'title'    => html_entity_decode( get_the_title( (int) $r['object_id'] ), ENT_QUOTES, 'UTF-8' ),
-				'url'      => (string) get_permalink( (int) $r['object_id'] ),
-				'edit_url' => (string) get_edit_post_link( (int) $r['object_id'], 'raw' ),
-				'score'    => (int) $r['refresh_score'],
-				'why'      => sprintf( 'امتیاز بازنویسی %s از ۱۰۰ (کهنگی، کم‌حجمی یا مشکلات سئو). بهتر کردن محتوای موجود معمولاً از مقاله جدید ارزش بیشتری دارد.', PersianNormalizer::fa_number( (int) $r['refresh_score'] ) ),
-				'reasons'  => array(),
-			),
-			(array) $rows
-		);
 	}
 
 	/**

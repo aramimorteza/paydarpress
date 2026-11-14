@@ -80,6 +80,7 @@ final class Settings {
 				'weekly_minutes' => 120,
 				'slugs_per_week' => 10,
 				'brake_drop'     => 20,
+				'inbound_target' => 3,
 			),
 			'links'       => array(
 				// Off by default: hosts in Iran often cannot reach foreign sites (false "broken").
@@ -165,6 +166,7 @@ final class Settings {
 		'improve.weekly_minutes'           => array( 30, 600 ),
 		'improve.slugs_per_week'           => array( 0, 50 ),
 		'improve.brake_drop'               => array( 5, 50 ),
+		'improve.inbound_target'           => array( 1, 20 ),
 		'policy.new_per_month'             => array( 0, 500 ),
 		'policy.publish_per_day'           => array( 1, 50 ),
 		'policy.refresh_share'             => array( 0, 100 ),

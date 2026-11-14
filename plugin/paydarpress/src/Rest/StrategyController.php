@@ -248,10 +248,13 @@ final class StrategyController {
 								'groups'    => array_slice( \PaydarWP\PaydarPress\Improve\TagProgram::groups(), 0, 10 ),
 							),
 							'slugs'    => \PaydarWP\PaydarPress\Improve\SlugProgram::state(),
+							'articles' => \PaydarWP\PaydarPress\Improve\ArticleProgram::state(),
+							'links'    => \PaydarWP\PaydarPress\Improve\LinkProgram::state(),
 							'settings' => array(
 								'weekly_minutes' => (int) \PaydarWP\PaydarPress\Core\Settings::get( 'improve.weekly_minutes', 120 ),
 								'slugs_per_week' => (int) \PaydarWP\PaydarPress\Core\Settings::get( 'improve.slugs_per_week', 10 ),
 								'brake_drop'     => (int) \PaydarWP\PaydarPress\Core\Settings::get( 'improve.brake_drop', 20 ),
+								'inbound_target' => (int) \PaydarWP\PaydarPress\Core\Settings::get( 'improve.inbound_target', 3 ),
 							),
 						)
 					);
@@ -259,6 +262,25 @@ final class StrategyController {
 			)
 		);
 		register_rest_route( $ns, '/progress/slugs/apply', array( 'methods' => WP_REST_Server::CREATABLE, 'permission_callback' => $manage, 'callback' => $wrap( static fn( $r ) => \PaydarWP\PaydarPress\Improve\SlugProgram::apply( (array) $r->get_param( 'items' ), (bool) $r->get_param( 'busy_ok' ) ) ) ) );
+		register_rest_route( $ns, '/progress/links/discover', array( 'methods' => WP_REST_Server::CREATABLE, 'permission_callback' => $manage, 'callback' => $wrap( static fn() => \PaydarWP\PaydarPress\Improve\LinkProgram::discover( true ) ) ) );
+		register_rest_route(
+			$ns,
+			'/progress/articles/apart',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'permission_callback' => $manage,
+				'args'                => array(
+					'a' => array( 'type' => 'integer', 'required' => true ),
+					'b' => array( 'type' => 'integer', 'required' => true ),
+				),
+				'callback'            => $wrap(
+					static function ( $r ) {
+						\PaydarWP\PaydarPress\Improve\ArticleProgram::keep_apart( (int) $r['a'], (int) $r['b'] );
+						return array( 'ok' => true );
+					}
+				),
+			)
+		);
 		register_rest_route( $ns, '/progress/slugs/plan', array( 'methods' => WP_REST_Server::CREATABLE, 'permission_callback' => $manage, 'callback' => $wrap( static fn( $r ) => array( 'stored' => \PaydarWP\PaydarPress\Improve\SlugProgram::store( array( (int) $r->get_param( 'id' ) => (string) $r->get_param( 'slug' ) ) ) ) ) ) );
 		register_rest_route(
 			$ns,

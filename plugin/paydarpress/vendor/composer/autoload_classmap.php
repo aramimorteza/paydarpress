@@ -52,6 +52,8 @@ return array(
     'PaydarWP\\PaydarPress\\Import\\LinkSuggestionRepository' => $baseDir . '/src/Import/LinkSuggestionRepository.php',
     'PaydarWP\\PaydarPress\\Import\\Rewrites' => $baseDir . '/src/Import/Rewrites.php',
     'PaydarWP\\PaydarPress\\Import\\TopicRepository' => $baseDir . '/src/Import/TopicRepository.php',
+    'PaydarWP\\PaydarPress\\Improve\\ArticleProgram' => $baseDir . '/src/Improve/ArticleProgram.php',
+    'PaydarWP\\PaydarPress\\Improve\\LinkProgram' => $baseDir . '/src/Improve/LinkProgram.php',
     'PaydarWP\\PaydarPress\\Improve\\Progress' => $baseDir . '/src/Improve/Progress.php',
     'PaydarWP\\PaydarPress\\Improve\\SlugProgram' => $baseDir . '/src/Improve/SlugProgram.php',
     'PaydarWP\\PaydarPress\\Improve\\TagProgram' => $baseDir . '/src/Improve/TagProgram.php',

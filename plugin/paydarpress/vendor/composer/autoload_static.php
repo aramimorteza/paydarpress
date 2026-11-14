@@ -67,6 +67,8 @@ class ComposerStaticInitfb42b83d6c8d640da5884eda2eaeec31
         'PaydarWP\\PaydarPress\\Import\\LinkSuggestionRepository' => __DIR__ . '/../..' . '/src/Import/LinkSuggestionRepository.php',
         'PaydarWP\\PaydarPress\\Import\\Rewrites' => __DIR__ . '/../..' . '/src/Import/Rewrites.php',
         'PaydarWP\\PaydarPress\\Import\\TopicRepository' => __DIR__ . '/../..' . '/src/Import/TopicRepository.php',
+        'PaydarWP\\PaydarPress\\Improve\\ArticleProgram' => __DIR__ . '/../..' . '/src/Improve/ArticleProgram.php',
+        'PaydarWP\\PaydarPress\\Improve\\LinkProgram' => __DIR__ . '/../..' . '/src/Improve/LinkProgram.php',
         'PaydarWP\\PaydarPress\\Improve\\Progress' => __DIR__ . '/../..' . '/src/Improve/Progress.php',
         'PaydarWP\\PaydarPress\\Improve\\SlugProgram' => __DIR__ . '/../..' . '/src/Improve/SlugProgram.php',
         'PaydarWP\\PaydarPress\\Improve\\TagProgram' => __DIR__ . '/../..' . '/src/Improve/TagProgram.php',

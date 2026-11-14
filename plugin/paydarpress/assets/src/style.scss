@@ -2608,3 +2608,14 @@ button.pp-chip {
 	.components-base-control { margin: 0; }
 	input { min-width: 220px; }
 }
+
+/* Article and link programs (0.29.3). */
+.pp-plan-list { margin: 6px 0; padding: 0; list-style: none; }
+.pp-plan-item { padding: 8px 0; border-bottom: 1px solid #f0f0f1; }
+.pp-plan-item:last-child { border-bottom: 0; }
+.pp-plan-item__head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.pp-plan-item__why { margin: 4px 0 0; }
+.pp-plan-item__actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.pp-compete { padding: 8px 10px; margin: 8px 0; border: 1px solid #e0e0e0; border-radius: 4px; background: #fcfcfc; }
+.pp-compete p { margin: 0 0 4px; }
+.pp-compete__actions { display: inline-flex; gap: 4px; margin-inline-start: 6px; }

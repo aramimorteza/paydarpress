@@ -329,6 +329,7 @@ final class ScanManager {
 		\PaydarWP\PaydarPress\Import\LinkSuggestionRepository::prune();
 		\PaydarWP\PaydarPress\Links\ExternalLinks::maybe_run();
 		\PaydarWP\PaydarPress\Improve\TagProgram::groups();
+		\PaydarWP\PaydarPress\Improve\LinkProgram::discover();
 		\PaydarWP\PaydarPress\Improve\Progress::snapshot();
 	}
 

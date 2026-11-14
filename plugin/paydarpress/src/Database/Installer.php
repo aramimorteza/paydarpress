@@ -164,6 +164,8 @@ final class Installer {
 			'paydarpress_slug_plan',
 			'paydarpress_slug_state',
 			'paydarpress_progress',
+			'paydarpress_compete_skip',
+			'paydarpress_linkprogram_run',
 		);
 
 		foreach ( $options as $option ) {

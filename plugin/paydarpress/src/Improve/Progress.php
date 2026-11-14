@@ -31,6 +31,7 @@ final class Progress {
 		$row = $wpdb->get_row( "SELECT COUNT(*) AS n, AVG(internal_in) AS inbound, SUM(CASE WHEN internal_in = 0 THEN 1 ELSE 0 END) AS orphans, SUM(inline_images_no_alt) AS no_alt, AVG(word_count) AS words FROM {$inv} WHERE status = 'publish' AND object_type = 'post'", ARRAY_A );
 		$tags  = TagProgram::state();
 		$slugs = SlugProgram::items();
+		$links = LinkProgram::gaps();
 		$clicks = 0;
 		foreach ( \PaydarWP\PaydarPress\Gsc\GscRepository::page_metrics() as $m ) {
 			$clicks += (int) $m['clicks'];
@@ -41,6 +42,8 @@ final class Progress {
 			'tags_over'    => $tags['over'],
 			'slugs_poor'   => count( $slugs ),
 			'refresh'      => (int) ( $stats['refresh'] ?? 0 ),
+			'competing'    => count( ArticleProgram::competing( 200 ) ),
+			'inbound_ok'   => $links['total'] > 0 ? (int) round( 100 * $links['ok'] / $links['total'] ) : 100,
 			'orphans'      => (int) ( $row['orphans'] ?? 0 ),
 			'inbound'      => round( (float) ( $row['inbound'] ?? 0 ), 1 ),
 			'words'        => (int) round( (float) ( $row['words'] ?? 0 ) ),
