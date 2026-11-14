@@ -43,10 +43,21 @@ final class SlugProgram {
 	}
 
 	/**
+	 * Whether addresses contain the slug (pretty permalinks).
+	 */
+	public static function pretty(): bool {
+		return '' !== (string) get_option( 'permalink_structure' );
+	}
+
+	/**
 	 * Every published item with a poor address, least risky first.
 	 */
 	public static function items(): array {
 		global $wpdb;
+		// Plain permalinks (?p=123) carry no slug in the address: nothing to improve or redirect.
+		if ( ! self::pretty() ) {
+			return array();
+		}
 		$in   = "'" . implode( "','", self::TYPES ) . "'";
 		$rows = $wpdb->get_results( "SELECT ID, post_name, post_type, post_title FROM {$wpdb->posts} WHERE post_status = 'publish' AND post_type IN ({$in}) ORDER BY ID ASC LIMIT 20000" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$m    = \PaydarWP\PaydarPress\Gsc\GscRepository::page_metrics();
@@ -147,6 +158,7 @@ final class SlugProgram {
 			'week'       => $week,
 			'paused'     => $st['paused'],
 			'pause_why'  => $st['why'],
+			'plain'      => ! self::pretty(),
 			'needs_slug' => array_values( array_map( static fn( $i ) => $i['id'], array_filter( $items, static fn( $i ) => '' === $i['new'] ) ) ),
 		);
 	}

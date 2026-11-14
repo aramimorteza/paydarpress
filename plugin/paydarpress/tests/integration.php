@@ -114,6 +114,13 @@ null === $prev ? delete_option( 'paydarpress_ai' ) : update_option( 'paydarpress
 it( array() === $leaks, 'rest: no API key or email in responses', implode( ', ', $leaks ) );
 
 // 3. Address program: Persian slug → English with 301, internal links updated, change recorded.
+// Plain permalinks have no slug in the address; the program is idle there (checked first).
+$permalinks = (string) get_option( 'permalink_structure' );
+if ( '' === $permalinks ) {
+	it( array() === SlugProgram::items(), 'slug: idle on plain permalinks' );
+	update_option( 'permalink_structure', '/%postname%/' );
+	$GLOBALS['wp_rewrite']->init();
+}
 $target = $make( array( 'post_title' => 'آزمون آدرس ' . $mark, 'post_name' => 'آزمون-آدرس-' . $mark ) );
 $old    = (string) get_permalink( $target );
 $source = $make( array( 'post_title' => 'منبع ' . $mark, 'post_content' => '<p>متن <a href="' . esc_url( $old ) . '">آزمون آدرس</a> پایان</p>' ) );
@@ -182,6 +189,8 @@ $line = (string) current( array_filter( explode( "\n", $csv ), static fn( $l ) =
 it( str_contains( $line, "'=HYPERLINK" ), 'csv: formula cell neutralised', $line );
 
 // Clean up every fixture.
+update_option( 'permalink_structure', $permalinks );
+$GLOBALS['wp_rewrite']->init();
 foreach ( $posts as $id ) {
 	wp_delete_post( $id, true );
 }

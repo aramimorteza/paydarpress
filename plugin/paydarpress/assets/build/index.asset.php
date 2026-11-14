@@ -6,5 +6,5 @@
 		'wp-element',
 		'wp-url'
 	),
-	'version' => '2d03e36849cb8903285a'
+	'version' => '41a432b6bbd2501b54f8'
 );

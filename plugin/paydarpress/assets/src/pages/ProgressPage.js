@@ -134,7 +134,8 @@ function Slugs( { s, reload } ) {
 				</>
 			) }
 			{ 0 === s.week.length && ! s.paused && s.poor > 0 && <p className="pp-ok">سهم این هفته انجام شده است.</p> }
-			{ 0 === s.poor && <p className="pp-ok">همه آدرس‌ها انگلیسی و معنادارند.</p> }
+			{ 0 === s.poor && ! s.plain && <p className="pp-ok">همه آدرس‌ها انگلیسی و معنادارند.</p> }
+			{ s.plain && <Notice status="info" isDismissible={ false }>ساختار پیوندهای یکتای سایت «ساده» است (?p=۱۲۳) و نامک در آدرس نمی‌آید؛ این برنامه کاری ندارد. اگر <a href={ `${ config.adminUrl || '' }options-permalink.php` }>پیوندهای یکتا</a> را روی «نام نوشته» بگذارید، آدرس‌ها خوانا می‌شوند و این برنامه نامک‌های فارسی را کم‌کم انگلیسی می‌کند.</Notice> }
 		</section>
 	);
 }

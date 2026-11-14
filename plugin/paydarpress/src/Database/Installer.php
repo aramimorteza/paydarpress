@@ -174,6 +174,13 @@ final class Installer {
 		foreach ( $options as $option ) {
 			delete_option( $option );
 		}
+		// Everything else with the plugin's prefix (numbered AI batches, caches, transients); the
+		// shared PaydarWP Hub uses its own prefix and is not touched.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$left = (array) $wpdb->get_col( $wpdb->prepare( "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s", 'paydarpress\\_%', '\\_transient\\_paydarpress\\_%', '\\_transient\\_timeout\\_paydarpress\\_%' ) );
+		foreach ( $left as $option ) {
+			delete_option( (string) $option );
+		}
 		delete_site_transient( 'paydarpress_update' );
 
 		// Post meta written by ContentMaster imports (the drafts themselves are the user's content and stay).
