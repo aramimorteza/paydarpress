@@ -513,24 +513,26 @@ final class AuditEngine {
 			return;
 		}
 
-		$max = (int) ( $this->settings['tag_overuse_max'] ?? 8 );
-		$in  = implode( ',', array_map( static fn( $t ) => "'" . esc_sql( $t ) . "'", $tag_taxonomies ) );
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$rows = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT tr.object_id AS id, COUNT(*) AS n FROM {$wpdb->term_relationships} tr
-				INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
-				INNER JOIN {$wpdb->posts} p ON p.ID = tr.object_id
-				WHERE tt.taxonomy IN ({$in}) AND p.post_status = 'publish'
-				GROUP BY tr.object_id HAVING COUNT(*) > %d",
-				$max
-			),
-			ARRAY_A
-		);
-
-		foreach ( (array) $rows as $row ) {
-			$this->add( 'TAG_OVERUSE', 'content', (int) $row['id'], array( 'count' => (int) $row['n'], 'maximum' => $max ) );
+		$base = (int) ( $this->settings['tag_overuse_max'] ?? 8 );
+		foreach ( $tag_taxonomies as $tax ) {
+			// Products carry more tags (colour, material, use): their cap is at least MAX_PRODUCT_TAGS.
+			$max = 'product_tag' === $tax ? max( $base, \PaydarWP\PaydarPress\Profile\TaxonomyMap::MAX_PRODUCT_TAGS ) : $base;
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT tr.object_id AS id, COUNT(*) AS n FROM {$wpdb->term_relationships} tr
+					INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+					INNER JOIN {$wpdb->posts} p ON p.ID = tr.object_id
+					WHERE tt.taxonomy = %s AND p.post_status = 'publish'
+					GROUP BY tr.object_id HAVING COUNT(*) > %d",
+					$tax,
+					$max
+				),
+				ARRAY_A
+			);
+			foreach ( (array) $rows as $row ) {
+				$this->add( 'TAG_OVERUSE', 'content', (int) $row['id'], array( 'count' => (int) $row['n'], 'maximum' => $max ) );
+			}
 		}
 	}
 

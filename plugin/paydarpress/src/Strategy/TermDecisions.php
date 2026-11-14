@@ -185,6 +185,25 @@ final class TermDecisions {
 	 * @throws RuntimeException On invalid input.
 	 */
 	public static function decide( int $term_id, string $action, array $args = array() ): array {
+		$t      = get_term( $term_id );
+		$name   = $t instanceof WP_Term ? html_entity_decode( $t->name, ENT_QUOTES, 'UTF-8' ) : '';
+		$result = self::run_decision( $term_id, $action, $args );
+		if ( 'later' !== $action && ! empty( $result['ok'] ) && $t instanceof WP_Term ) {
+			$label = array( 'keep' => 'نگه داشته شد', 'merge' => 'ادغام شد', 'delete' => 'حذف شد', 'remove_posts' => 'از مطالب نامرتبط برداشته شد', 'hide' => 'پنهان شد' )[ $action ] ?? $action;
+			ChangeLog::record( 'decision', $term_id, '«' . $name . '» ' . $label . ': ' . mb_substr( (string) $result['message'], 0, 160 ), 'term', ( TaxonomyMap::TAXONOMIES[ $t->taxonomy ] ?? '' ) . ' با ' . PersianNormalizer::fa_number( (int) $t->count ) . ' مطلب' );
+		}
+		return $result;
+	}
+
+	/**
+	 * Carries out one decision.
+	 *
+	 * @param int    $term_id Term.
+	 * @param string $action  Action.
+	 * @param array  $args    Arguments.
+	 * @throws RuntimeException On invalid input.
+	 */
+	private static function run_decision( int $term_id, string $action, array $args = array() ): array {
 		$t = get_term( $term_id );
 		if ( ! $t instanceof WP_Term || ! isset( TaxonomyMap::TAXONOMIES[ $t->taxonomy ] ) ) {
 			throw new RuntimeException( 'دسته یا برچسب پیدا نشد.' );

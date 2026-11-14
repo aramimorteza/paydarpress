@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from '@wordpress/element';
 import { Button, CheckboxControl, Notice, Spinner, TextareaControl } from '@wordpress/components';
 import { post, errorMessage } from '../lib/api';
 import { num } from '../lib/format';
+import { RewritePlan, RewriteResult, defaultPlans } from './RewriteParts';
 
 const SECTIONS = [
 	[ 'cluster_plans', 'نقشه خوشه' ],
@@ -85,6 +86,7 @@ export default function InlineImport( { job = 0, batch = 0, onClosed } ) {
 	const [ text, setText ] = useState( '' );
 	const [ preview, setPreview ] = useState( null );
 	const [ picked, setPicked ] = useState( {} );
+	const [ plans, setPlans ] = useState( {} );
 	const [ result, setResult ] = useState( null );
 	const [ busy, setBusy ] = useState( false );
 	const [ error, setError ] = useState( '' );
@@ -101,6 +103,7 @@ export default function InlineImport( { job = 0, batch = 0, onClosed } ) {
 					sel[ s ] = ( p[ s ] || [] ).filter( ( i ) => ! i.duplicate && ! i.blocked && ! i.manual ).map( ( i ) => i.index );
 				} );
 				setPicked( sel );
+				setPlans( defaultPlans( p.articles ) );
 			} )
 			.catch( ( e ) => setError( errorMessage( e ) ) )
 			.finally( () => setBusy( false ) );
@@ -109,7 +112,7 @@ export default function InlineImport( { job = 0, batch = 0, onClosed } ) {
 	const commit = () => {
 		setBusy( true );
 		setError( '' );
-		post( '/cm/commit', { token: preview.token, job: job || undefined, batch: batch || undefined, ...picked } )
+		post( '/cm/commit', { token: preview.token, job: job || undefined, batch: batch || undefined, ...picked, plans } )
 			.then( ( r ) => {
 				setResult( r );
 				setPreview( null );
@@ -161,7 +164,7 @@ export default function InlineImport( { job = 0, batch = 0, onClosed } ) {
 				</Notice>
 				{ result.articles.length > 0 && (
 					<ul className="pp-mini-list">
-						{ result.articles.map( ( a ) => <li key={ a.id }><a href={ a.edit_url } target="_blank" rel="noreferrer">{ a.title }</a> <span className="pp-muted">{ a.rewrite ? '(بازنویسی — در ویرایشگر «جایگزینی نوشته اصلی»)' : '(پیش‌نویس)' }</span></li> ) }
+						{ result.articles.map( ( a ) => ( a.rewrite ? <RewriteResult key={ a.id } article={ a } /> : <li key={ a.id }><a href={ a.edit_url } target="_blank" rel="noreferrer">{ a.title }</a> <span className="pp-muted">(پیش‌نویس)</span></li> ) ) }
 					</ul>
 				) }
 				{ result.notes && result.notes.length > 0 && <ul className="pp-checks">{ result.notes.map( ( n, i ) => <li key={ i } className="pp-check pp-check--info">{ n }</li> ) }</ul> }
@@ -201,6 +204,7 @@ export default function InlineImport( { job = 0, batch = 0, onClosed } ) {
 						<div key={ `${ s }-${ item.index }` } className={ `pp-import-item${ item.duplicate ? ' is-duplicate' : '' }` }>
 							<CheckboxControl __nextHasNoMarginBottom label={ `${ label }: ${ itemTitle( s, item ) }` } checked={ ( picked[ s ] || [] ).includes( item.index ) } disabled={ item.blocked } onChange={ ( on ) => toggle( s, item.index, on ) } />
 							{ 'articles' === s && item.words > 0 && <div className="pp-muted pp-import-item__meta">{ num( item.words ) } کلمه{ item.internal_links ? ` · ${ num( item.internal_links ) } لینک داخلی` : '' }{ item.faq && item.faq.length ? ` · ${ num( item.faq.length ) } پرسش متداول` : '' }{ item.inline_images && item.inline_images.length ? ` · ${ num( item.inline_images.length ) } پرامپت تصویر داخل متن` : '' }</div> }
+							{ 'articles' === s && item.plan && ( picked.articles || [] ).includes( item.index ) && <RewritePlan item={ item } choice={ plans[ item.index ] } onChange={ ( c ) => setPlans( { ...plans, [ item.index ]: c } ) } /> }
 							{ item.checks.length > 0 && <ul className="pp-checks">{ item.checks.map( ( c, i ) => <li key={ i } className={ `pp-check ${ LEVEL[ c.level ] || '' }` }>{ c.text }</li> ) }</ul> }
 						</div>
 							) ) }

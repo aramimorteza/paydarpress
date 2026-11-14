@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Schema {
 
-	public const VERSION = '1.10.0';
+	public const VERSION = '1.11.0';
 
 	public const TABLES = array( 'inventory', 'links', 'audit_findings', 'scans', 'activity', 'imports', 'gsc', 'topics', 'link_suggestions', 'ai_usage', 'changes', 'redirects', 'ai_jobs', 'notfound', 'clusters', 'cluster_posts' );
 
@@ -268,6 +268,9 @@ final class Schema {
   before_metrics text DEFAULT NULL,
   after_metrics text DEFAULT NULL,
   verdict varchar(20) DEFAULT NULL,
+  reason text DEFAULT NULL,
+  history text DEFAULT NULL,
+  measurable tinyint(1) NOT NULL DEFAULT 1,
   user_id bigint(20) unsigned NOT NULL DEFAULT 0,
   created_at datetime NOT NULL,
   measured_at datetime DEFAULT NULL,

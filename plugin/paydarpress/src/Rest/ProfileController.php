@@ -95,11 +95,27 @@ final class ProfileController {
 		register_rest_route( $ns, '/profile/key-pages/stats', array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'key_page_stats' ), 'permission_callback' => $view ) );
 		register_rest_route(
 			$ns,
-			'/profile/key-pages/(?P<id>\\d+)/anchors',
+			'/profile/key-pages/(?P<id>-?\\d+)/anchors',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'anchor_suggestions' ),
 				'permission_callback' => $view,
+			)
+		);
+		register_rest_route( $ns, '/profile/key-pages/advice', array( 'methods' => WP_REST_Server::READABLE, 'callback' => static fn() => new WP_REST_Response( \PaydarWP\PaydarPress\Links\KeyPageAdvisor::advice() ), 'permission_callback' => $view ) );
+		register_rest_route(
+			$ns,
+			'/profile/key-pages/fill',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'permission_callback' => $view,
+				'callback'            => static function ( WP_REST_Request $r ) {
+					$id = (int) $r->get_param( 'id' );
+					if ( ! KeyPageLinks::is_live( $id ) ) {
+						return new WP_Error( 'paydarpress_not_found', 'صفحه پیدا نشد.', array( 'status' => 404 ) );
+					}
+					return new WP_REST_Response( \PaydarWP\PaydarPress\Links\KeyPageAdvisor::fill( $id, array() ) + array( 'guard' => \PaydarWP\PaydarPress\Links\KeyPageAdvisor::guard( $id ) ) );
+				},
 			)
 		);
 		register_rest_route( $ns, '/taxmap', array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'taxmap' ), 'permission_callback' => $view ) );
@@ -342,7 +358,7 @@ final class ProfileController {
 	 */
 	public function anchor_suggestions( WP_REST_Request $request ) {
 		$id = (int) $request['id'];
-		if ( 'publish' !== get_post_status( $id ) ) {
+		if ( ! KeyPageLinks::is_live( $id ) ) {
 			return new WP_Error( 'paydarpress_not_found', 'صفحه پیدا نشد.', array( 'status' => 404 ) );
 		}
 		return new WP_REST_Response(
@@ -377,13 +393,24 @@ final class ProfileController {
 			'default_industry' => \PaydarWP\PaydarPress\Profile\Industries::DEFAULT_EXAMPLE,
 			'groups'     => Fields::groups(),
 			'choices'    => array(
-				'pages' => array_map(
-					static fn( $p ) => array(
-						'id'    => $p->ID,
-						'title' => html_entity_decode( get_the_title( $p ), ENT_QUOTES, 'UTF-8' ),
-						'type'  => $p->post_type,
+				'pages' => array_merge(
+					array_map(
+						static fn( $p ) => array(
+							'id'    => $p->ID,
+							'title' => html_entity_decode( get_the_title( $p ), ENT_QUOTES, 'UTF-8' ),
+							'type'  => $p->post_type,
+						),
+						$pages
 					),
-					$pages
+					// Product categories as key pages (negative id = category archive).
+					array_map(
+						static fn( $t ) => array(
+							'id'    => -(int) $t->term_id,
+							'title' => html_entity_decode( $t->name, ENT_QUOTES, 'UTF-8' ),
+							'type'  => 'product_cat',
+						),
+						taxonomy_exists( 'product_cat' ) ? array_filter( (array) get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => true, 'number' => 200, 'orderby' => 'count', 'order' => 'DESC' ) ), static fn( $t ) => $t instanceof \WP_Term ) : array()
+					)
 				),
 				'categories' => array_map(
 					static fn( $t ) => array(
@@ -483,10 +510,11 @@ final class ProfileController {
 			);
 		}
 		$pages = array();
-		foreach ( \PaydarWP\PaydarPress\Profile\ProfileRepository::key_page_ids() as $id ) {
+		// A category's key page is a post/page (stored as a post id).
+		foreach ( array_filter( \PaydarWP\PaydarPress\Profile\ProfileRepository::key_page_ids(), static fn( $pid ) => $pid > 0 ) as $id ) {
 			$pages[] = array(
 				'id'    => $id,
-				'title' => html_entity_decode( get_the_title( $id ), ENT_QUOTES, 'UTF-8' ),
+				'title' => KeyPageLinks::title_of( (int) $id ),
 			);
 		}
 		return new WP_REST_Response(
@@ -496,7 +524,7 @@ final class ProfileController {
 				'roles'     => \PaydarWP\PaydarPress\Profile\TaxonomyMap::ROLES,
 				'key_pages' => $pages,
 				'targets'   => 'category' === $taxonomy ? self::auto_targets() : null,
-				'max_tags'  => \PaydarWP\PaydarPress\Profile\TaxonomyMap::MAX_TAGS,
+				'max_tags'  => \PaydarWP\PaydarPress\Profile\TaxonomyMap::max_tags( $taxonomy ),
 			)
 		);
 	}

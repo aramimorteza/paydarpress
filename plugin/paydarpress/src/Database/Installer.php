@@ -83,6 +83,9 @@ final class Installer {
 		self::ensure_column( 'link_suggestions', 'inserted', 'text DEFAULT NULL' );
 		self::ensure_column( 'link_suggestions', 'matched_text', 'varchar(255) DEFAULT NULL' );
 		self::ensure_column( 'link_suggestions', 'applied_at', 'datetime DEFAULT NULL' );
+		self::ensure_column( 'changes', 'reason', 'text DEFAULT NULL' );
+		self::ensure_column( 'changes', 'history', 'text DEFAULT NULL' );
+		self::ensure_column( 'changes', 'measurable', 'tinyint(1) NOT NULL DEFAULT 1' );
 
 		if ( '' !== $from && version_compare( $from, '1.1.0', '<' ) ) {
 			// New derived columns: force the next scan to reprocess every item.

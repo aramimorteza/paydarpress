@@ -44,6 +44,18 @@ final class TaxonomyMap {
 	/** Maximum tags per post (audit, prompts, import). */
 	public const MAX_TAGS = 5;
 
+	/** Products carry more tags (colour, material, use). */
+	public const MAX_PRODUCT_TAGS = 10;
+
+	/**
+	 * Tag cap for a post type or tag taxonomy.
+	 *
+	 * @param string $type post|product|post_tag|product_tag.
+	 */
+	public static function max_tags( string $type ): int {
+		return in_array( $type, array( 'product', 'product_tag' ), true ) ? self::MAX_PRODUCT_TAGS : self::MAX_TAGS;
+	}
+
 	/** Stored notes per term (at most). */
 	public const MAX_NOTES = 2000;
 
@@ -284,11 +296,12 @@ final class TaxonomyMap {
 	 * @param int $limit       Maximum.
 	 * @return array<int, array{id: int, name: string, count: int, scope: string}>
 	 */
-	public static function allowed_tags( int $category_id = 0, int $limit = 40 ): array {
+	public static function allowed_tags( int $category_id = 0, int $limit = 40, string $tax = 'post_tag' ): array {
 		global $wpdb;
-		if ( ! taxonomy_exists( 'post_tag' ) ) {
+		if ( ! taxonomy_exists( $tax ) ) {
 			return array();
 		}
+		$cat_tax = 'product_tag' === $tax ? 'product_cat' : 'category';
 		$notes = self::notes();
 		$boost = array();
 		if ( $category_id > 0 ) {
@@ -298,11 +311,13 @@ final class TaxonomyMap {
 				$wpdb->prepare(
 					"SELECT tt2.term_id, COUNT(*) AS n
 					FROM {$wpdb->term_relationships} r1
-					JOIN {$wpdb->term_taxonomy} tt1 ON tt1.term_taxonomy_id = r1.term_taxonomy_id AND tt1.taxonomy = 'category' AND tt1.term_id = %d
+					JOIN {$wpdb->term_taxonomy} tt1 ON tt1.term_taxonomy_id = r1.term_taxonomy_id AND tt1.taxonomy = %s AND tt1.term_id = %d
 					JOIN {$wpdb->term_relationships} r2 ON r2.object_id = r1.object_id
-					JOIN {$wpdb->term_taxonomy} tt2 ON tt2.term_taxonomy_id = r2.term_taxonomy_id AND tt2.taxonomy = 'post_tag'
+					JOIN {$wpdb->term_taxonomy} tt2 ON tt2.term_taxonomy_id = r2.term_taxonomy_id AND tt2.taxonomy = %s
 					GROUP BY tt2.term_id ORDER BY n DESC LIMIT 200",
-					$category_id
+					$cat_tax,
+					$category_id,
+					$tax
 				),
 				ARRAY_A
 			);
@@ -310,7 +325,7 @@ final class TaxonomyMap {
 				$boost[ (int) $r['term_id'] ] = (int) $r['n'];
 			}
 		}
-		$terms = get_terms( array( 'taxonomy' => 'post_tag', 'hide_empty' => false, 'number' => 500, 'orderby' => 'count', 'order' => 'DESC' ) );
+		$terms = get_terms( array( 'taxonomy' => $tax, 'hide_empty' => false, 'number' => 500, 'orderby' => 'count', 'order' => 'DESC' ) );
 		$list  = array();
 		foreach ( is_array( $terms ) ? $terms : array() as $t ) {
 			$n    = $notes[ (int) $t->term_id ] ?? array();

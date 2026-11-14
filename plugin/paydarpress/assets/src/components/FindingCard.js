@@ -4,6 +4,17 @@ import { commandForFinding } from '../lib/aiCommands';
 import { Button } from '@wordpress/components';
 import { post, errorMessage } from '../lib/api';
 
+/** Typed «view» links (same wording as the task cards). */
+const VIEW_LABELS = {
+	post: 'مشاهده مقاله',
+	page: 'مشاهده صفحه',
+	product: 'مشاهده محصول',
+	category: 'مشاهده آرشیو دسته',
+	post_tag: 'مشاهده آرشیو برچسب',
+	product_cat: 'مشاهده آرشیو دسته محصول',
+	product_tag: 'مشاهده آرشیو برچسب محصول',
+};
+
 export const SEVERITY_LABELS = { high: 'بالا', medium: 'متوسط', low: 'کم' };
 const SEVERITY_CLASS = { high: 'danger', medium: 'warning', low: 'neutral' };
 const STATE_LABELS = { open: 'باز', reviewed: 'بررسی‌شده', ignored: 'نادیده گرفته‌شده', resolved: 'رفع‌شده' };
@@ -85,6 +96,11 @@ export default function FindingCard( { finding, onChange, children } ) {
 				{ object.edit_url && (
 					<a className="pp-finding__edit" href={ object.edit_url }>
 						ویرایش
+					</a>
+				) }
+				{ object.url && VIEW_LABELS[ object.type ] && (
+					<a className="pp-task__view" href={ object.url } target="_blank" rel="noreferrer" title={ decodeURI( object.url ) }>
+						{ VIEW_LABELS[ object.type ] } ↗
 					</a>
 				) }
 			</p>

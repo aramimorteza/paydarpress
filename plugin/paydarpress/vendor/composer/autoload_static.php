@@ -67,6 +67,7 @@ class ComposerStaticInitfb42b83d6c8d640da5884eda2eaeec31
         'PaydarWP\\PaydarPress\\Import\\LinkSuggestionRepository' => __DIR__ . '/../..' . '/src/Import/LinkSuggestionRepository.php',
         'PaydarWP\\PaydarPress\\Import\\Rewrites' => __DIR__ . '/../..' . '/src/Import/Rewrites.php',
         'PaydarWP\\PaydarPress\\Import\\TopicRepository' => __DIR__ . '/../..' . '/src/Import/TopicRepository.php',
+        'PaydarWP\\PaydarPress\\Links\\KeyPageAdvisor' => __DIR__ . '/../..' . '/src/Links/KeyPageAdvisor.php',
         'PaydarWP\\PaydarPress\\Links\\KeyPageLinks' => __DIR__ . '/../..' . '/src/Links/KeyPageLinks.php',
         'PaydarWP\\PaydarPress\\Links\\LinkInserter' => __DIR__ . '/../..' . '/src/Links/LinkInserter.php',
         'PaydarWP\\PaydarPress\\Links\\LinkQueue' => __DIR__ . '/../..' . '/src/Links/LinkQueue.php',
@@ -117,6 +118,7 @@ class ComposerStaticInitfb42b83d6c8d640da5884eda2eaeec31
         'PaydarWP\\PaydarPress\\Strategy\\StructurePlan' => __DIR__ . '/../..' . '/src/Strategy/StructurePlan.php',
         'PaydarWP\\PaydarPress\\Strategy\\TermDecisions' => __DIR__ . '/../..' . '/src/Strategy/TermDecisions.php',
         'PaydarWP\\PaydarPress\\Tasks\\TaskBoard' => __DIR__ . '/../..' . '/src/Tasks/TaskBoard.php',
+        'PaydarWP\\PaydarPress\\Tasks\\TaskDetails' => __DIR__ . '/../..' . '/src/Tasks/TaskDetails.php',
         'PaydarWP\\PaydarPress\\Text\\PersianNormalizer' => __DIR__ . '/../..' . '/src/Text/PersianNormalizer.php',
         'PaydarWP\\PaydarPress\\Text\\YearDetector' => __DIR__ . '/../..' . '/src/Text/YearDetector.php',
     );

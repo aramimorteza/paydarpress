@@ -35,9 +35,9 @@ final class Structure {
 	);
 
 	public const IMPORTANCE_LABELS = array(
-		'high'   => 'مهم',
+		'high'   => 'اصلی',
 		'normal' => 'عادی',
-		'low'    => 'کم‌اهمیت',
+		'low'    => 'فرعی',
 	);
 
 	/** Supporting articles a money page (service, landing, product, category) should have. */
@@ -113,26 +113,42 @@ final class Structure {
 		}
 		$links = Schema::table( 'links' );
 		$inv   = Schema::table( 'inventory' );
-		$ids   = implode( ',', array_map( 'intval', array_keys( $pages ) ) );
-		// Supporting article = a published post that links to the page.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$rows = $wpdb->get_results( "SELECT l.target_id, COUNT(DISTINCT l.source_id) AS n FROM {$links} l JOIN {$inv} i ON i.object_id = l.source_id AND i.object_type = 'post' AND i.status = 'publish' WHERE l.target_id IN ({$ids}) AND l.source_type = 'content' GROUP BY l.target_id", ARRAY_A );
+		$post_ids = array_filter( array_map( 'intval', array_keys( $pages ) ), static fn( $i ) => $i > 0 );
 		$supports = array();
-		foreach ( (array) $rows as $r ) {
-			$supports[ (int) $r['target_id'] ] = (int) $r['n'];
+		if ( $post_ids ) {
+			$ids = implode( ',', $post_ids );
+			// Supporting article = a published post that links to the page.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$rows = $wpdb->get_results( "SELECT l.target_id, COUNT(DISTINCT l.source_id) AS n FROM {$links} l JOIN {$inv} i ON i.object_id = l.source_id AND i.object_type = 'post' AND i.status = 'publish' WHERE l.target_id IN ({$ids}) AND l.source_type = 'content' GROUP BY l.target_id", ARRAY_A );
+			foreach ( (array) $rows as $r ) {
+				$supports[ (int) $r['target_id'] ] = (int) $r['n'];
+			}
+		}
+		// Category archives: posts linking to their address.
+		$term_ids = array_filter( array_map( 'intval', array_keys( $pages ) ), static fn( $i ) => $i < 0 );
+		foreach ( $term_ids ? KeyPageLinks::links_by_page( $term_ids ) : array() as $tid => $rows ) {
+			$src = array();
+			foreach ( $rows as $r ) {
+				foreach ( (array) ( $r['sources'] ?? array() ) as $sid ) {
+					if ( 'post' === get_post_type( (int) $sid ) && 'publish' === get_post_status( (int) $sid ) ) {
+						$src[ (int) $sid ] = true;
+					}
+				}
+			}
+			$supports[ (int) $tid ] = count( $src );
 		}
 
 		$out = array();
 		foreach ( $pages as $id => $page ) {
 			$type = self::type_of( (int) $id, $page );
-			if ( ! in_array( $type, self::CLUSTER_TYPES, true ) || 'publish' !== get_post_status( $id ) ) {
+			if ( ! in_array( $type, self::CLUSTER_TYPES, true ) || ! KeyPageLinks::is_live( (int) $id ) ) {
 				continue;
 			}
 			$n     = $supports[ $id ] ?? 0;
 			$out[] = array(
 				'id'           => (int) $id,
-				'name'         => html_entity_decode( get_the_title( $id ), ENT_QUOTES, 'UTF-8' ),
-				'url'          => (string) get_permalink( $id ),
+				'name'         => KeyPageLinks::title_of( (int) $id ),
+				'url'          => KeyPageLinks::url_of( (int) $id ),
 				'type'         => $type,
 				'main_keyword' => (string) ( $page['main_keyword'] ?? '' ),
 				'priority'     => (string) ( $page['priority'] ?? 'normal' ),
@@ -154,6 +170,9 @@ final class Structure {
 	public static function type_of( int $id, array $page ): string {
 		if ( ! empty( $page['page_type'] ) && isset( self::PAGE_TYPES[ $page['page_type'] ] ) ) {
 			return (string) $page['page_type'];
+		}
+		if ( $id < 0 ) {
+			return 'category';
 		}
 		$post = get_post( $id );
 		return $post instanceof \WP_Post ? ProfileRepository::guess_page_type( $post ) : 'other';

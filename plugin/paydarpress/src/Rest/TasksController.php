@@ -25,7 +25,7 @@ final class TasksController {
 	 */
 	public function routes(): void {
 		$ns = UserPrefsController::NAMESPACE;
-		register_rest_route( $ns, '/tasks', array( 'methods' => WP_REST_Server::READABLE, 'callback' => static fn() => new WP_REST_Response( TaskBoard::board() ), 'permission_callback' => static fn() => current_user_can( Capabilities::VIEW ) ) );
+		register_rest_route( $ns, '/tasks', array( 'methods' => WP_REST_Server::READABLE, 'callback' => static fn() => new WP_REST_Response( self::detailed( TaskBoard::board() ) ), 'permission_callback' => static fn() => current_user_can( Capabilities::VIEW ) ) );
 		register_rest_route(
 			$ns,
 			'/tasks/mark',
@@ -38,9 +38,19 @@ final class TasksController {
 				),
 				'callback'            => static function ( WP_REST_Request $r ) {
 					TaskBoard::mark( (string) $r['key'], (string) $r['action'] );
-					return new WP_REST_Response( TaskBoard::board() );
+					return new WP_REST_Response( self::detailed( TaskBoard::board() ) );
 				},
 			)
 		);
+	}
+
+	/**
+	 * Board with card details (view link, Search Console numbers, facts).
+	 *
+	 * @param array $board Board.
+	 */
+	private static function detailed( array $board ): array {
+		$board['week']  = \PaydarWP\PaydarPress\Tasks\TaskDetails::add( $board['week'] );
+		return $board;
 	}
 }

@@ -52,6 +52,7 @@ return array(
     'PaydarWP\\PaydarPress\\Import\\LinkSuggestionRepository' => $baseDir . '/src/Import/LinkSuggestionRepository.php',
     'PaydarWP\\PaydarPress\\Import\\Rewrites' => $baseDir . '/src/Import/Rewrites.php',
     'PaydarWP\\PaydarPress\\Import\\TopicRepository' => $baseDir . '/src/Import/TopicRepository.php',
+    'PaydarWP\\PaydarPress\\Links\\KeyPageAdvisor' => $baseDir . '/src/Links/KeyPageAdvisor.php',
     'PaydarWP\\PaydarPress\\Links\\KeyPageLinks' => $baseDir . '/src/Links/KeyPageLinks.php',
     'PaydarWP\\PaydarPress\\Links\\LinkInserter' => $baseDir . '/src/Links/LinkInserter.php',
     'PaydarWP\\PaydarPress\\Links\\LinkQueue' => $baseDir . '/src/Links/LinkQueue.php',
@@ -102,6 +103,7 @@ return array(
     'PaydarWP\\PaydarPress\\Strategy\\StructurePlan' => $baseDir . '/src/Strategy/StructurePlan.php',
     'PaydarWP\\PaydarPress\\Strategy\\TermDecisions' => $baseDir . '/src/Strategy/TermDecisions.php',
     'PaydarWP\\PaydarPress\\Tasks\\TaskBoard' => $baseDir . '/src/Tasks/TaskBoard.php',
+    'PaydarWP\\PaydarPress\\Tasks\\TaskDetails' => $baseDir . '/src/Tasks/TaskDetails.php',
     'PaydarWP\\PaydarPress\\Text\\PersianNormalizer' => $baseDir . '/src/Text/PersianNormalizer.php',
     'PaydarWP\\PaydarPress\\Text\\YearDetector' => $baseDir . '/src/Text/YearDetector.php',
 );

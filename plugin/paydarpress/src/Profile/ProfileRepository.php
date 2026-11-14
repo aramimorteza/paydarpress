@@ -196,6 +196,26 @@ final class ProfileRepository {
 				foreach ( array_slice( (array) $raw, 0, 20 ) as $item ) {
 					$id   = (int) ( is_array( $item ) ? ( $item['id'] ?? 0 ) : 0 );
 					$post = $id > 0 ? get_post( $id ) : null;
+					$term = $id < 0 ? get_term( -$id ) : null;
+					// Category archives (negative id): blog and product categories only.
+					if ( $term instanceof \WP_Term && in_array( $term->taxonomy, array( 'category', 'product_cat' ), true ) ) {
+						$link = get_term_link( $term );
+						$out[ $id ] = array(
+							'id'              => $id,
+							'kind'            => 'term',
+							'taxonomy'        => $term->taxonomy,
+							'name'            => html_entity_decode( $term->name, ENT_QUOTES, 'UTF-8' ),
+							'url'             => is_string( $link ) ? $link : '',
+							'link_when'       => '',
+							'link_categories' => array_values( array_unique( array_filter( array_map( 'intval', array_slice( (array) ( $item['link_categories'] ?? array() ), 0, 30 ) ), static fn( $c ) => $c > 0 && term_exists( $c, 'category' ) ) ) ),
+							'anchors'         => array_slice( array_values( array_filter( array_map( static fn( $a ) => mb_substr( sanitize_text_field( (string) $a ), 0, 80 ), (array) ( $item['anchors'] ?? array() ) ) ) ), 0, 6 ),
+							'priority'        => 'high' === ( $item['priority'] ?? '' ) ? 'high' : 'normal',
+							'page_type'       => 'category',
+							'main_keyword'    => mb_substr( sanitize_text_field( (string) ( $item['main_keyword'] ?? '' ) ), 0, 120 ),
+							'detected_by'     => sanitize_key( (string) ( $item['detected_by'] ?? 'manual' ) ),
+						);
+						continue;
+					}
 					if ( ! $post instanceof WP_Post || 'publish' !== $post->post_status ) {
 						continue;
 					}

@@ -46,12 +46,65 @@ final class KeyPageLinks {
 	}
 
 	/**
+	 * Key pages can be posts/pages/products (positive id) or category archives (negative id
+	 * = -term_id; product categories are the main sales pages of a shop).
+	 *
+	 * @param int $id Key page id.
+	 */
+	public static function is_term( int $id ): bool {
+		return $id < 0;
+	}
+
+	/**
+	 * Title of a key page.
+	 *
+	 * @param int $id Key page id.
+	 */
+	public static function title_of( int $id ): string {
+		if ( $id < 0 ) {
+			$t = get_term( -$id );
+			return $t instanceof \WP_Term ? html_entity_decode( $t->name, ENT_QUOTES, 'UTF-8' ) : '';
+		}
+		return trim( html_entity_decode( get_the_title( $id ), ENT_QUOTES, 'UTF-8' ) );
+	}
+
+	/**
+	 * Address of a key page ('' when it no longer exists).
+	 *
+	 * @param int $id Key page id.
+	 */
+	public static function url_of( int $id ): string {
+		if ( $id < 0 ) {
+			$t    = get_term( -$id );
+			$link = $t instanceof \WP_Term ? get_term_link( $t ) : '';
+			return is_string( $link ) ? $link : '';
+		}
+		return 'publish' === get_post_status( $id ) ? (string) get_permalink( $id ) : '';
+	}
+
+	/**
+	 * Whether the key page exists and is public.
+	 *
+	 * @param int $id Key page id.
+	 */
+	public static function is_live( int $id ): bool {
+		return '' !== self::url_of( $id );
+	}
+
+	/**
 	 * The phrase an exact-match anchor would repeat: focus keyword, otherwise the title.
 	 *
 	 * @param int $id Page.
 	 */
 	public static function main_phrase( int $id ): string {
 		global $wpdb;
+		$page = self::pages()[ $id ] ?? array();
+		if ( ! empty( $page['main_keyword'] ) ) {
+			return trim( (string) $page['main_keyword'] );
+		}
+		if ( $id < 0 ) {
+			return self::title_of( $id );
+		}
 		$table = Schema::table( 'inventory' );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$focus = (string) $wpdb->get_var( $wpdb->prepare( "SELECT focus_keyword FROM {$table} WHERE object_id = %d", $id ) );
@@ -113,14 +166,7 @@ final class KeyPageLinks {
 
 		$brand = self::brand();
 		$table = Schema::table( 'links' );
-		$ids   = implode( ',', array_map( 'intval', array_keys( $pages ) ) );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$rows = $wpdb->get_results( "SELECT target_id, anchor, COUNT(*) AS n FROM {$table} WHERE target_id IN ({$ids}) AND source_type = 'content' AND link_type = 'internal' GROUP BY target_id, anchor", ARRAY_A );
-
-		$by_page = array();
-		foreach ( (array) $rows as $row ) {
-			$by_page[ (int) $row['target_id'] ][] = $row;
-		}
+		$by_page = self::links_by_page( array_keys( $pages ) );
 
 		$conflicts = self::conflicts( $pages );
 		$out       = array();
@@ -218,7 +264,7 @@ final class KeyPageLinks {
 	 */
 	public static function suggest( int $id ): array {
 		$main  = self::main_phrase( $id );
-		$title = trim( html_entity_decode( get_the_title( $id ), ENT_QUOTES, 'UTF-8' ) );
+		$title = self::title_of( $id );
 		$brand = self::brand();
 		$city  = self::city();
 
@@ -255,6 +301,49 @@ final class KeyPageLinks {
 	}
 
 	/**
+	 * Internal content links to key pages, grouped by page: anchor, count and source.
+	 * Posts are matched by target id, category archives by address.
+	 *
+	 * @param int[] $ids Key page ids.
+	 * @return array<int, array<int, array{anchor: string, n: int}>>
+	 */
+	public static function links_by_page( array $ids ): array {
+		global $wpdb;
+		$table = Schema::table( 'links' );
+		$out   = array();
+		$posts = array_filter( array_map( 'intval', $ids ), static fn( $i ) => $i > 0 );
+		if ( $posts ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$rows = $wpdb->get_results( 'SELECT target_id, anchor, COUNT(*) AS n FROM ' . $table . ' WHERE target_id IN (' . implode( ',', $posts ) . ") AND source_type = 'content' AND link_type = 'internal' GROUP BY target_id, anchor", ARRAY_A );
+			foreach ( (array) $rows as $row ) {
+				$out[ (int) $row['target_id'] ][] = $row;
+			}
+		}
+		$urls = new UrlNormalizer( home_url( '/' ) );
+		foreach ( array_filter( array_map( 'intval', $ids ), static fn( $i ) => $i < 0 ) as $id ) {
+			$url = self::url_of( $id );
+			$path = (string) wp_parse_url( $url, PHP_URL_PATH );
+			if ( '' === $path ) {
+				continue;
+			}
+			$key = $urls->key( $url );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT target_url, anchor, source_id FROM ' . $table . " WHERE source_type = 'content' AND link_type = 'internal' AND (target_url LIKE %s OR target_url LIKE %s)", '%' . $wpdb->esc_like( $path ) . '%', '%' . $wpdb->esc_like( rawurldecode( $path ) ) . '%' ), ARRAY_A );
+			$count = array();
+			foreach ( (array) $rows as $row ) {
+				$abs = $urls->absolute( (string) $row['target_url'], home_url( '/' ) );
+				if ( null !== $abs && $urls->key( $abs ) === $key ) {
+					$count[ (string) $row['anchor'] ][] = (int) $row['source_id'];
+				}
+			}
+			foreach ( $count as $anchor => $sources ) {
+				$out[ $id ][] = array( 'anchor' => $anchor, 'n' => count( $sources ), 'sources' => array_values( array_unique( $sources ) ) );
+			}
+		}
+		return $out;
+	}
+
+	/**
 	 * Ids of key pages an HTML fragment already links to.
 	 *
 	 * @param string $html  Post content.
@@ -270,9 +359,17 @@ final class KeyPageLinks {
 		$urls = new UrlNormalizer( home_url( '/' ) );
 		$map  = array();
 		foreach ( $ids as $id ) {
-			$map[ $urls->key( (string) get_permalink( (int) $id ) ) ] = (int) $id;
-			$map[ $urls->key( home_url( '/?page_id=' . (int) $id ) ) ] = (int) $id;
-			$map[ $urls->key( home_url( '/?p=' . (int) $id ) ) ]       = (int) $id;
+			$id = (int) $id;
+			if ( $id < 0 ) {
+				$url = self::url_of( $id );
+				if ( '' !== $url ) {
+					$map[ $urls->key( $url ) ] = $id;
+				}
+				continue;
+			}
+			$map[ $urls->key( (string) get_permalink( $id ) ) ] = $id;
+			$map[ $urls->key( home_url( '/?page_id=' . $id ) ) ] = $id;
+			$map[ $urls->key( home_url( '/?p=' . $id ) ) ]       = $id;
 		}
 
 		$found = array();

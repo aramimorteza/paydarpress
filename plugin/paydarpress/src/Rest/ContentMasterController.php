@@ -3,6 +3,7 @@
  * REST: ContentMaster import and suggested topics.
  *
  *  POST /cm/preview          { text } or multipart "file" (.json/.txt)     (manage)
+ *  POST /rewrites/{draft}/apply   replace the original with a rewrite draft now (manage)
  *  POST /cm/commit           { token, topics[], articles[], link_suggestions[] } (manage)
  *  GET  /topics              ?status&page&per_page                          (view)
  *  POST /topics/{id}         { status }                                     (manage)
@@ -56,6 +57,28 @@ final class ContentMasterController {
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'reviewed' ),
 				'permission_callback' => static fn( $request ) => current_user_can( 'edit_post', (int) $request['id'] ),
+			)
+		);
+		register_rest_route(
+			self::NAMESPACE,
+			'/rewrites/(?P<id>\d+)/apply',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'permission_callback' => $manage,
+				'callback'            => static function ( WP_REST_Request $r ) {
+					try {
+						$id = \PaydarWP\PaydarPress\Import\Rewrites::apply( (int) $r['id'] );
+					} catch ( \RuntimeException $e ) {
+						return new WP_Error( 'paydarpress_rewrite', $e->getMessage(), array( 'status' => 409 ) );
+					}
+					return new WP_REST_Response(
+						array(
+							'ok'       => true,
+							'url'      => (string) get_permalink( $id ),
+							'edit_url' => (string) get_edit_post_link( $id, 'raw' ),
+						)
+					);
+				},
 			)
 		);
 		register_rest_route( self::NAMESPACE, '/cm/preview', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'preview' ), 'permission_callback' => $manage ) );
@@ -197,6 +220,8 @@ final class ContentMasterController {
 					'new_terms'        => (array) $request->get_param( 'new_terms' ),
 					'classifications'  => (array) $request->get_param( 'classifications' ),
 					'cluster_plans'    => (array) $request->get_param( 'cluster_plans' ),
+					// Per rewrite: which tag / category / address changes the owner ticked.
+					'plans'            => is_array( $request->get_param( 'plans' ) ) ? $request->get_param( 'plans' ) : array(),
 				)
 			);
 		} catch ( Throwable $e ) {

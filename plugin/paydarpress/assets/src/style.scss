@@ -2464,3 +2464,58 @@ button.pp-chip {
 	}
 	p { margin: 0 0 10px; }
 }
+
+/* Rewrite plan and result (0.29) */
+.pp-rewrite-plan {
+	margin: 8px 0;
+	padding: 8px 12px;
+	background: #f6f7f7;
+	border-radius: 4px;
+	.components-checkbox-control { margin-top: 4px; }
+	code { word-break: break-all; }
+}
+.pp-rewrite-plan__url { margin: 0 0 6px; }
+.pp-rewrite-result {
+	list-style: none;
+	padding: 10px 0;
+	border-bottom: 1px solid #f0f0f1;
+	ul { margin: 4px 0; padding-inline-start: 16px; list-style: disc; }
+}
+
+/* Task card details (0.29) */
+.pp-task__details {
+	margin: 0 0 8px;
+	font-size: 12px;
+	line-height: 1.9;
+	.pp-badge { margin-inline-start: 4px; }
+}
+.pp-task__view { font-size: 12px; white-space: nowrap; }
+
+/* Changes report (0.29) */
+.pp-changes__summary { margin: 0 0 8px; }
+.pp-changes__why { max-width: 260px; font-size: 12px; }
+.pp-trail {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-top: 4px;
+	font-size: 11px;
+}
+
+/* Key page suggestions (0.29) */
+.pp-keypage-cands {
+	margin: 8px 0 12px;
+	padding: 10px 12px;
+	background: #f0f6fc;
+	border: 1px solid #c5d9ed;
+	border-radius: 6px;
+}
+.pp-keypage-cand {
+	padding: 8px 0;
+	border-bottom: 1px solid #dbe6f1;
+	&:last-child { border-bottom: 0; }
+	.pp-badge { margin-inline-start: 6px; }
+}
+.pp-keypage-impact { font-size: 12px; margin: 6px 0; }
+.pp-keypage-summary { font-size: 12px; margin: 6px 0; .pp-chip { margin-inline-end: 4px; } }
+.pp-repeater__item.is-warning { border-color: #d63638; }

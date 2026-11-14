@@ -308,11 +308,20 @@ final class ImportService {
 					$result['errors'][] = '«' . $article['title'] . '»: ' . $post_id->get_error_message();
 					continue;
 				}
+				$chosen = null;
+				if ( ! empty( $article['rewrite_id'] ) && is_array( $article['plan'] ?? null ) ) {
+					$chosen = self::chosen_plan( $article['plan'], $selection['plans'][ (string) $article['index'] ] ?? null );
+					update_post_meta( $post_id, Rewrites::META_PLAN, $chosen );
+				}
 				$result['articles'][] = array(
-					'id'       => $post_id,
-					'title'    => $article['title'],
-					'edit_url' => (string) get_edit_post_link( $post_id, 'raw' ),
-					'rewrite'  => ! empty( $article['rewrite_id'] ),
+					'id'           => $post_id,
+					'title'        => $article['title'],
+					'edit_url'     => (string) get_edit_post_link( $post_id, 'raw' ),
+					'rewrite'      => ! empty( $article['rewrite_id'] ),
+					'original'     => $article['rewrite_title'] ?? null,
+					'original_url' => $article['rewrite_url'] ?? null,
+					'plan'         => null === $chosen ? array() : Rewrites::plan_lines( $chosen ),
+					'can_apply'    => ! empty( $article['rewrite_id'] ) && ! \PaydarWP\PaydarPress\Policy\ReviewGate::needs_review( $post_id ),
 				);
 
 				if ( empty( $article['rewrite_id'] ) ) {
@@ -358,6 +367,9 @@ final class ImportService {
 			} else {
 				$result['errors'][] = '«' . $a['alt'] . '»: ' . $done['message'];
 			}
+		}
+		foreach ( array_keys( $alt_posts ) as $alt_post ) {
+			\PaydarWP\PaydarPress\Strategy\ChangeLog::record( 'alt', (int) $alt_post, 'متن جایگزین تصاویر به‌روز شد' );
 		}
 		// Rescan so the image findings update soon (a featured-image alt is not a post save).
 		foreach ( array_keys( $alt_posts ) as $alt_post ) {
@@ -537,6 +549,15 @@ final class ImportService {
 			$checks[] = array( 'info', 'نویسنده «' . $article['author'] . '» کاربر این سایت نیست؛ نوشته به نام شما ساخته می‌شود.' );
 		}
 
+		// Rewrites: changes to the original's tags, category and address, chosen in the preview
+		// and applied to the original together with the text.
+		$plan = null;
+		if ( $rewrite ) {
+			list( $plan, $plan_checks ) = self::rewrite_plan( $rewrite, $article, $category );
+			$checks          = array_merge( $checks, $plan_checks );
+			$article['tags'] = array();
+		}
+
 		// Tags: taxonomy map rules (no retired / navigation tags, no category names, at most
 		// MAX_TAGS, at most 2 new ones). Existing tags are kept first.
 		$max_tags      = \PaydarWP\PaydarPress\Profile\TaxonomyMap::MAX_TAGS;
@@ -600,10 +621,169 @@ final class ImportService {
 					'rewrite_id'     => $rewrite ? $rewrite->ID : null,
 					'rewrite_type'   => $rewrite ? $rewrite->post_type : null,
 					'rewrite_title'  => $rewrite ? html_entity_decode( get_the_title( $rewrite ), ENT_QUOTES, 'UTF-8' ) : null,
+					'rewrite_url'    => $rewrite ? (string) get_permalink( $rewrite ) : null,
+					'plan'           => $plan,
 				)
 			),
 			$checks
 		);
+	}
+
+	/**
+	 * What a rewrite changes on the original besides the text: tags (keep / add / remove with
+	 * a reason, within the cap), an added category (posts) and the address (only when the
+	 * current one is Persian, encoded, numeric or a "-2" duplicate). Nothing here is applied
+	 * until the owner ticks it and replaces.
+	 *
+	 * An empty `tags` list from the assistant means "no tag change", never "remove all".
+	 *
+	 * @param \WP_Post $original Post being rewritten.
+	 * @param array    $article  Parsed article.
+	 * @param array    $category Resolved category { id, name }.
+	 * @return array{0: array, 1: array}
+	 */
+	private static function rewrite_plan( \WP_Post $original, array $article, array $category ): array {
+		$map    = \PaydarWP\PaydarPress\Profile\TaxonomyMap::class;
+		$checks = array();
+		$tax    = 'product' === $original->post_type ? 'product_tag' : ( 'post' === $original->post_type ? 'post_tag' : '' );
+		$cat_tx = 'product' === $original->post_type ? 'product_cat' : 'category';
+		$plan   = array(
+			'taxonomy' => $tax,
+			'max'      => $map::max_tags( $original->post_type ),
+			'current'  => array(),
+			'add'      => array(),
+			'new'      => array(),
+			'remove'   => array(),
+			'category' => null,
+			'slug'     => null,
+		);
+		$norm = static fn( string $n ): string => \PaydarWP\PaydarPress\Text\PersianNormalizer::for_key( $n );
+
+		if ( '' !== $tax && taxonomy_exists( $tax ) ) {
+			$current = wp_get_post_terms( $original->ID, $tax );
+			$current = is_array( $current ) ? $current : array();
+			$by_norm = array();
+			foreach ( $current as $t ) {
+				$name                     = html_entity_decode( $t->name, ENT_QUOTES, 'UTF-8' );
+				$plan['current'][]        = $name;
+				$by_norm[ $norm( $name ) ] = $name;
+			}
+			foreach ( (array) ( $article['tags_remove'] ?? array() ) as $name => $reason ) {
+				$hit = $by_norm[ $norm( (string) $name ) ] ?? null;
+				if ( null !== $hit ) {
+					$plan['remove'][] = array( 'name' => $hit, 'reason' => (string) $reason );
+				}
+			}
+			$removing = array_map( static fn( $r ) => $norm( $r['name'] ), $plan['remove'] );
+			$dropped  = array();
+			foreach ( $article['tags'] as $name ) {
+				$key = $norm( $name );
+				if ( isset( $by_norm[ $key ] ) || in_array( $key, $removing, true ) ) {
+					continue;
+				}
+				if ( term_exists( $name, $cat_tx ) ) {
+					$dropped[] = $name;
+					continue;
+				}
+				$term = get_term_by( 'name', $name, $tax );
+				if ( $term instanceof \WP_Term ) {
+					if ( in_array( $map::role( (int) $term->term_id ), $map::ACTIVE_ROLES, true ) ) {
+						$plan['add'][] = html_entity_decode( $term->name, ENT_QUOTES, 'UTF-8' );
+					} else {
+						$dropped[] = $name;
+					}
+				} elseif ( count( $plan['new'] ) < 1 ) {
+					$plan['new'][] = $name;
+				} else {
+					$dropped[] = $name;
+				}
+			}
+			// Within the cap: what stays + what is added.
+			$room = $plan['max'] - ( count( $plan['current'] ) - count( $plan['remove'] ) );
+			if ( count( $plan['add'] ) + count( $plan['new'] ) > max( 0, $room ) ) {
+				$all          = array_merge( $plan['add'], $plan['new'] );
+				$keep         = array_slice( $all, 0, max( 0, $room ) );
+				$dropped      = array_merge( $dropped, array_slice( $all, max( 0, $room ) ) );
+				$plan['add']  = array_values( array_intersect( $plan['add'], $keep ) );
+				$plan['new']  = array_values( array_intersect( $plan['new'], $keep ) );
+			}
+			if ( $dropped ) {
+				$checks[] = array( 'info', sprintf( 'این برچسب‌ها اضافه نمی‌شوند (سقف %s برچسب، حداکثر یک برچسب تازه، بدون برچسب کنارگذاشته یا هم‌نام دسته): %s', \PaydarWP\PaydarPress\Text\PersianNormalizer::fa_number( $plan['max'] ), implode( '، ', array_unique( $dropped ) ) ) );
+			}
+			$after = count( $plan['current'] ) - count( $plan['remove'] ) + count( $plan['add'] ) + count( $plan['new'] );
+			if ( $after > $plan['max'] ) {
+				$checks[] = array( 'warning', sprintf( 'این %s %s برچسب خواهد داشت؛ سقف %s است. برچسب‌های کم‌ربط را حذف کنید.', 'product' === $original->post_type ? 'محصول' : 'مقاله', \PaydarWP\PaydarPress\Text\PersianNormalizer::fa_number( $after ), \PaydarWP\PaydarPress\Text\PersianNormalizer::fa_number( $plan['max'] ) ) );
+			}
+		}
+
+		// Posts: an added category (never removes the current ones).
+		if ( 'post' === $original->post_type && null !== $category['id'] && ! in_array( (int) $category['id'], wp_get_post_categories( $original->ID ), true ) && (int) $category['id'] !== (int) get_option( 'default_category' ) ) {
+			$plan['category'] = array( 'id' => (int) $category['id'], 'name' => (string) $category['name'] );
+		}
+
+		// Address: changed only when the current one is poor and the suggestion is a clean English slug.
+		$cur  = rawurldecode( (string) $original->post_name );
+		$poor = self::poor_slug( $cur, $original );
+		$new  = sanitize_title( (string) $article['slug'] );
+		if ( '' !== $poor ) {
+			if ( '' !== $new && preg_match( '/^[a-z0-9]+(-[a-z0-9]+){1,7}$/', $new ) && $new !== $cur && ! get_page_by_path( $new, OBJECT, $original->post_type ) ) {
+				$plan['slug'] = array( 'from' => $cur, 'to' => $new, 'why' => $poor );
+			} else {
+				$checks[] = array( 'info', 'آدرس فعلی ' . $poor . '، ولی نامک انگلیسی مناسبی در پاسخ نیامد؛ آدرس دست نمی‌خورد.' );
+			}
+		}
+
+		return array( $plan, $checks );
+	}
+
+	/**
+	 * The parts of a rewrite plan the owner ticked. Without a choice from the browser the
+	 * defaults apply: existing tags added, suggested removals done, new tags not created,
+	 * category added and a poor address replaced.
+	 *
+	 * @param array      $plan   Plan from the preview.
+	 * @param array|null $choice { add: string[], new: string[], remove: string[], category: bool, slug: bool }.
+	 */
+	public static function chosen_plan( array $plan, $choice ): array {
+		$pick = static function ( array $offered, $wanted ) {
+			if ( ! is_array( $wanted ) ) {
+				return null;
+			}
+			return array_values( array_intersect( $offered, array_map( 'strval', $wanted ) ) );
+		};
+		$c          = is_array( $choice ) ? $choice : array();
+		$remove_all = array_map( static fn( $r ) => $r['name'], (array) $plan['remove'] );
+		$out        = array(
+			'taxonomy' => (string) $plan['taxonomy'],
+			'add'      => $pick( (array) $plan['add'], $c['add'] ?? null ) ?? (array) $plan['add'],
+			'new'      => $pick( (array) $plan['new'], $c['new'] ?? null ) ?? array(),
+			'remove'   => $pick( $remove_all, $c['remove'] ?? null ) ?? $remove_all,
+			'category' => null !== $plan['category'] && ( ! isset( $c['category'] ) || ! empty( $c['category'] ) ) ? $plan['category'] : null,
+			'slug'     => null !== $plan['slug'] && ( ! isset( $c['slug'] ) || ! empty( $c['slug'] ) ) ? $plan['slug'] : null,
+		);
+		return $out;
+	}
+
+	/**
+	 * Why an address is worth changing ('' = it is fine and must stay).
+	 *
+	 * @param string   $slug Decoded slug.
+	 * @param \WP_Post $post Post.
+	 */
+	public static function poor_slug( string $slug, \WP_Post $post ): string {
+		if ( '' === $slug ) {
+			return '';
+		}
+		if ( preg_match( '/[^\x00-\x7F]/', $slug ) ) {
+			return 'فارسی است (در لینک‌ها به شکل %d8%… دیده می‌شود)';
+		}
+		if ( preg_match( '/^(post|product|page|p)?-?\d+$/', $slug ) ) {
+			return 'فقط عدد است و معنایی ندارد';
+		}
+		if ( preg_match( '/^(.+)-([2-9])$/', $slug, $m ) && get_page_by_path( $m[1], OBJECT, $post->post_type ) ) {
+			return 'تکراری است و پسوند «-' . $m[2] . '» گرفته';
+		}
+		return '';
 	}
 
 	/**
@@ -1070,7 +1250,7 @@ final class ImportService {
 			}
 			$add_cat = array_slice( $add_cat, 0, 2, true );
 
-			$room    = max( 0, $map::MAX_TAGS - count( $cur_tag ) );
+			$room    = max( 0, $map::max_tags( $k['tag'] ) - count( $cur_tag ) );
 			$add_tag = array();
 			$new_tag = array();
 			foreach ( $c['add_tags'] as $name ) {

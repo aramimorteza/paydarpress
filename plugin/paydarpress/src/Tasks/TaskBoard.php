@@ -264,7 +264,7 @@ final class TaskBoard {
 				$gap = array_values( array_filter( \PaydarWP\PaydarPress\Strategy\Structure::categories(), static fn( $c ) => $c['gap'] > 0 ) );
 				if ( $gap ) {
 					$c       = $gap[0];
-					$tasks[] = self::task( 'category:' . $c['id'], 'write', 'موضوع تازه برای دسته «' . $c['name'] . '»', sprintf( 'این دسته %s مطلب دارد و هدفش %s است (اهمیت: %s). از هوش مصنوعی برای همین دسته موضوع بگیرید.', PersianNormalizer::fa_number( $c['count'] ), PersianNormalizer::fa_number( $c['target'] ), \PaydarWP\PaydarPress\Strategy\Structure::IMPORTANCE_LABELS[ $c['importance'] ] ), 38, 10, array( 'route' => '/taxonomies', 'label' => 'دسته‌ها' ), array( 'kind' => 'category', 'id' => $c['id'], 'title' => $c['name'] ) );
+					$tasks[] = self::task( 'category:' . $c['id'], 'write', 'موضوع تازه برای دسته «' . $c['name'] . '»', sprintf( 'این دسته %s مطلب دارد و هدفش %s است (نقش: %s). از هوش مصنوعی برای همین دسته موضوع بگیرید.', PersianNormalizer::fa_number( $c['count'] ), PersianNormalizer::fa_number( $c['target'] ), \PaydarWP\PaydarPress\Strategy\Structure::IMPORTANCE_LABELS[ $c['importance'] ] ), 38, 10, array( 'route' => '/taxonomies', 'label' => 'دسته‌ها' ), array( 'kind' => 'category', 'id' => $c['id'], 'title' => $c['name'] ) );
 				}
 			}
 			if ( ! $topics && empty( $gap ) ) {

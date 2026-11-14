@@ -160,6 +160,8 @@ final class Clusters {
 			)
 		);
 		Queue::schedule( self::ACTION_LINKS, array( $id ), 30 );
+		$c = self::get( $id );
+		ChangeLog::record( 'cluster', $post_id, 'عضو خوشه «' . ( $c['name'] ?? '' ) . '»' . ( '' !== $subtopic ? ' (زیرموضوع: ' . $subtopic . ')' : '' ) );
 	}
 
 	/**

@@ -180,6 +180,8 @@ final class LinkQueue {
 		);
 
 		Activity::log( 'links.applied', sprintf( 'لینک «%s» از «%s» به «%s» درج شد.', $result['text'], $this->title( $source->ID ), $this->title( $target->ID ) ), 'post', $source->ID );
+		// Measured on the target: a new internal link helps the page it points to.
+		\PaydarWP\PaydarPress\Strategy\ChangeLog::record( 'link', $target->ID, sprintf( 'لینک از «%s» با متن «%s»', $this->title( $source->ID ), $result['text'] ) );
 
 		return $this->set( $id, 'applied', null );
 	}

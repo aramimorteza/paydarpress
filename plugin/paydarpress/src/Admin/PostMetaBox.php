@@ -70,16 +70,32 @@ final class PostMetaBox {
 
 		$original = Rewrites::original_of( $post->ID );
 		if ( null !== $original && in_array( $post->post_status, array( 'draft', 'pending' ), true ) ) {
+			$plan  = get_post_meta( $post->ID, Rewrites::META_PLAN, true );
+			$lines = is_array( $plan ) ? Rewrites::plan_lines( $plan ) : array();
+			$url   = (string) get_permalink( $original );
+			$keeps = 'product' === $original->post_type ? 'قیمت، موجودی، تصاویر، دسته‌ها و ویژگی‌های محصول' : 'دسته‌ها، تصویر شاخص و تاریخ انتشار';
 			printf(
-				'<p>%s <a href="%s" target="_blank" rel="noopener">%s</a>.</p><p class="description">%s</p><p><a class="button button-primary" href="%s" onclick="return confirm(this.dataset.confirm);" data-confirm="%s">%s</a> <a class="button" href="%s" target="_blank" rel="noopener">%s</a></p><hr>',
-				esc_html( 'این پیش‌نویس، بازنویسی' ),
-				esc_url( (string) get_permalink( $original ) ),
+				'<p>%s <a href="%s" target="_blank" rel="noopener">%s</a>.</p><p><strong>%s</strong><br><code dir="ltr" style="word-break:break-all">%s</code></p>',
+				esc_html( 'این یک پیش‌نویس جداست برای بازنویسی' ),
+				esc_url( $url ),
 				esc_html( '«' . html_entity_decode( get_the_title( $original ), ENT_QUOTES, 'UTF-8' ) . '»' ),
-				esc_html( 'متن را بخوانید و ویرایش کنید و ذخیره کنید. با «جایگزینی»، عنوان، متن، چکیده و سئوی این پیش‌نویس روی نوشته اصلی می‌نشیند (آدرس عوض نمی‌شود، نسخه قبلی در بازنگری‌ها می‌ماند) و این پیش‌نویس به زباله‌دان می‌رود.' ),
+				esc_html( empty( $plan['slug'] ) ? 'آدرس نهایی (بدون تغییر):' : 'آدرس فعلی (پس از جایگزینی عوض و ریدایرکت می‌شود):' ),
+				esc_html( rawurldecode( $url ) )
+			);
+			echo '<p class="description">' . esc_html( 'آدرس پیش‌نمایش این صفحه (?p=…&preview=true) موقت است و منتشر نمی‌شود. با «جایگزینی»، عنوان، متن، توضیح کوتاه و سئو روی نسخه اصلی می‌نشیند؛ ' . $keeps . ' دست نمی‌خورند. نسخه قبلی در «بازنگری‌ها» می‌ماند.' ) . '</p>';
+			if ( $lines ) {
+				echo '<p><strong>' . esc_html( 'همراه جایگزینی:' ) . '</strong></p><ul style="margin:0 0 8px 0;padding-inline-start:16px;list-style:disc">';
+				foreach ( $lines as $line ) {
+					echo '<li>' . esc_html( $line ) . '</li>';
+				}
+				echo '</ul>';
+			}
+			printf(
+				'<p><a class="button button-primary" href="%s" onclick="return confirm(this.dataset.confirm);" data-confirm="%s">%s</a> <a class="button" href="%s" target="_blank" rel="noopener">%s</a></p><hr>',
 				esc_url( Rewrites::apply_url( $post->ID ) ),
 				esc_attr( 'تغییرات ذخیره‌نشده این صفحه از بین می‌رود. اول «ذخیره پیش‌نویس» را زده‌اید؟ جایگزین شود؟' ),
-				esc_html( 'جایگزینی نوشته اصلی' ),
-				esc_url( (string) get_permalink( $original ) ),
+				esc_html( 'جایگزینی نسخه اصلی' ),
+				esc_url( $url ),
 				esc_html( 'دیدن نسخه فعلی' )
 			);
 		}

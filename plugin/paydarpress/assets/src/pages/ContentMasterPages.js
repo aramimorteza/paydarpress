@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from '@wordpress/element';
 import { Button, CheckboxControl, Notice, Spinner, TextareaControl } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
 import Page from '../components/Page';
+import { RewritePlan, RewriteResult, defaultPlans } from '../components/RewriteParts';
 import AiButton from '../components/AiButton';
 import { topicsCommand, topicArticleCommand } from '../lib/aiCommands';
 import EmptyState from '../components/EmptyState';
@@ -58,6 +59,7 @@ export function ImportPage() {
 	const [ error, setError ] = useState( '' );
 	const [ preview, setPreview ] = useState( null );
 	const [ picked, setPicked ] = useState( {} );
+	const [ plans, setPlans ] = useState( {} );
 	const [ result, setResult ] = useState( null );
 
 	if ( ! canManage ) {
@@ -81,6 +83,7 @@ export function ImportPage() {
 					sel[ s ] = ( p[ s ] || [] ).filter( ( i ) => ! i.duplicate && ! i.blocked ).map( ( i ) => i.index );
 				} );
 				setPicked( sel );
+				setPlans( defaultPlans( p.articles ) );
 			} )
 			.catch( ( e ) => setError( errorMessage( e ) ) )
 			.finally( () => setBusy( false ) );
@@ -103,7 +106,7 @@ export function ImportPage() {
 	const commit = () => {
 		setBusy( true );
 		setError( '' );
-		post( '/cm/commit', { token: preview.token, ...picked } )
+		post( '/cm/commit', { token: preview.token, ...picked, plans } )
 			.then( ( r ) => {
 				setResult( r );
 				setPreview( null );
@@ -135,7 +138,7 @@ export function ImportPage() {
 					{ result.articles.length > 0 && (
 						<ul className="pp-mini-list">
 							{ result.articles.map( ( a ) => (
-								<li key={ a.id }><a href={ a.edit_url }>{ a.title }</a> <span className="pp-muted">{ a.rewrite ? '(پیش‌نویس بازنویسی — در ویرایشگر بخوانید و «جایگزینی نوشته اصلی» را بزنید)' : '(پیش‌نویس — بازبینی و انتشار با شما)' }</span></li>
+								a.rewrite ? <RewriteResult key={ a.id } article={ a } /> : <li key={ a.id }><a href={ a.edit_url }>{ a.title }</a> <span className="pp-muted">(پیش‌نویس — بازبینی و انتشار با شما)</span></li>
 							) ) }
 						</ul>
 					) }
@@ -191,7 +194,7 @@ export function ImportPage() {
 					{ preview.articles.length > 0 && (
 						<section className="pp-card pp-card--section">
 							<h2 className="pp-card__title">مقالات ({ num( preview.articles.length ) }) — به‌صورت پیش‌نویس</h2>
-							{ preview.articles.some( ( a ) => a.rewrite_id ) && <p className="pp-muted">بازنویسی‌ها پیش‌نویس جدا می‌شوند؛ نوشته منتشرشده فقط وقتی تغییر می‌کند که در ویرایشگر «جایگزینی نوشته اصلی» را بزنید.</p> }
+							{ preview.articles.some( ( a ) => a.rewrite_id ) && <p className="pp-muted">بازنویسی‌ها پیش‌نویس جدا می‌شوند؛ پس از ورود انتخاب می‌کنید که همان لحظه جایگزین شود یا پیش‌نویس بماند.</p> }
 							{ preview.articles.map( ( a ) => (
 								<div key={ a.index } className={ `pp-import-item${ a.duplicate ? ' is-duplicate' : '' }` }>
 									<CheckboxControl
@@ -211,6 +214,7 @@ export function ImportPage() {
 										{ a.reverse_links.length > 0 && <span>{ num( a.reverse_links.filter( ( r ) => r.source_id ).length ) } پیشنهاد لینک به این مقاله</span> }
 									</div>
 									<p className="pp-muted pp-import-excerpt">{ a.html_preview }…</p>
+									{ a.plan && ( picked.articles || [] ).includes( a.index ) && <RewritePlan item={ a } choice={ plans[ a.index ] } onChange={ ( c ) => setPlans( { ...plans, [ a.index ]: c } ) } /> }
 									<Checks checks={ a.checks } />
 								</div>
 							) ) }

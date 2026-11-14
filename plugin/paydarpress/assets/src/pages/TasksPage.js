@@ -63,6 +63,61 @@ export function TaskAction( { action, variant = 'secondary' } ) {
 }
 
 /**
+ * Search Console line, probable queries and content facts of a card.
+ *
+ * @param {Object} props
+ * @param {Object} props.details Details from the server.
+ */
+export function TaskDetails( { details } ) {
+	if ( ! details || ( ! details.gsc && ! details.queries && ! details.facts ) ) {
+		return null;
+	}
+	const g = details.gsc;
+	return (
+		<div className="pp-task__details">
+			{ g && (
+				<div>
+					<strong>گوگل (۳ ماه): </strong>
+					رتبه میانگین { num( g.position ) } · { num( g.impressions ) } نمایش · { num( g.clicks ) } کلیک · نرخ کلیک { num( g.ctr ) }٪
+					{ null !== g.delta && 0 !== g.delta && <span className={ g.delta > 0 ? 'pp-ok' : 'pp-missing' }> { g.delta > 0 ? '↑' : '↓' } { num( Math.abs( g.delta ) ) } نسبت به بارگذاری قبلی</span> }
+				</div>
+			) }
+			{ details.queries && details.queries.length > 0 && (
+				<div>
+					<strong>عبارت‌های احتمالی: </strong>
+					{ details.queries.map( ( q, i ) => (
+						<span key={ q.query } className="pp-task__query">
+							{ i > 0 && ' · ' }«{ q.query }» رتبه { num( q.position ) }، { num( q.impressions ) } نمایش
+							{ q.opportunity && <span className="pp-badge pp-badge--warning">فرصت</span> }
+						</span>
+					) ) }
+					<span className="pp-muted" title="خروجی سرچ کنسول صفحه و عبارت را جدا می‌دهد؛ این عبارت‌ها بر اساس کلمه کلیدی و عنوان صفحه تخمین زده شده‌اند."> (تخمینی)</span>
+				</div>
+			) }
+			{ details.facts && <div className="pp-muted">{ details.facts.join( ' · ' ) }</div> }
+		</div>
+	);
+}
+
+/**
+ * Typed "view" and Search Console links of a card.
+ *
+ * @param {Object} props
+ * @param {Object} props.details Details.
+ */
+export function TaskLinks( { details } ) {
+	if ( ! details || ! details.view ) {
+		return null;
+	}
+	return (
+		<>
+			<a className="pp-task__view" href={ details.view.url } target="_blank" rel="noreferrer" title={ details.view.title }>{ details.view.label } ↗</a>
+			{ details.gsc_link && <a className="pp-task__view" href={ details.gsc_link } target="_blank" rel="noreferrer" title="گزارش Performance سرچ کنسول با فیلتر همین صفحه">عبارت‌های دقیق در سرچ کنسول ↗</a> }
+		</>
+	);
+}
+
+/**
  * One task card.
  */
 function TaskCard( { task, index, onMark, canManage } ) {
@@ -78,9 +133,11 @@ function TaskCard( { task, index, onMark, canManage } ) {
 					<span className="pp-muted">حدود { num( task.minutes ) } دقیقه</span>
 				</div>
 				<p className="pp-task__why">{ task.why }</p>
+				<TaskDetails details={ task.details } />
 				<div className="pp-task__actions">
 					<TaskAction action={ task.action } variant={ 0 === index ? 'primary' : 'secondary' } />
 					{ ai && <AiButton command={ ai } /> }
+					<TaskLinks details={ task.details } />
 					{ canManage && (
 						<>
 							<Button variant="tertiary" size="small" onClick={ () => onMark( task.key, 'done' ) }>انجام شد</Button>

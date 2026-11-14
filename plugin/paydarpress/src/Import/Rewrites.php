@@ -23,6 +23,7 @@ final class Rewrites {
 	public const META_OF   = '_paydarpress_rewrite_of';
 	public const META_PREV = '_paydarpress_prev_content';
 	public const ACTION    = 'paydarpress_apply_rewrite';
+	public const META_PLAN = '_paydarpress_rewrite_plan';
 
 	/**
 	 * Hooks.
@@ -134,17 +135,121 @@ final class Rewrites {
 			$adapter->write_post( $original->ID, $values );
 		}
 
+		$plan    = get_post_meta( $draft->ID, self::META_PLAN, true );
+		$applied = is_array( $plan ) ? self::apply_plan( $original->ID, $plan ) : array();
+
 		wp_trash_post( $draft->ID );
-		\PaydarWP\PaydarPress\Strategy\ChangeLog::record( 'rewrite', $original->ID, 'متن بازنویسی جایگزین شد' . ( $draft->post_title !== $original->post_title ? '؛ عنوان: «' . $draft->post_title . '»' : '' ) );
+		\PaydarWP\PaydarPress\Strategy\ChangeLog::record( 'rewrite', $original->ID, 'متن بازنویسی جایگزین شد' . ( $draft->post_title !== $original->post_title ? '؛ عنوان: «' . $draft->post_title . '»' : '' ) . ( $applied ? '؛ ' . implode( '؛ ', $applied ) : '' ) );
 		Activity::log( 'import.rewrite_applied', 'بازنویسی «' . html_entity_decode( get_the_title( $original ), ENT_QUOTES, 'UTF-8' ) . '» جایگزین متن قبلی شد (نسخه قبلی در «بازنگری‌ها» هست).', 'post', $original->ID );
 
 		return $original->ID;
 	}
 
 	/**
+	 * Human lines describing a chosen plan (preview, result and the editor box).
+	 *
+	 * @param array $plan Chosen plan.
+	 * @return string[]
+	 */
+	public static function plan_lines( array $plan ): array {
+		$lines = array();
+		if ( ! empty( $plan['add'] ) || ! empty( $plan['new'] ) ) {
+			$lines[] = 'افزودن برچسب: ' . implode( '، ', array_merge( (array) $plan['add'], array_map( static fn( $n ) => $n . ' (تازه)', (array) ( $plan['new'] ?? array() ) ) ) );
+		}
+		if ( ! empty( $plan['remove'] ) ) {
+			$lines[] = 'حذف برچسب: ' . implode( '، ', (array) $plan['remove'] );
+		}
+		if ( ! empty( $plan['category'] ) ) {
+			$lines[] = 'افزودن دسته: ' . $plan['category']['name'];
+		}
+		if ( ! empty( $plan['slug'] ) ) {
+			$lines[] = 'آدرس: ' . $plan['slug']['from'] . ' ← ' . $plan['slug']['to'] . ' (با ریدایرکت ۳۰۱)';
+		}
+		return $lines;
+	}
+
+	/**
+	 * Applies the ticked tag / category / address changes to the original.
+	 *
+	 * @param int   $post_id Original.
+	 * @param array $plan    Chosen plan.
+	 * @return string[] What was done.
+	 */
+	public static function apply_plan( int $post_id, array $plan ): array {
+		$done = array();
+		$tax  = (string) ( $plan['taxonomy'] ?? '' );
+		if ( '' !== $tax && taxonomy_exists( $tax ) ) {
+			$remove = array();
+			foreach ( (array) ( $plan['remove'] ?? array() ) as $name ) {
+				$t = get_term_by( 'name', (string) $name, $tax );
+				if ( $t instanceof \WP_Term ) {
+					$remove[] = (int) $t->term_id;
+				}
+			}
+			if ( $remove ) {
+				wp_remove_object_terms( $post_id, $remove, $tax );
+				$done[] = 'حذف ' . count( $remove ) . ' برچسب';
+			}
+			$add = array();
+			foreach ( (array) ( $plan['add'] ?? array() ) as $name ) {
+				$t = get_term_by( 'name', (string) $name, $tax );
+				if ( $t instanceof \WP_Term ) {
+					$add[] = (int) $t->term_id;
+				}
+			}
+			foreach ( (array) ( $plan['new'] ?? array() ) as $name ) {
+				$t = term_exists( (string) $name, $tax );
+				$t = $t ? $t : wp_insert_term( (string) $name, $tax );
+				if ( is_array( $t ) && isset( $t['term_id'] ) ) {
+					$add[] = (int) $t['term_id'];
+				}
+			}
+			if ( $add ) {
+				wp_set_object_terms( $post_id, $add, $tax, true );
+				$done[] = 'افزودن ' . count( $add ) . ' برچسب';
+			}
+		}
+		if ( ! empty( $plan['category'] ) ) {
+			wp_set_post_categories( $post_id, array( (int) $plan['category']['id'] ), true );
+			$done[] = 'افزودن دسته «' . $plan['category']['name'] . '»';
+		}
+		if ( ! empty( $plan['slug'] ) ) {
+			$old = (string) get_permalink( $post_id );
+			$r   = wp_update_post( array( 'ID' => $post_id, 'post_name' => (string) $plan['slug']['to'] ), true );
+			if ( ! is_wp_error( $r ) && (string) get_permalink( $post_id ) !== $old ) {
+				try {
+					\PaydarWP\PaydarPress\Strategy\RedirectOwner::ensure( $old, $post_id, 'slug' );
+					$done[] = 'آدرس تازه با ریدایرکت ۳۰۱';
+				} catch ( \RuntimeException $e ) {
+					// WordPress still redirects the old slug itself (_wp_old_slug).
+					$done[] = 'آدرس تازه (ریدایرکت وردپرس)';
+				}
+			}
+		}
+		return $done;
+	}
+
+	/**
 	 * Success notice after replacing.
 	 */
 	public function notice(): void {
+		// On a rewrite draft: say plainly that this is not the live page.
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		$id     = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( $screen && 'post' === $screen->base && $id > 0 && empty( $_GET['paydarpress_rewritten'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$original = self::original_of( $id );
+			$draft    = get_post( $id );
+			if ( null !== $original && $draft instanceof WP_Post && in_array( $draft->post_status, array( 'draft', 'pending' ), true ) ) {
+				printf(
+					'<div class="notice notice-info" dir="rtl"><p><strong>%s</strong> %s <a href="%s" target="_blank" rel="noopener">%s</a>. %s</p></div>',
+					esc_html( 'پیش‌نویس بازنویسی:' ),
+					esc_html( 'این صفحه نسخه اصلی نیست. آدرس، دسته‌ها و برچسب‌های نهایی همان' ),
+					esc_url( (string) get_permalink( $original ) ),
+					esc_html( '«' . html_entity_decode( get_the_title( $original ), ENT_QUOTES, 'UTF-8' ) . '»' ),
+					esc_html( 'است، مگر تغییری که در جعبه «پایدارپرس: بازنویسی» آمده. پس از بررسی، «جایگزینی نسخه اصلی» را بزنید.' )
+				);
+			}
+		}
 		if ( empty( $_GET['paydarpress_rewritten'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			return;
 		}

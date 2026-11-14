@@ -56,7 +56,8 @@ final class StrategyController {
 							}
 						}
 						$pages = array();
-						foreach ( \PaydarWP\PaydarPress\Profile\ProfileRepository::key_page_ids() as $pid ) {
+						// Cluster key pages are posts/pages (the cluster table stores a post id).
+						foreach ( array_filter( \PaydarWP\PaydarPress\Profile\ProfileRepository::key_page_ids(), static fn( $pid ) => $pid > 0 ) as $pid ) {
 							$pages[] = array( 'id' => $pid, 'title' => html_entity_decode( get_the_title( $pid ), ENT_QUOTES, 'UTF-8' ) );
 						}
 						return new WP_REST_Response(
@@ -178,7 +179,13 @@ final class StrategyController {
 				},
 			)
 		);
-		register_rest_route( $ns, '/changes', array( 'methods' => WP_REST_Server::READABLE, 'permission_callback' => $view, 'callback' => static fn() => new WP_REST_Response( array( 'items' => ChangeLog::recent(), 'min_days' => ChangeLog::MIN_DAYS ) ) ) );
+		$filters = static fn( $r ) => array(
+			'kind'    => (string) $r->get_param( 'kind' ),
+			'verdict' => (string) $r->get_param( 'verdict' ),
+			'days'    => (int) $r->get_param( 'days' ),
+		);
+		register_rest_route( $ns, '/changes', array( 'methods' => WP_REST_Server::READABLE, 'permission_callback' => $view, 'callback' => static fn( $r ) => new WP_REST_Response( ChangeLog::report( $filters( $r ) ) ) ) );
+		register_rest_route( $ns, '/changes/export', array( 'methods' => WP_REST_Server::READABLE, 'permission_callback' => $view, 'callback' => static fn( $r ) => new WP_REST_Response( array( 'csv' => ChangeLog::csv( $filters( $r ) ), 'name' => 'paydarpress-changes-' . gmdate( 'Y-m-d' ) . '.csv' ) ) ) );
 		register_rest_route(
 			$ns,
 			'/redirects',

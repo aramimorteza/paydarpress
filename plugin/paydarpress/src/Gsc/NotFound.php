@@ -331,6 +331,7 @@ final class NotFound {
 				}
 				$r = RedirectOwner::ensure( (string) $row['url'], $target, 'gsc404' );
 				$set( 'done', $r['message'] );
+				\PaydarWP\PaydarPress\Strategy\ChangeLog::record( 'redirect', $target, 'آدرس ۴۰۴ «' . rawurldecode( (string) wp_parse_url( (string) $row['url'], PHP_URL_PATH ) ) . '» به این صفحه ریدایرکت شد', 'post', sprintf( 'گوگل این آدرس را ۴۰۴ دیده بود (%s نمایش، %s لینک ورودی).', \PaydarWP\PaydarPress\Text\PersianNormalizer::fa_number( (int) $row['impressions'] ), \PaydarWP\PaydarPress\Text\PersianNormalizer::fa_number( (int) $row['inbound'] ) ) );
 				return array( 'ok' => true, 'message' => $r['message'] );
 
 			case 'restore':

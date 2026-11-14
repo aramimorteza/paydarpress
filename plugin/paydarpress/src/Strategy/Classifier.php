@@ -227,7 +227,7 @@ final class Classifier {
 		}
 		if ( $tag_ids && taxonomy_exists( $k['tag'] ) ) {
 			$current = wp_get_post_terms( $post->ID, $k['tag'], array( 'fields' => 'ids' ) );
-			$room    = max( 0, TaxonomyMap::MAX_TAGS - count( (array) $current ) );
+			$room    = max( 0, TaxonomyMap::max_tags( $k['tag'] ) - count( (array) $current ) );
 			$tag_ids = array_slice( array_values( array_diff( array_unique( $tag_ids ), (array) $current ) ), 0, $room );
 			if ( $tag_ids ) {
 				wp_set_object_terms( $post->ID, $tag_ids, $k['tag'], true );

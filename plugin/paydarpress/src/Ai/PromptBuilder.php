@@ -55,7 +55,7 @@ final class PromptBuilder {
 		$user   = implode( "\n\n", array_filter( array( "## TASK\n" . $spec['task'], self::site_context( $spec ), $spec['extra'] ?? '' ) ) );
 
 		$full = "# دستور کار تولید محتوا — ساخته‌شده در افزونه پایدارپرس برای سایت «" . self::site_name() . "»\n"
-			. "(این متن را کامل در ChatGPT، Claude، Gemini یا هر دستیار دیگری بچسبانید. پاسخ را که یک بلوک JSON است، در پایدارپرس ← «ورود پاسخ هوش مصنوعی» بچسبانید.)\n\n"
+			. "(این متن را کامل در ChatGPT، Claude، Gemini یا هر دستیار دیگری بچسبانید. پاسخ را که یک بلوک JSON است، در پایدارپرس ← «ورود پاسخ هوش مصنوعی» بچسبانید. بخش انگلیسی RULES دستورکار ثابت هوش مصنوعی است و مثال‌های داخل آن فقط نمونه‌اند.)\n\n"
 			. $system . "\n\n" . $user;
 
 		return array(
@@ -321,7 +321,17 @@ final class PromptBuilder {
 			$task .= "\nThis page is ONE subtopic of the CONTENT CLUSTER below: keep to its subtopic, link once to the PILLAR and to 1–2 siblings where relevant.";
 		}
 
+		$tag_tax  = $is_product ? 'product_tag' : ( 'post' === $post->post_type ? 'post_tag' : '' );
+		$cur_tags = '' !== $tag_tax && taxonomy_exists( $tag_tax ) ? wp_get_post_terms( $post->ID, $tag_tax, array( 'fields' => 'names' ) ) : array();
+		$cur_tags = is_array( $cur_tags ) ? array_map( static fn( $n ) => html_entity_decode( (string) $n, ENT_QUOTES, 'UTF-8' ), $cur_tags ) : array();
+		$max_tags = \PaydarWP\PaydarPress\Profile\TaxonomyMap::max_tags( $post->post_type );
+		$slug     = rawurldecode( (string) $post->post_name );
+		$poor     = \PaydarWP\PaydarPress\Import\ImportService::poor_slug( $slug, $post );
+		$cat_id   = $is_product ? (int) ( wp_get_post_terms( $post->ID, 'product_cat', array( 'fields' => 'ids' ) )[0] ?? 0 ) : (int) ( wp_get_post_categories( $post->ID )[0] ?? 0 );
+
 		$extra = "## CURRENT CONTENT\nTitle: {$title}\n"
+			. 'Current address (slug): ' . $slug . ( '' === $poor ? " — GOOD: keep it, leave `slug` empty.\n" : " — POOR ({$poor}): give a short English `slug` (3–5 words, lowercase, hyphens) that matches the search intent.\n" )
+			. ( '' !== $tag_tax ? 'Current tags (' . count( $cur_tags ) . ", max {$max_tags}): " . ( $cur_tags ? implode( '، ', $cur_tags ) : '(none)' ) . "\n" : '' )
 			. ( '' !== $seo['focus_keyword'] ? "Main keyword: {$seo['focus_keyword']}\n" : '' )
 			. ( '' !== $seo['title'] ? "SEO title: {$seo['title']}\n" : '' )
 			. ( '' !== $seo['meta_description'] ? "Meta description: {$seo['meta_description']}\n" : '' )
@@ -334,12 +344,15 @@ final class PromptBuilder {
 			'command'     => 'بروزرسانی: ' . $url . ( $reasons ? "\nمشکلاتی که پایدارپرس پیدا کرده: " . implode( '، ', $reasons ) : '' ),
 			'task'        => $task,
 			'subject'     => $title . ' ' . $seo['focus_keyword'],
-			'category_id' => (int) ( wp_get_post_categories( $post->ID )[0] ?? 0 ),
+			'category_id' => $cat_id,
 			'exclude'     => array( $post->ID ),
-			'rules'       => self::rules_article() . "\n" . self::rules_rewrite(),
+			'rules'       => self::rules_article( $max_tags ) . "\n" . self::rules_rewrite( '' !== $tag_tax, $max_tags ),
 			'output'      => self::output( 'rewrite', array( 'url' => $url, 'product' => $is_product ) ),
 			'with_images' => ! $is_product,
-			'with_tags'   => ! $is_product,
+			'with_tags'   => '' !== $tag_tax,
+			'tag_taxonomy' => '' !== $tag_tax ? $tag_tax : 'post_tag',
+			'no_categories' => $is_product,
+			'product_category' => $is_product ? self::product_category_text( $post->ID ) : '',
 			'extra'       => $extra,
 			'with_gsc'    => true,
 			'object_id'   => $post->ID,
@@ -538,7 +551,7 @@ final class PromptBuilder {
 		}
 		$kind  = 'product' === get_post_type( $ids[0] ) ? 'product' : 'post';
 		$label = 'product' === $kind ? 'محصول' : 'مقاله';
-		$max   = \PaydarWP\PaydarPress\Profile\TaxonomyMap::MAX_TAGS;
+		$max   = \PaydarWP\PaydarPress\Profile\TaxonomyMap::max_tags( $kind );
 
 		$task = 'Choose better categories and tags for each existing ' . ( 'product' === $kind ? 'product' : 'article' ) . " listed below. Read its title, headings and beginning, then:\n"
 			. "- add_categories: categories from the CATEGORIES list (exact names) that clearly fit its main subject and are missing. Usually 0 or 1; never more than 2. Use the «covers» notes to decide.\n"
@@ -603,7 +616,7 @@ final class PromptBuilder {
 					'no_found_rows'  => true,
 				)
 			);
-			$lines[] = '- [category #' . $c['id'] . '] ' . $c['name'] . ' | ' . $c['count'] . ' posts | importance ' . $c['importance'] . ' | Google impressions ' . $c['impressions']
+			$lines[] = '- [category #' . $c['id'] . '] ' . $c['name'] . ' | ' . $c['count'] . ' posts | role ' . self::role_word( $c['importance'] ) . ' | Google impressions ' . $c['impressions']
 				. ( $titles ? "\n  sample titles: " . implode( ' / ', array_map( array( self::class, 'title' ), $titles ) ) : '' );
 		}
 		if ( \PaydarWP\PaydarPress\Strategy\ShopStrategy::active() ) {
@@ -679,7 +692,8 @@ final class PromptBuilder {
 	/**
 	 * Rules for writing an article (condensed from ContentMaster sections 8.1–8.6 and 6.5).
 	 */
-	private static function rules_article(): string {
+	private static function rules_article( int $max_tags = 0 ): string {
+		$max_tags = $max_tags > 0 ? $max_tags : \PaydarWP\PaydarPress\Profile\TaxonomyMap::MAX_TAGS;
 		$max = KeyPageLinks::MAX_PER_ARTICLE;
 
 		return implode(
@@ -697,7 +711,7 @@ final class PromptBuilder {
 				'- HTML: clean WordPress HTML only: <h2>, <h3>, <p>, <ul>, <ol>, <table> when useful, <a href>, <strong> sparingly. No <h1>, CSS, scripts or Markdown. Optional boxes: <div class="tip-box">, <div class="note-box">, <div class="mistake-box">, <div class="example-box">.',
 				'- FAQ: 3–6 real follow-up questions go ONLY in `faq` (short, direct answers, plain text). Do NOT write a FAQ section inside `html`; the plugin adds it at the end of the article as an accordion with structured data.',
 				'- SEO: title ≤ 60 characters, meta description ≤ 155 characters, ' . ( 'persian' === \PaydarWP\PaydarPress\Core\Settings::get( 'policy.slug_style', 'english' ) ? 'slug: leave empty (the site uses Persian addresses from the title)' : 'slug: short English, 3–5 words, lowercase with hyphens, based on the search intent (not a translation of the whole title)' ) . ', tags by the TAGS rule.',
-				'- TAGS: 1–' . \PaydarWP\PaydarPress\Profile\TaxonomyMap::MAX_TAGS . ' tags (never more than ' . \PaydarWP\PaydarPress\Profile\TaxonomyMap::MAX_TAGS . '), each one a real topic of this article, chosen from the TAGS list (exact names). Only if no listed tag fits, you may add at most ONE new tag: a general, reusable term people actually search for (not a sentence, not the article title, not a synonym or plural of a listed tag or category). Never use a category name as a tag.',
+				'- TAGS: 1–' . $max_tags . ' tags (never more than ' . $max_tags . '), each one a real topic of this article, chosen from the TAGS list (exact names). Only if no listed tag fits, you may add at most ONE new tag: a general, reusable term people actually search for (not a sentence, not the article title, not a synonym or plural of a listed tag or category). Never use a category name as a tag.',
 				'- ' . \PaydarWP\PaydarPress\Images\InlinePlan::prompt_rule() . ' Each with `after_heading` (the exact H2/H3 text it follows), an English `prompt` in the VISUAL STYLE, `alt` in the site language and `why` (one line).',
 				'- ' . self::alt_rules(),
 				'- reverse_links: 2–3 EXISTING CONTENT items that should link to this new article, with an anchor and the sentence where it fits.',
@@ -707,24 +721,63 @@ final class PromptBuilder {
 	}
 
 	/**
+	 * Alt text examples per industry (vague → specific), so the example matches the site.
+	 */
+	private const ALT_EXAMPLES = array(
+		'ecommerce-retail'      => array( 'کتاب', 'جلد کتاب داستان کودک روی قفسه کتابخانه اتاق کودک' ),
+		'product-manufacturing' => array( 'جاکفشی', 'جاکفشی آینه‌دار سفید کنار در ورودی آپارتمان' ),
+		'b2b-industrial'        => array( 'دستگاه', 'دستگاه پرس هیدرولیک در خط تولید کارخانه قطعات خودرو' ),
+		'legal'                 => array( 'قرارداد', 'امضای قرارداد اجاره توسط مستأجر و موجر در دفتر املاک' ),
+		'medical-health'        => array( 'دندان', 'معاینه دندان کودک روی صندلی دندان‌پزشکی' ),
+		'beauty-wellness'       => array( 'مو', 'رنگ کردن موی بلند با تکنیک بالیاژ در سالن زیبایی' ),
+		'finance-insurance'     => array( 'فرم', 'تکمیل فرم درخواست بیمه درمان تکمیلی برای خانواده' ),
+		'real-estate'           => array( 'آپارتمان', 'نمای پذیرایی آپارتمان ۹۰ متری با پنجره رو به حیاط' ),
+		'construction-home'     => array( 'کاشی', 'نصب کاشی دیواری حمام با تراز لیزری' ),
+		'local-services'        => array( 'تعمیر', 'تعویض لوله شیر آب زیر سینک آشپزخانه توسط لوله‌کش' ),
+		'service-directory'     => array( 'نقشه', 'نقشه محل شعبه‌های فروشنده در شهرک صنعتی' ),
+		'education'             => array( 'کلاس', 'دانش‌آموزان در حال حل تمرین ریاضی پای تخته کلاس' ),
+		'language-learning'     => array( 'کتاب', 'زبان‌آموز در حال تمرین مکالمه انگلیسی با معلم آنلاین' ),
+		'technology-software'   => array( 'نرم‌افزار', 'صفحه گزارش فروش ماهانه در داشبورد نرم‌افزار حسابداری' ),
+		'tourism-travel'        => array( 'هتل', 'نمای استخر هتل ساحلی در کیش هنگام غروب' ),
+		'food-restaurant'       => array( 'غذا', 'بشقاب کباب کوبیده با برنج زعفرانی و گوجه کبابی' ),
+		'automotive'            => array( 'ماشین', 'تعویض روغن موتور خودرو روی جک در تعمیرگاه' ),
+		'media-blog'            => array( 'لپ‌تاپ', 'نویسنده در حال ویرایش مقاله روی لپ‌تاپ در کافه' ),
+	);
+
+	/**
+	 * «not X but Y» example in the site's own field.
+	 */
+	private static function alt_example(): string {
+		$module = (string) \PaydarWP\PaydarPress\Profile\ProfileRepository::value( 'industry_module' );
+		$pair   = self::ALT_EXAMPLES[ $module ] ?? null;
+		if ( null === $pair ) {
+			// Unknown field: an everyday household scene that cannot be mistaken for the site's topic.
+			$pair = array( 'میز', 'میز تحریر چوبی کنار پنجره در اتاق کار خانگی' );
+		}
+		return 'e.g. not «' . $pair[0] . '» but «' . $pair[1] . '»';
+	}
+
+	/**
 	 * Alt text rule shared by articles and the alt task.
 	 */
 	public static function alt_rules(): string {
-		return 'ALT TEXT (every image): written in the site language for THIS image in THIS place. Describe what the image actually shows, in the context of the section it sits in: use the nearest heading and the sentences right before and after it to say what the picture means to the reader there (e.g. not «قرارداد» but «امضای قرارداد اجاره توسط مستأجر و موجر در دفتر املاک»). 5–15 words, at most 125 characters, one plain sentence without a final period. Mention the section\'s topic naturally; use the article\'s focus keyword in at most ONE image of the article and only if it truly describes the picture. Never start with «تصویر», «عکس» or «image of», never use the file name, never repeat the same alt for two images, no keyword lists, no promotional words.';
+		return 'ALT TEXT (every image): written in the site language for THIS image in THIS place. Describe what the image actually shows, in the context of the section it sits in: use the nearest heading and the sentences right before and after it to say what the picture means to the reader there (' . self::alt_example() . '; the example only shows the form — never use its subject). 5–15 words, at most 125 characters, one plain sentence without a final period. Mention the section\'s topic naturally; use the article\'s focus keyword in at most ONE image of the article and only if it truly describes the picture. Never start with «تصویر», «عکس» or «image of», never use the file name, never repeat the same alt for two images, no keyword lists, no promotional words.';
 	}
 
 	/**
 	 * Extra rules for rewrites.
 	 */
-	private static function rules_rewrite(): string {
+	private static function rules_rewrite( bool $tags = false, int $max = 5 ): string {
 		return implode(
 			"\n",
-			array(
+			array_filter( array(
+				$tags ? "- Tags of a rewrite: `tags` = the full list the item should have afterwards (current tags that still fit + missing ones from the TAGS list, exact names; at most {$max}). List in `tags_remove` the current tags that do not fit, each with a short reason in the site language: [{\"name\": \"\", \"reason\": \"\"}]. Never remove a tag that describes the item. An empty `tags` list means no change." : '',
+				'- Address: keep the current slug when it is marked GOOD; never invent a new address for a good one.',
 				'- This is a REWRITE: keep the URL and the main search intent; keep correct facts, useful examples and existing good internal links; remove outdated years/figures unless still true.',
 				'- Do not count existing links to key pages as extra: the whole new content must respect the key-page limit.',
 				'- `reverse_links` are optional for a rewrite.',
 				'- Images: keep every existing <img> of the current content that still fits (same src) in its section, and fix its alt by the ALT TEXT rule. Count existing images toward the inline image number; only add `inline_images` for what is still missing, and if there are already more images than the rule allows, keep the most useful ones.',
-			)
+			) )
 		);
 	}
 
@@ -761,8 +814,9 @@ final class PromptBuilder {
 			case 'article':
 				return $head . "with \"articles\": [ {$article} ] and optionally \"notes\": \"\".";
 			case 'rewrite':
-				return $head . 'with "articles": [ ' . str_replace( '{"title"', '{"rewrite_of": "' . $ctx['url'] . '", "title"', $article ) . ' ] and optionally "notes": "<what changed, in the site language>".'
-					. ( empty( $ctx['product'] ) ? '' : ' For a product, `html` is the full product description and `excerpt` is the new short description; leave category and tags empty.' );
+				$rw = preg_replace( '/^\{"title"/', '{"rewrite_of": "' . $ctx['url'] . '", "title"', str_replace( '"tags": [],', '"tags": [], "tags_remove": [{"name": "", "reason": ""}],', $article ), 1 );
+				return $head . 'with "articles": [ ' . $rw . ' ] and optionally "notes": "<what changed, in the site language>".'
+					. ( empty( $ctx['product'] ) ? '' : ' For a product, `html` is the full product description and `excerpt` is the new short description; leave `category` empty (product categories do not change).' );
 			case 'term':
 				return $head . 'with "term_descriptions": [{"taxonomy": "' . $ctx['taxonomy'] . '", "term_id": ' . (int) $ctx['term_id'] . ', "name": ' . wp_json_encode( $ctx['name'], JSON_UNESCAPED_UNICODE ) . ', "description": "<HTML>"}]';
 			case 'structure':
@@ -796,7 +850,12 @@ final class PromptBuilder {
 		if ( '' !== $cta ) {
 			$parts[] = "## CTA OPTIONS\n{$cta}";
 		}
-		$parts[] = "## CATEGORIES\n" . self::categories_text();
+		if ( empty( $spec['no_categories'] ) ) {
+			$parts[] = "## CATEGORIES\n" . self::categories_text();
+		}
+		if ( ! empty( $spec['product_category'] ) ) {
+			$parts[] = "## PRODUCT CATEGORY (this product's category page: the most useful internal link from its description)\n" . $spec['product_category'];
+		}
 		$shop    = \PaydarWP\PaydarPress\Strategy\ShopStrategy::info();
 		if ( ! empty( $shop['active'] ) ) {
 			$parts[] = "## SHOP STRATEGY\nFocus: {$shop['focus']} — " . $shop['reason'] . ' ' . $shop['advice'];
@@ -808,7 +867,7 @@ final class PromptBuilder {
 			$parts[] = self::images_text( (int) ( $spec['category_id'] ?? 0 ) );
 		}
 		if ( ! empty( $spec['with_tags'] ) ) {
-			$tags = \PaydarWP\PaydarPress\Profile\TaxonomyMap::allowed_tags( (int) ( $spec['category_id'] ?? 0 ), 40 );
+			$tags = \PaydarWP\PaydarPress\Profile\TaxonomyMap::allowed_tags( (int) ( $spec['category_id'] ?? 0 ), 40, (string) ( $spec['tag_taxonomy'] ?? 'post_tag' ) );
 			if ( $tags ) {
 				$parts[] = "## TAGS (existing tags you may use; the most relevant first)\n" . implode( "\n", array_map( static fn( $t ) => '- ' . $t['name'] . ( '' !== $t['scope'] ? ' — ' . $t['scope'] : '' ), $tags ) );
 			}
@@ -872,12 +931,12 @@ final class PromptBuilder {
 		$stats = KeyPageLinks::stats();
 		$lines = array();
 		foreach ( KeyPageLinks::pages() as $id => $page ) {
-			if ( 'publish' !== get_post_status( $id ) ) {
+			if ( ! KeyPageLinks::is_live( (int) $id ) ) {
 				continue;
 			}
 			$cats = array_filter( array_map( static fn( $c ) => ( $t = get_term( (int) $c, 'category' ) ) instanceof WP_Term ? $t->name : '', (array) ( $page['link_categories'] ?? array() ) ) );
 			$st   = $stats[ $id ] ?? null;
-			$lines[] = '- ' . self::title( $id ) . ' | ' . self::url( $id )
+			$lines[] = '- ' . ( $id < 0 ? KeyPageLinks::title_of( (int) $id ) : self::title( $id ) ) . ' | ' . ( $id < 0 ? rawurldecode( KeyPageLinks::url_of( (int) $id ) ) : self::url( $id ) )
 				. ' | type: ' . \PaydarWP\PaydarPress\Strategy\Structure::type_of( (int) $id, $page )
 				. ( ! empty( $page['main_keyword'] ) ? ' | main keyword: ' . $page['main_keyword'] . ' (never use it as the main keyword of an article; articles support this page)' : '' )
 				. ' | priority: ' . ( $page['priority'] ?? 'normal' )
@@ -902,12 +961,38 @@ final class PromptBuilder {
 	}
 
 	/**
+	 * The product's categories as link targets (name | URL | products).
+	 *
+	 * @param int $post_id Product.
+	 */
+	private static function product_category_text( int $post_id ): string {
+		$terms = taxonomy_exists( 'product_cat' ) ? wp_get_post_terms( $post_id, 'product_cat' ) : array();
+		$lines = array();
+		foreach ( is_array( $terms ) ? array_slice( $terms, 0, 3 ) : array() as $t ) {
+			$link = get_term_link( $t );
+			if ( is_string( $link ) ) {
+				$lines[] = '- ' . html_entity_decode( $t->name, ENT_QUOTES, 'UTF-8' ) . ' | ' . rawurldecode( $link ) . ' | ' . (int) $t->count . ' products';
+			}
+		}
+		return implode( "\n", $lines );
+	}
+
+	/**
+	 * Role of a category in the taxonomy map, in prompt words.
+	 *
+	 * @param string $role high|normal|low.
+	 */
+	private static function role_word( string $role ): string {
+		return array( 'high' => 'main', 'low' => 'minor' )[ $role ] ?? 'normal';
+	}
+
+	/**
 	 * Categories with item counts and scope.
 	 */
 	private static function categories_text(): string {
 		$lines = array();
 		foreach ( \PaydarWP\PaydarPress\Strategy\Structure::categories() as $c ) {
-			$lines[] = '- ' . $c['name'] . ' (' . $c['count'] . ' posts, target ' . $c['target'] . ', importance ' . $c['importance'] . ( $c['gap'] > 0 ? ', needs ' . $c['gap'] . ' more' : ', target reached' ) . ')' . ( '' !== $c['scope'] ? ' — covers: ' . $c['scope'] : '' );
+			$lines[] = '- ' . $c['name'] . ' (' . $c['count'] . ' posts, target ' . $c['target'] . ', role ' . self::role_word( $c['importance'] ) . ( $c['gap'] > 0 ? ', needs ' . $c['gap'] . ' more' : ', target reached' ) . ')' . ( '' !== $c['scope'] ? ' — covers: ' . $c['scope'] : '' );
 		}
 		$closed = array();
 		foreach ( \PaydarWP\PaydarPress\Profile\TaxonomyMap::notes() as $n ) {
@@ -918,7 +1003,7 @@ final class PromptBuilder {
 		if ( $closed ) {
 			$lines[] = '(Do NOT put new content in: ' . implode( '، ', $closed ) . ' — navigation-only or retired.)';
 		}
-		return $lines ? implode( "\n", $lines ) . "\n(Prefer categories that need more posts, important ones first; for categories that reached their target, propose only clearly missing intents.)" : '- (no categories yet)';
+		return $lines ? implode( "\n", $lines ) . "\n(Prefer categories that need more posts, main ones first; for categories that reached their target, propose only clearly missing intents.)" : '- (no categories yet)';
 	}
 
 	/**
@@ -927,6 +1012,15 @@ final class PromptBuilder {
 	 * @param string $subject     Subject text.
 	 * @param int    $category_id Category.
 	 * @param int[]  $exclude     Ids to leave out.
+	 */
+	private const RELATED_PRODUCTS = 3;
+
+	/**
+	 * Related content lines.
+	 *
+	 * @param string $subject     Subject words.
+	 * @param int    $category_id Category.
+	 * @param array  $exclude     IDs to skip.
 	 */
 	private static function related_text( string $subject, int $category_id, array $exclude ): string {
 		global $wpdb;
@@ -959,7 +1053,20 @@ final class PromptBuilder {
 		// Matching items first; unrelated ones only as a short sample (newest), so the prompt
 		// stays focused and small on large sites.
 		$matching = array_values( array_filter( $scored, static fn( $s ) => $s[0] > 0 ) );
-		$filler   = array_slice( array_values( array_filter( $scored, static fn( $s ) => 0 === $s[0] ) ), 0, max( 0, 15 - count( $matching ) ) );
+		// Near-identical products (model R1…R21) crowd out guides: at most RELATED_PRODUCTS.
+		$products = 0;
+		$matching = array_values(
+			array_filter(
+				$matching,
+				static function ( $s ) use ( &$products ) {
+					if ( 'product' !== $s[2]['object_type'] ) {
+						return true;
+					}
+					return ++$products <= self::RELATED_PRODUCTS;
+				}
+			)
+		);
+		$filler   = array_slice( array_values( array_filter( $scored, static fn( $s ) => 0 === $s[0] && 'product' !== $s[2]['object_type'] ) ), 0, max( 0, 15 - count( $matching ) ) );
 		$picked   = array_slice( array_merge( $matching, $filler ), 0, self::RELATED_LIMIT );
 
 		$lines = array();

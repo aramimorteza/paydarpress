@@ -341,6 +341,16 @@ final class ImportParser {
 			}
 		}
 
+		// Rewrites: tags the owner may remove, each with a reason.
+		$remove = array();
+		foreach ( array_slice( is_array( $raw['tags_remove'] ?? null ) ? $raw['tags_remove'] : array(), 0, 30 ) as $item ) {
+			$name   = self::str( is_array( $item ) ? (string) ( $item['name'] ?? $item['tag'] ?? '' ) : ( is_scalar( $item ) ? (string) $item : '' ), 100 );
+			$reason = is_array( $item ) ? self::str( (string) ( $item['reason'] ?? '' ), 200 ) : '';
+			if ( '' !== $name ) {
+				$remove[ $name ] = $reason;
+			}
+		}
+
 		// Strip a leading <h1> repeating the title (WordPress shows the title itself).
 		$html = (string) preg_replace( '#^\s*<h1[^>]*>.*?</h1>\s*#isu', '', $html );
 
@@ -352,6 +362,7 @@ final class ImportParser {
 			'category'      => self::str( $raw['category'] ?? '', 200 ),
 			'category_id'   => self::int( $raw['category_id'] ?? null ),
 			'tags'          => array_values( array_unique( $tags ) ),
+			'tags_remove'   => $remove,
 			'seo'           => array(
 				'title'            => self::str( $seo['title'] ?? '', 255 ),
 				'meta_description' => self::str( $seo['meta_description'] ?? $seo['description'] ?? '', 500 ),
