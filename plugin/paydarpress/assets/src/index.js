@@ -1,3 +1,4 @@
+import './publicPath';
 import { createRoot } from '@wordpress/element';
 import App from './App';
 import './style.scss';

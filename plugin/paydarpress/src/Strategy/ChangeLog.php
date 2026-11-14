@@ -312,11 +312,11 @@ final class ChangeLog {
 		$rows = self::report( $f + array( 'limit' => 1000 ) )['items'];
 		$out  = fopen( 'php://temp', 'r+' );
 		fwrite( $out, "\xEF\xBB\xBF" );
-		fputcsv( $out, array( 'تاریخ', 'نوع تغییر', 'عنوان', 'آدرس', 'شرح', 'دلیل', 'رتبه قبل', 'کلیک قبل', 'نمایش قبل', 'رتبه فعلی', 'کلیک فعلی', 'نمایش فعلی', 'نتیجه', 'تغییرات هم‌زمان' ) );
+		self::csv_row( $out, array( 'تاریخ', 'نوع تغییر', 'عنوان', 'آدرس', 'شرح', 'دلیل', 'رتبه قبل', 'کلیک قبل', 'نمایش قبل', 'رتبه فعلی', 'کلیک فعلی', 'نمایش فعلی', 'نتیجه', 'تغییرات هم‌زمان' ) );
 		foreach ( $rows as $r ) {
 			$b = $r['before'] ?? array();
 			$n = $r['now'] ?? array();
-			fputcsv(
+			self::csv_row(
 				$out,
 				array(
 					substr( $r['created_at'], 0, 10 ),
@@ -340,6 +340,24 @@ final class ChangeLog {
 		$csv = (string) stream_get_contents( $out );
 		fclose( $out );
 		return $csv;
+	}
+
+	/**
+	 * One CSV row. Cells that a spreadsheet would run as a formula (=, +, -, @ at the start,
+	 * e.g. in a post title) get a leading apostrophe so they open as plain text.
+	 *
+	 * @param resource $out   Stream.
+	 * @param array    $cells Cells.
+	 */
+	private static function csv_row( $out, array $cells ): void {
+		$safe = array_map(
+			static function ( $v ) {
+				$v = (string) $v;
+				return ( '' !== $v && ! is_numeric( $v ) && in_array( $v[0], array( '=', '+', '-', '@', "\t", "\r" ), true ) ) ? "'" . $v : $v;
+			},
+			$cells
+		);
+		fputcsv( $out, $safe, ',', '"', '' );
 	}
 
 	/**

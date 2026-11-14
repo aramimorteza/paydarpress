@@ -10,7 +10,7 @@ npm run build --silent
 mkdir -p "$ROOT/dist"
 STAGE="$(mktemp -d)"
 mkdir "$STAGE/paydarpress"
-tar --exclude=node_modules --exclude=assets/src --exclude=tests --exclude=package.json --exclude=package-lock.json --exclude=composer.json --exclude=composer.lock -cf - . | tar -xf - -C "$STAGE/paydarpress"
+tar --exclude=node_modules --exclude=assets/src --exclude=tests --exclude=package.json --exclude=package-lock.json --exclude=composer.json --exclude=composer.lock --exclude=webpack.config.js -cf - . | tar -xf - -C "$STAGE/paydarpress"
 rm -f "$ROOT/dist/paydarpress-$VERSION.zip"
 (cd "$STAGE" && zip -qr "$ROOT/dist/paydarpress-$VERSION.zip" paydarpress)
 rm -rf "$STAGE"

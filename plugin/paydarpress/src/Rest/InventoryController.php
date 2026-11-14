@@ -53,7 +53,7 @@ final class InventoryController {
 	 */
 	public function routes(): void {
 		register_rest_route(
-			UserPrefsController::NAMESPACE,
+			UserPrefsController::REST_NAMESPACE,
 			'/inventory',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
@@ -103,7 +103,7 @@ final class InventoryController {
 		);
 
 		register_rest_route(
-			UserPrefsController::NAMESPACE,
+			UserPrefsController::REST_NAMESPACE,
 			'/inventory/(?P<id>\d+)',
 			array(
 				'methods'             => WP_REST_Server::READABLE,

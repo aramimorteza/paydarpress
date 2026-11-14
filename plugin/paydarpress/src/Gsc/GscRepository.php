@@ -26,24 +26,41 @@ final class GscRepository {
 	/** Days after which the owner is reminded to upload fresh exports (weekly routine). */
 	public const REMIND_DAYS = 7;
 
+	/** Latest import of this request: false = not read yet. @var array|null|false */
+	private static $latest = false;
+
 	/**
 	 * Latest completed (not cleared) Search Console import with decoded summary.
 	 */
 	public static function latest_import(): ?array {
 		global $wpdb;
 
+		// Asked several times per screen (dashboard widget, badges): one query per request.
+		if ( false !== self::$latest ) {
+			return self::$latest;
+		}
+
 		$table = Schema::table( 'imports' );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$row = $wpdb->get_row( "SELECT * FROM {$table} WHERE type = 'gsc' AND status = 'completed' ORDER BY id DESC LIMIT 1", ARRAY_A );
 
 		if ( ! is_array( $row ) ) {
+			self::$latest = null;
 			return null;
 		}
 
 		$summary        = json_decode( (string) $row['summary'], true );
 		$row['summary'] = is_array( $summary ) ? $summary : array();
+		self::$latest   = $row;
 
 		return $row;
+	}
+
+	/**
+	 * Forgets the cached latest import (after an import or clear in the same request).
+	 */
+	public static function forget(): void {
+		self::$latest = false;
 	}
 
 	/**
@@ -189,6 +206,7 @@ final class GscRepository {
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$wpdb->query( 'DELETE FROM ' . Schema::table( 'gsc' ) );
 		$wpdb->query( 'UPDATE ' . Schema::table( 'imports' ) . " SET status = 'cleared' WHERE type = 'gsc' AND status = 'completed'" );
+		self::forget();
 		// phpcs:enable
 	}
 

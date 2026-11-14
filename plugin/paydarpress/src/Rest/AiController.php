@@ -41,7 +41,7 @@ final class AiController {
 	 * Route definitions.
 	 */
 	public function routes(): void {
-		$ns     = UserPrefsController::NAMESPACE;
+		$ns     = UserPrefsController::REST_NAMESPACE;
 		$manage = static fn() => current_user_can( Capabilities::MANAGE );
 
 		register_rest_route(

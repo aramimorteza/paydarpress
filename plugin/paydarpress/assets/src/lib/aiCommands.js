@@ -170,19 +170,6 @@ export function topicArticleCommand( topic ) {
 }
 
 /**
- * Decodes a URL for display without throwing on malformed input.
- *
- * @param {string} url URL.
- */
-function safeDecode( url ) {
-	try {
-		return decodeURI( url );
-	} catch ( e ) {
-		return url;
-	}
-}
-
-/**
  * Review of the category structure (suggestions only).
  */
 export function structureCommand() {

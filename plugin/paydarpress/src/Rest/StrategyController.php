@@ -27,7 +27,7 @@ final class StrategyController {
 	 * Routes.
 	 */
 	public function routes(): void {
-		$ns     = UserPrefsController::NAMESPACE;
+		$ns     = UserPrefsController::REST_NAMESPACE;
 		$view   = static fn() => current_user_can( Capabilities::VIEW );
 		$manage = static fn() => current_user_can( Capabilities::MANAGE );
 

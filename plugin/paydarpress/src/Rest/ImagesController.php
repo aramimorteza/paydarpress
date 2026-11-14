@@ -28,7 +28,7 @@ final class ImagesController {
 	 * Routes.
 	 */
 	public function routes(): void {
-		$ns     = UserPrefsController::NAMESPACE;
+		$ns     = UserPrefsController::REST_NAMESPACE;
 		$manage = static fn() => current_user_can( Capabilities::MANAGE );
 		register_rest_route( $ns, '/images', array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'get' ), 'permission_callback' => static fn() => current_user_can( Capabilities::VIEW ) ) );
 		register_rest_route(

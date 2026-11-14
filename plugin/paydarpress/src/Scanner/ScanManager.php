@@ -337,6 +337,12 @@ final class ScanManager {
 	 * Schedules the daily maintenance action once.
 	 */
 	public function ensure_daily(): void {
+		// Checked at most twice a day, not on every admin screen.
+		// A tiny autoloaded timestamp: no query at all on most admin screens.
+		if ( (int) get_option( 'paydarpress_daily_check', 0 ) > time() - 12 * HOUR_IN_SECONDS ) {
+			return;
+		}
+		update_option( 'paydarpress_daily_check', time(), true );
 		if ( function_exists( 'as_has_scheduled_action' ) && ! as_has_scheduled_action( self::ACTION_DAILY, array(), Queue::GROUP ) ) {
 			as_schedule_recurring_action( self::next_daily_time(), DAY_IN_SECONDS, self::ACTION_DAILY, array(), Queue::GROUP );
 		}
@@ -350,6 +356,7 @@ final class ScanManager {
 			return;
 		}
 		as_unschedule_all_actions( self::ACTION_DAILY, array(), Queue::GROUP );
+		delete_option( 'paydarpress_daily_check' );
 		as_schedule_recurring_action( self::next_daily_time(), DAY_IN_SECONDS, self::ACTION_DAILY, array(), Queue::GROUP );
 	}
 

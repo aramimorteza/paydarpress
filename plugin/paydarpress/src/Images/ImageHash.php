@@ -124,7 +124,6 @@ final class ImageHash {
 		}
 		$small = imagecreatetruecolor( 9, 8 );
 		imagecopyresampled( $small, $src, 0, 0, 0, 0, 9, 8, imagesx( $src ), imagesy( $src ) );
-		imagedestroy( $src );
 
 		$gray = array();
 		for ( $y = 0; $y < 8; $y++ ) {
@@ -133,7 +132,6 @@ final class ImageHash {
 				$gray[ $y ][ $x ] = ( ( $c >> 16 ) & 0xFF ) * 0.299 + ( ( $c >> 8 ) & 0xFF ) * 0.587 + ( $c & 0xFF ) * 0.114;
 			}
 		}
-		imagedestroy( $small );
 		return self::from_gray( $gray );
 	}
 

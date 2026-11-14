@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class ContentMasterController {
 
-	public const NAMESPACE = 'paydarpress/v1';
+	public const REST_NAMESPACE = 'paydarpress/v1';
 
 	/**
 	 * Routes.
@@ -51,7 +51,7 @@ final class ContentMasterController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/posts/(?P<id>\\d+)/reviewed',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -60,7 +60,7 @@ final class ContentMasterController {
 			)
 		);
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/rewrites/(?P<id>\d+)/apply',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -81,9 +81,9 @@ final class ContentMasterController {
 				},
 			)
 		);
-		register_rest_route( self::NAMESPACE, '/cm/preview', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'preview' ), 'permission_callback' => $manage ) );
+		register_rest_route( self::REST_NAMESPACE, '/cm/preview', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'preview' ), 'permission_callback' => $manage ) );
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/cm/commit',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -109,7 +109,7 @@ final class ContentMasterController {
 			)
 		);
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/topics',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
@@ -136,7 +136,7 @@ final class ContentMasterController {
 			)
 		);
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/topics/(?P<id>\d+)',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -151,7 +151,7 @@ final class ContentMasterController {
 				),
 			)
 		);
-		register_rest_route( self::NAMESPACE, '/topics/(?P<id>\d+)/delete', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'delete_topic' ), 'permission_callback' => $manage ) );
+		register_rest_route( self::REST_NAMESPACE, '/topics/(?P<id>\d+)/delete', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'delete_topic' ), 'permission_callback' => $manage ) );
 	}
 
 	/**

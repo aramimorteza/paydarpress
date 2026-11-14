@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class SettingsController {
 
-	public const NAMESPACE = 'paydarpress/v1';
+	public const REST_NAMESPACE = 'paydarpress/v1';
 
 	/** Activity filter groups → event prefixes. */
 	private const GROUPS = array( 'scan', 'finding', 'profile', 'export', 'import', 'links', 'settings' );
@@ -56,7 +56,7 @@ final class SettingsController {
 		$view   = static fn() => current_user_can( Capabilities::VIEW );
 
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/structure',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
@@ -72,7 +72,7 @@ final class SettingsController {
 			)
 		);
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/structure/plan',
 			array(
 				array(
@@ -99,9 +99,9 @@ final class SettingsController {
 				),
 			)
 		);
-		register_rest_route( self::NAMESPACE, '/policy/stage', array( 'methods' => WP_REST_Server::READABLE, 'callback' => static fn() => new WP_REST_Response( \PaydarWP\PaydarPress\Policy\SiteStage::info() ), 'permission_callback' => $view ) );
+		register_rest_route( self::REST_NAMESPACE, '/policy/stage', array( 'methods' => WP_REST_Server::READABLE, 'callback' => static fn() => new WP_REST_Response( \PaydarWP\PaydarPress\Policy\SiteStage::info() ), 'permission_callback' => $view ) );
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/policy/stage/apply',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -114,7 +114,7 @@ final class SettingsController {
 			)
 		);
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/badges',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
@@ -124,7 +124,7 @@ final class SettingsController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/settings',
 			array(
 				array(
@@ -147,7 +147,7 @@ final class SettingsController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/activity',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
@@ -175,7 +175,7 @@ final class SettingsController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/queue',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
@@ -185,7 +185,7 @@ final class SettingsController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/queue/run',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -195,7 +195,7 @@ final class SettingsController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/system',
 			array(
 				'methods'             => WP_REST_Server::READABLE,

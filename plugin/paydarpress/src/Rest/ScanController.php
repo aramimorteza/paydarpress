@@ -50,7 +50,7 @@ final class ScanController {
 	 */
 	public function routes(): void {
 		register_rest_route(
-			UserPrefsController::NAMESPACE,
+			UserPrefsController::REST_NAMESPACE,
 			'/scan',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -60,7 +60,7 @@ final class ScanController {
 		);
 
 		register_rest_route(
-			UserPrefsController::NAMESPACE,
+			UserPrefsController::REST_NAMESPACE,
 			'/scan/cancel',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -70,7 +70,7 @@ final class ScanController {
 		);
 
 		register_rest_route(
-			UserPrefsController::NAMESPACE,
+			UserPrefsController::REST_NAMESPACE,
 			'/scan/status',
 			array(
 				'methods'             => WP_REST_Server::READABLE,

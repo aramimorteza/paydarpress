@@ -165,7 +165,7 @@ final class KeyPageAdvisor {
 		}
 
 		// Pages whose name says visitors act there.
-		foreach ( get_posts( array( 'post_type' => 'page', 'post_status' => 'publish', 'posts_per_page' => 200, 'fields' => 'ids' ) ) as $id ) {
+		foreach ( wp_list_pluck( get_posts( array( 'post_type' => 'page', 'post_status' => 'publish', 'posts_per_page' => 200, 'update_post_meta_cache' => false, 'update_post_term_cache' => false ) ), 'ID' ) as $id ) {
 			$text = PersianNormalizer::normalize( rawurldecode( (string) get_post_field( 'post_name', $id ) ) . ' ' . get_the_title( $id ) );
 			foreach ( self::ACTION_WORDS as $w ) {
 				if ( false !== mb_strpos( $text, $w ) ) {
@@ -188,10 +188,13 @@ final class KeyPageAdvisor {
 
 		// Pages with the most Google impressions (not articles).
 		$metrics = \PaydarWP\PaydarPress\Gsc\GscRepository::page_metrics();
+		$metrics = array_filter( $metrics, static fn( $m ) => $m['impressions'] >= 100 );
 		uasort( $metrics, static fn( $a, $b ) => $b['impressions'] <=> $a['impressions'] );
+		// One query for all candidates instead of one per page.
+		_prime_post_caches( array_map( 'intval', array_keys( $metrics ) ), false, false );
 		$n = 0;
 		foreach ( $metrics as $id => $m ) {
-			if ( 'page' === get_post_type( (int) $id ) && $m['impressions'] >= 100 ) {
+			if ( 'page' === get_post_type( (int) $id ) ) {
 				$reason( (int) $id, sprintf( '%s نمایش در گوگل', PersianNormalizer::fa_number( (int) $m['impressions'] ) ) );
 				if ( ++$n >= 3 ) {
 					break;

@@ -187,6 +187,7 @@ final class GscImporter {
 			),
 			array( 'id' => $import_id )
 		);
+		GscRepository::forget();
 
 		Activity::log(
 			'import.gsc',

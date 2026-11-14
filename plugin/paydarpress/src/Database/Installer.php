@@ -53,6 +53,8 @@ final class Installer {
 			as_unschedule_all_actions( '', array(), 'paydarpress' );
 		}
 		wp_clear_scheduled_hook( 'paydarpress_license_check' );
+		// Reactivation schedules the daily maintenance again right away.
+		delete_option( 'paydarpress_daily_check' );
 	}
 
 	/**
@@ -166,6 +168,7 @@ final class Installer {
 			'paydarpress_progress',
 			'paydarpress_compete_skip',
 			'paydarpress_linkprogram_run',
+			'paydarpress_daily_check',
 		);
 
 		foreach ( $options as $option ) {

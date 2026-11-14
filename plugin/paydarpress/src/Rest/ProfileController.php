@@ -66,7 +66,7 @@ final class ProfileController {
 	 * Route definitions.
 	 */
 	public function routes(): void {
-		$ns     = UserPrefsController::NAMESPACE;
+		$ns     = UserPrefsController::REST_NAMESPACE;
 		$view   = static fn() => current_user_can( Capabilities::VIEW );
 		$manage = static fn() => current_user_can( Capabilities::MANAGE );
 		$export = static fn() => current_user_can( Capabilities::EXPORT );

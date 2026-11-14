@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class UserPrefsController {
 
-	public const NAMESPACE = 'paydarpress/v1';
+	public const REST_NAMESPACE = 'paydarpress/v1';
 
 	private const HELP_META = 'paydarpress_dismissed_help';
 	private const MODE_META = 'paydarpress_ui_mode';
@@ -43,7 +43,7 @@ final class UserPrefsController {
 	 */
 	public function routes(): void {
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/help/dismiss',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -60,7 +60,7 @@ final class UserPrefsController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/help/reset',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -70,7 +70,7 @@ final class UserPrefsController {
 		);
 
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/ui-mode',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,

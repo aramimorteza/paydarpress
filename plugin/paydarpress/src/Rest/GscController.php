@@ -37,7 +37,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class GscController {
 
-	public const NAMESPACE = 'paydarpress/v1';
+	public const REST_NAMESPACE = 'paydarpress/v1';
 
 	/** Tabs backed by audit findings. */
 	private const FINDING_TABS = array(
@@ -67,10 +67,10 @@ final class GscController {
 			),
 		);
 
-		register_rest_route( self::NAMESPACE, '/gsc', array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'summary' ), 'permission_callback' => $view ) );
-		register_rest_route( self::NAMESPACE, '/gsc/insights', array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'insights' ), 'permission_callback' => $view ) );
+		register_rest_route( self::REST_NAMESPACE, '/gsc', array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'summary' ), 'permission_callback' => $view ) );
+		register_rest_route( self::REST_NAMESPACE, '/gsc/insights', array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'insights' ), 'permission_callback' => $view ) );
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/gsc/gaps',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
@@ -86,7 +86,7 @@ final class GscController {
 			)
 		);
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/gsc/gaps/topic',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -100,12 +100,12 @@ final class GscController {
 				),
 			)
 		);
-		register_rest_route( self::NAMESPACE, '/gsc/import', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'import' ), 'permission_callback' => $manage ) );
-		register_rest_route( self::NAMESPACE, '/gsc/notfound', array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'notfound' ), 'permission_callback' => $view ) );
-		register_rest_route( self::NAMESPACE, '/gsc/notfound/(?P<id>\\d+)/(?P<op>redirect|restore|ignore|reopen)', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'notfound_act' ), 'permission_callback' => $manage ) );
-		register_rest_route( self::NAMESPACE, '/gsc/clear', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'clear' ), 'permission_callback' => $manage ) );
+		register_rest_route( self::REST_NAMESPACE, '/gsc/import', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'import' ), 'permission_callback' => $manage ) );
+		register_rest_route( self::REST_NAMESPACE, '/gsc/notfound', array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'notfound' ), 'permission_callback' => $view ) );
+		register_rest_route( self::REST_NAMESPACE, '/gsc/notfound/(?P<id>\\d+)/(?P<op>redirect|restore|ignore|reopen)', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'notfound_act' ), 'permission_callback' => $manage ) );
+		register_rest_route( self::REST_NAMESPACE, '/gsc/clear', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'clear' ), 'permission_callback' => $manage ) );
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/gsc/pages',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
@@ -121,7 +121,7 @@ final class GscController {
 			)
 		);
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/gsc/queries',
 			array(
 				'methods'             => WP_REST_Server::READABLE,

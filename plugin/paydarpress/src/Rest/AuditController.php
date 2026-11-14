@@ -63,7 +63,7 @@ final class AuditController {
 	 * Route definitions.
 	 */
 	public function routes(): void {
-		$ns   = UserPrefsController::NAMESPACE;
+		$ns   = UserPrefsController::REST_NAMESPACE;
 		$view = static fn() => current_user_can( Capabilities::VIEW );
 
 		register_rest_route( $ns, '/dashboard', array( 'methods' => WP_REST_Server::READABLE, 'callback' => array( $this, 'dashboard' ), 'permission_callback' => $view ) );

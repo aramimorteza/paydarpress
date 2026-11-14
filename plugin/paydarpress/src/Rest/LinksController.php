@@ -34,7 +34,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class LinksController {
 
-	public const NAMESPACE = 'paydarpress/v1';
+	public const REST_NAMESPACE = 'paydarpress/v1';
 
 	/** @var LinkQueue */
 	private $queue;
@@ -56,7 +56,7 @@ final class LinksController {
 		$view   = static fn() => current_user_can( Capabilities::VIEW );
 
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/links',
 			array(
 				array(
@@ -103,9 +103,9 @@ final class LinksController {
 				),
 			)
 		);
-		register_rest_route( self::NAMESPACE, '/links/generate', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'generate' ), 'permission_callback' => $manage ) );
+		register_rest_route( self::REST_NAMESPACE, '/links/generate', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'generate' ), 'permission_callback' => $manage ) );
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/links/bulk',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -126,7 +126,7 @@ final class LinksController {
 			)
 		);
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/links/(?P<id>\d+)/(?P<action>apply|reject|undo|done|restore)',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -135,7 +135,7 @@ final class LinksController {
 			)
 		);
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/links/(?P<id>\d+)/anchor',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,

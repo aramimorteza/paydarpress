@@ -24,7 +24,7 @@ final class TasksController {
 	 * Routes.
 	 */
 	public function routes(): void {
-		$ns = UserPrefsController::NAMESPACE;
+		$ns = UserPrefsController::REST_NAMESPACE;
 		register_rest_route( $ns, '/tasks', array( 'methods' => WP_REST_Server::READABLE, 'callback' => static fn() => new WP_REST_Response( self::detailed( TaskBoard::board() ) ), 'permission_callback' => static fn() => current_user_can( Capabilities::VIEW ) ) );
 		register_rest_route(
 			$ns,

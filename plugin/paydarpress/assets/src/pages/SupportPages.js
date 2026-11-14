@@ -174,7 +174,10 @@ export function LicensePage() {
 	const [ busy, setBusy ] = useState( '' );
 
 	useEffect( () => {
-		get( '/license' ).then( setData ).catch( ( e ) => setError( errorMessage( e ) ) );
+		// Only site managers can read the license; others see a notice without a request.
+		if ( canManage() ) {
+			get( '/license' ).then( setData ).catch( ( e ) => setError( errorMessage( e ) ) );
+		}
 	}, [] );
 
 	const run = ( name, path, body, done ) => {

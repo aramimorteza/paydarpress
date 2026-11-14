@@ -1,25 +1,41 @@
-import { useEffect, useState } from '@wordpress/element';
+import { lazy, Suspense, useEffect, useState } from '@wordpress/element';
+import { Spinner } from '@wordpress/components';
 import Sidebar, { SectionTabs, useBadges } from './components/Sidebar';
-import Dashboard from './pages/Dashboard';
-import Welcome from './pages/Welcome';
-import ActivityPage from './pages/ActivityPage';
-import SettingsPage from './pages/SettingsPage';
-import GscPage from './pages/GscPage';
-import { ImportPage, TopicsPage } from './pages/ContentMasterPages';
-import LinksPage from './pages/LinksPage';
-import AutoPage from './pages/AutoPage';
-import TasksPage from './pages/TasksPage';
-import { ChangesPage, RedirectsPage } from './pages/ChangesPages';
-import NotFoundPage from './pages/NotFoundPage';
-import DecisionsPage from './pages/DecisionsPage';
-import BrokenPage from './pages/BrokenPage';
-import ProgressPage from './pages/ProgressPage';
-import { SupportPage, LicensePage } from './pages/SupportPages';
-import ClustersPage from './pages/ClustersPage';
-import Inventory from './pages/Inventory';
-import { WizardPage, ProfilePage, ExportPage } from './pages/ProfilePages';
-import { AuditPage, ImagesPage, OrphansPage, RefreshPage, TaxonomiesPage, VisibilityPage } from './pages/AuditPages';
 import { ROUTES } from './routes';
+
+/*
+ * Pages load on demand: the first screen downloads only the shell and its own page,
+ * every other page arrives as a separate chunk when it is opened.
+ */
+const Dashboard = lazy( () => import( /* webpackChunkName: "dashboard" */ './pages/Dashboard' ) );
+const Welcome = lazy( () => import( /* webpackChunkName: "welcome" */ './pages/Welcome' ) );
+const ActivityPage = lazy( () => import( /* webpackChunkName: "activity-page" */ './pages/ActivityPage' ) );
+const SettingsPage = lazy( () => import( /* webpackChunkName: "settings-page" */ './pages/SettingsPage' ) );
+const GscPage = lazy( () => import( /* webpackChunkName: "gsc-page" */ './pages/GscPage' ) );
+const ImportPage = lazy( () => import( /* webpackChunkName: "content-master-pages" */ './pages/ContentMasterPages' ).then( ( m ) => ( { default: m.ImportPage } ) ) );
+const TopicsPage = lazy( () => import( /* webpackChunkName: "content-master-pages" */ './pages/ContentMasterPages' ).then( ( m ) => ( { default: m.TopicsPage } ) ) );
+const LinksPage = lazy( () => import( /* webpackChunkName: "links-page" */ './pages/LinksPage' ) );
+const AutoPage = lazy( () => import( /* webpackChunkName: "auto-page" */ './pages/AutoPage' ) );
+const TasksPage = lazy( () => import( /* webpackChunkName: "tasks-page" */ './pages/TasksPage' ) );
+const ChangesPage = lazy( () => import( /* webpackChunkName: "changes-pages" */ './pages/ChangesPages' ).then( ( m ) => ( { default: m.ChangesPage } ) ) );
+const RedirectsPage = lazy( () => import( /* webpackChunkName: "changes-pages" */ './pages/ChangesPages' ).then( ( m ) => ( { default: m.RedirectsPage } ) ) );
+const NotFoundPage = lazy( () => import( /* webpackChunkName: "not-found-page" */ './pages/NotFoundPage' ) );
+const DecisionsPage = lazy( () => import( /* webpackChunkName: "decisions-page" */ './pages/DecisionsPage' ) );
+const BrokenPage = lazy( () => import( /* webpackChunkName: "broken-page" */ './pages/BrokenPage' ) );
+const ProgressPage = lazy( () => import( /* webpackChunkName: "progress-page" */ './pages/ProgressPage' ) );
+const SupportPage = lazy( () => import( /* webpackChunkName: "support-pages" */ './pages/SupportPages' ).then( ( m ) => ( { default: m.SupportPage } ) ) );
+const LicensePage = lazy( () => import( /* webpackChunkName: "support-pages" */ './pages/SupportPages' ).then( ( m ) => ( { default: m.LicensePage } ) ) );
+const ClustersPage = lazy( () => import( /* webpackChunkName: "clusters-page" */ './pages/ClustersPage' ) );
+const Inventory = lazy( () => import( /* webpackChunkName: "inventory" */ './pages/Inventory' ) );
+const WizardPage = lazy( () => import( /* webpackChunkName: "profile-pages" */ './pages/ProfilePages' ).then( ( m ) => ( { default: m.WizardPage } ) ) );
+const ProfilePage = lazy( () => import( /* webpackChunkName: "profile-pages" */ './pages/ProfilePages' ).then( ( m ) => ( { default: m.ProfilePage } ) ) );
+const ExportPage = lazy( () => import( /* webpackChunkName: "profile-pages" */ './pages/ProfilePages' ).then( ( m ) => ( { default: m.ExportPage } ) ) );
+const AuditPage = lazy( () => import( /* webpackChunkName: "audit-pages" */ './pages/AuditPages' ).then( ( m ) => ( { default: m.AuditPage } ) ) );
+const ImagesPage = lazy( () => import( /* webpackChunkName: "audit-pages" */ './pages/AuditPages' ).then( ( m ) => ( { default: m.ImagesPage } ) ) );
+const OrphansPage = lazy( () => import( /* webpackChunkName: "audit-pages" */ './pages/AuditPages' ).then( ( m ) => ( { default: m.OrphansPage } ) ) );
+const RefreshPage = lazy( () => import( /* webpackChunkName: "audit-pages" */ './pages/AuditPages' ).then( ( m ) => ( { default: m.RefreshPage } ) ) );
+const TaxonomiesPage = lazy( () => import( /* webpackChunkName: "audit-pages" */ './pages/AuditPages' ).then( ( m ) => ( { default: m.TaxonomiesPage } ) ) );
+const VisibilityPage = lazy( () => import( /* webpackChunkName: "audit-pages" */ './pages/AuditPages' ).then( ( m ) => ( { default: m.VisibilityPage } ) ) );
 
 /**
  * Reads the current route from the URL hash (e.g. #/audit).
@@ -115,7 +131,7 @@ export default function App() {
 			<Sidebar current={ path } badges={ badges } />
 			<main className="pp-main">
 				<SectionTabs current={ path } badges={ badges } />
-				{ page }
+				<Suspense fallback={ <div className="pp-page pp-page--loading"><Spinner /></div> }>{ page }</Suspense>
 			</main>
 		</div>
 	);

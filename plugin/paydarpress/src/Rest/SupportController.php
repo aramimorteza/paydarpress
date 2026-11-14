@@ -32,13 +32,13 @@ defined( 'ABSPATH' ) || exit;
  */
 final class SupportController {
 
-	public const NAMESPACE = 'paydarpress/v1';
+	public const REST_NAMESPACE = 'paydarpress/v1';
 
 	/**
 	 * Registers routes.
 	 */
 	public function routes(): void {
-		$ns     = self::NAMESPACE;
+		$ns     = self::REST_NAMESPACE;
 		$view   = static fn() => current_user_can( Capabilities::VIEW );
 		$manage = static fn() => current_user_can( Capabilities::MANAGE );
 		$wrap   = static function ( callable $fn ) {

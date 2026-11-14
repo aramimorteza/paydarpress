@@ -171,6 +171,8 @@ final class AdminPage {
 
 		return array(
 			'version'       => PAYDARPRESS_VERSION,
+			// Where the page chunks (loaded on demand) live.
+			'buildUrl'      => PAYDARPRESS_URL . 'assets/build/',
 			'restNamespace' => 'paydarpress/v1',
 			'adminUrl'      => admin_url(),
 			'pageUrl'       => admin_url( 'admin.php?page=' . self::SLUG ),

@@ -109,7 +109,11 @@ final class RedirectOwner {
 	 * @return string ok|missing|unknown (loopback request failed).
 	 */
 	public static function check( string $old_url, string $expected ): string {
-		$url      = preg_match( '#^https?://#i', $old_url ) ? $old_url : home_url( '/' . ltrim( $old_url, '/' ) );
+		$url = preg_match( '#^https?://#i', $old_url ) ? $old_url : home_url( '/' . ltrim( $old_url, '/' ) );
+		// Only this site's own addresses are requested (loopback check, never a third-party host).
+		if ( strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) ) !== strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) ) ) {
+			return 'unknown';
+		}
 		$response = wp_remote_head(
 			$url,
 			array(
