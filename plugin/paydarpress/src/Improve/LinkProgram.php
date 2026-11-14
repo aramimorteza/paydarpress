@@ -34,6 +34,16 @@ final class LinkProgram {
 	}
 
 	/**
+	 * Inbound target of one item.
+	 *
+	 * @param int  $base Normal target.
+	 * @param bool $key  Key page or cluster pillar.
+	 */
+	public static function target_for( int $base, bool $key ): int {
+		return max( 1, $base ) * ( $key ? self::KEY_FACTOR : 1 );
+	}
+
+	/**
 	 * Ids of key pages (posts/pages/products) and cluster pillars: id => true.
 	 */
 	private static function important(): array {
@@ -81,7 +91,7 @@ final class LinkProgram {
 				continue;
 			}
 			++$total;
-			$target = $key ? $base * self::KEY_FACTOR : $base;
+			$target = self::target_for( $base, $key );
 			$have   = (int) $r['internal_in'];
 			if ( $have >= $target ) {
 				++$ok;

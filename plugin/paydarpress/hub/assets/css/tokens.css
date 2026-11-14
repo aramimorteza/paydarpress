@@ -17,10 +17,10 @@
 	--pwp-text: #1d2330;
 	--pwp-text-muted: #5b6475;
 
-	/* Status */
-	--pwp-success: #1f8a4c;
+	/* Status (text colours reach WCAG AA 4.5:1 on their soft background and on white) */
+	--pwp-success: #17693a;
 	--pwp-success-soft: #e5f4ec;
-	--pwp-warning: #b26a00;
+	--pwp-warning: #8a5300;
 	--pwp-warning-soft: #fdf1de;
 	--pwp-danger: #c0392b;
 	--pwp-danger-soft: #fbe7e5;

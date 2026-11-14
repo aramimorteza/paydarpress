@@ -187,7 +187,7 @@ function CategoryPicker( { categories, value, onChange } ) {
 			<div className="pp-catpick__label">از مقالات کدام دسته‌ها به این صفحه لینک داده شود؟</div>
 			<div className="pp-help-text">هیچ دسته‌ای انتخاب نشود یعنی «همه مقالات». پرامپت‌های هوش مصنوعی و صف لینک‌ها از این انتخاب پیروی می‌کنند.</div>
 			{ categories.length > 12 && (
-				<TextControl __nextHasNoMarginBottom placeholder="جست‌وجوی دسته…" value={ filter } onChange={ setFilter } />
+				<TextControl __nextHasNoMarginBottom aria-label="جست‌وجوی دسته" placeholder="جست‌وجوی دسته…" value={ filter } onChange={ setFilter } />
 			) }
 			<div className="pp-catpick__list">
 				{ shown.map( ( c ) => (

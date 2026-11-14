@@ -70,7 +70,7 @@ function Report() {
 			<p className="pp-muted">فقط نسخه‌ها، تنظیمات فنی و شمارش‌ها؛ بدون ایمیل، نام کاربری، محتوا، آدرس صفحات یا کلید. پیش از ارسال آن را ببینید.</p>
 			{ error && <Notice status="error" isDismissible={ false }>{ error }</Notice> }
 			<CheckboxControl __nextHasNoMarginBottom label="نام دامنه سایت هم اضافه شود (برای بررسی سریع‌تر)" checked={ site } onChange={ setSite } />
-			<textarea className="pp-support__report" readOnly value={ text } rows={ 12 } dir="rtl" />
+			<textarea className="pp-support__report" aria-label="متن گزارش پشتیبانی" readOnly value={ text } rows={ 12 } dir="rtl" />
 			<div className="pp-actions-row">
 				<Button variant="primary" disabled={ ! text } onClick={ () => copy( text ).then( () => setCopied( true ) ) }>کپی گزارش فنی</Button>
 				{ copied && <span className="pp-ok">کپی شد؛ در تیکت بچسبانید.</span> }

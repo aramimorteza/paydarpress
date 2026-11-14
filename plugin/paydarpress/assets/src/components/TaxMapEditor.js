@@ -189,8 +189,8 @@ export default function TaxMapEditor( { canEdit } ) {
 				</p>
 			) }
 			<div className="pp-taxmap__toolbar">
-				<TextControl __nextHasNoMarginBottom placeholder="جست‌وجوی نام" value={ search } onChange={ setSearch } />
-				<SelectControl __nextHasNoMarginBottom value={ filter } options={ FILTERS } onChange={ ( v ) => {
+				<TextControl __nextHasNoMarginBottom aria-label="جست‌وجوی نام" placeholder="جست‌وجوی نام" value={ search } onChange={ setSearch } />
+				<SelectControl __nextHasNoMarginBottom aria-label="نمایش" value={ filter } options={ FILTERS } onChange={ ( v ) => {
 					setFilter( v );
 					setPage( 1 );
 				} } />

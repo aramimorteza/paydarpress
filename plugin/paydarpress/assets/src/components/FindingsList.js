@@ -73,7 +73,7 @@ export default function FindingsList( { fixedGroup = '', initialCode = '', homes
 						همه <span className="pp-tab__count">{ num( totalOpen ) }</span>
 					</button>
 					{ Object.keys( groups ).map( ( key ) => homes[ key ] ? (
-						<a key={ key } className="pp-tab pp-tab--link" href={ `#${ homes[ key ] }` } title="این مشکلات صفحه خودشان را دارند">
+						<a key={ key } role="tab" aria-selected={ false } className="pp-tab pp-tab--link" href={ `#${ homes[ key ] }` } title="این مشکلات صفحه خودشان را دارند">
 							{ groups[ key ] } <span className="pp-tab__count">{ num( byGroup[ key ] ) }</span> ↖
 						</a>
 					) : (

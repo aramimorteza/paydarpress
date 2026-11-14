@@ -32,7 +32,7 @@ function TermPicker( { taxonomy, exclude, onPick } ) {
 	}, [ q, taxonomy, exclude ] );
 	return (
 		<div className="pp-picker">
-			<TextControl __nextHasNoMarginBottom placeholder="جست‌وجوی مقصد ادغام" value={ q } onChange={ setQ } />
+			<TextControl __nextHasNoMarginBottom aria-label="جست‌وجوی مقصد ادغام" placeholder="جست‌وجوی مقصد ادغام" value={ q } onChange={ setQ } />
 			{ items.length > 0 && <ul className="pp-picker__list">{ items.map( ( i ) => <li key={ i.id }><button type="button" onClick={ () => onPick( i ) }>{ i.name } ({ num( i.count ) })</button></li> ) }</ul> }
 		</div>
 	);
@@ -76,7 +76,7 @@ function Card( { card, canEdit, selected, onSelect, onDone, grown, target } ) {
 	return (
 		<section className={ `pp-card pp-card--section pp-decision${ done ? ' is-done' : '' }${ target ? ' is-target' : '' }` }>
 			<div className="pp-decision__head">
-				{ canEdit && ! done && <CheckboxControl __nextHasNoMarginBottom checked={ selected } onChange={ onSelect } /> }
+				{ canEdit && ! done && <CheckboxControl __nextHasNoMarginBottom aria-label="انتخاب برای کار گروهی" checked={ selected } onChange={ onSelect } /> }
 				<strong>{ card.name }</strong>
 				<span className="pp-muted">{ card.tax_label } · { num( card.count ) } { card.product ? 'محصول' : 'مطلب' }</span>
 				<span className={ `pp-badge${ 'misfit' === card.reason ? ' pp-badge--warning' : '' }` }>{ card.reason_label }</span>

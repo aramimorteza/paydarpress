@@ -95,7 +95,7 @@ final class ArticleProgram {
 				'url'         => (string) get_permalink( $id ),
 				'edit_url'    => (string) get_edit_post_link( $id, 'raw' ),
 				'score'       => $score,
-				'priority'    => (int) round( $score * ( 1 + log10( 1 + $imp ) ) ),
+				'priority'    => self::priority( $score, $imp ),
 				'action'      => AuditEngine::refresh_action( $score, $c ),
 				'reasons'     => $reasons,
 				'words'       => (int) $r['word_count'],
@@ -107,6 +107,34 @@ final class ArticleProgram {
 		}
 		usort( $out, static fn( $a, $b ) => $b['priority'] <=> $a['priority'] ?: $b['score'] <=> $a['score'] );
 		return array_slice( $out, 0, $limit );
+	}
+
+	/**
+	 * Rewrite priority: refresh score × demand. log10 keeps a page with 10,000 impressions
+	 * from burying every other page (1 + log10(1 + impressions): 0 → ×1, 100 → ×3, 10,000 → ×5).
+	 *
+	 * @param int $score       Refresh score 0–100.
+	 * @param int $impressions Search Console impressions (3 months).
+	 */
+	public static function priority( int $score, int $impressions ): int {
+		return (int) round( max( 0, $score ) * ( 1 + log10( 1 + max( 0, $impressions ) ) ) );
+	}
+
+	/**
+	 * Two titles compete when they share at least 2 words and most of their words.
+	 *
+	 * @param string[] $a Title words.
+	 * @param string[] $b Title words.
+	 */
+	public static function similar( array $a, array $b ): bool {
+		$a = array_values( array_unique( $a ) );
+		$b = array_values( array_unique( $b ) );
+		if ( count( $a ) < 2 || count( $b ) < 2 ) {
+			return false;
+		}
+		$shared = count( array_intersect( $a, $b ) );
+		$union  = count( array_unique( array_merge( $a, $b ) ) );
+		return $shared >= 2 && $shared / $union >= self::SIMILAR;
 	}
 
 	/**
@@ -202,14 +230,7 @@ final class ArticleProgram {
 						continue;
 					}
 					$seen[ $key ] = true;
-					$a            = $tokens[ $i ];
-					$b            = $tokens[ $j ];
-					if ( count( $a ) < 2 || count( $b ) < 2 ) {
-						continue;
-					}
-					$shared = count( array_intersect( $a, $b ) );
-					$union  = count( array_unique( array_merge( $a, $b ) ) );
-					if ( $shared >= 2 && $shared / $union >= self::SIMILAR ) {
+					if ( self::similar( $tokens[ $i ], $tokens[ $j ] ) ) {
 						$join( $i, $j, 'عنوان تقریباً یکسان' );
 					}
 				}

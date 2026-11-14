@@ -142,7 +142,7 @@
 	width: 8px;
 	height: 8px;
 	border-radius: 50%;
-	background: var(--pwp-warning, #b26a00);
+	background: var(--pwp-warning, #8a5300);
 }
 
 .pp-nav__group ul .pp-nav__link {
@@ -453,14 +453,14 @@
 .pp-badge--success {
 	background: var(--pwp-success-soft, #e5f4ec);
 	border-color: transparent;
-	color: var(--pwp-success, #1f8a4c);
+	color: var(--pwp-success, #17693a);
 	margin-inline-start: 0;
 }
 
 .pp-badge--warning {
 	background: var(--pwp-warning-soft, #fdf1de);
 	border-color: transparent;
-	color: var(--pwp-warning, #b26a00);
+	color: var(--pwp-warning, #8a5300);
 }
 
 .pp-badge--danger {
@@ -500,7 +500,7 @@
 		color: #fff;
 
 		.pp-tab__count {
-			background: rgba(255, 255, 255, 0.2);
+			background: rgba(0, 0, 0, 0.25);
 			color: #fff;
 		}
 	}
@@ -683,7 +683,7 @@
 	}
 
 	&.pp-finding--medium {
-		border-inline-start-color: var(--pwp-warning, #b26a00);
+		border-inline-start-color: var(--pwp-warning, #8a5300);
 	}
 
 	&.is-muted {
@@ -791,8 +791,8 @@
 }
 
 .pp-chip--medium {
-	border-color: var(--pwp-warning, #b26a00);
-	color: var(--pwp-warning, #b26a00);
+	border-color: var(--pwp-warning, #8a5300);
+	color: var(--pwp-warning, #8a5300);
 }
 
 .pp-score {
@@ -808,7 +808,7 @@
 	margin: 0;
 
 	span {
-		background: var(--pwp-warning, #b26a00);
+		background: var(--pwp-warning, #8a5300);
 	}
 }
 
@@ -826,7 +826,7 @@
 	margin-block-end: var(--pwp-space-4, 16px);
 
 	&.is-ok {
-		border-inline-start: 4px solid var(--pwp-success, #1f8a4c);
+		border-inline-start: 4px solid var(--pwp-success, #17693a);
 	}
 
 	&.is-bad {
@@ -865,11 +865,11 @@
 }
 
 .pp-health__score--success {
-	color: var(--pwp-success, #1f8a4c);
+	color: var(--pwp-success, #17693a);
 }
 
 .pp-health__score--warning {
-	color: var(--pwp-warning, #b26a00);
+	color: var(--pwp-warning, #8a5300);
 }
 
 .pp-health__score--danger {
@@ -912,7 +912,7 @@
 }
 
 .pp-ok {
-	color: var(--pwp-success, #1f8a4c);
+	color: var(--pwp-success, #17693a);
 }
 
 .pp-mini-list {
@@ -971,7 +971,7 @@
 	}
 
 	.is-done .pp-stepper__num {
-		background: var(--pwp-success, #1f8a4c);
+		background: var(--pwp-success, #17693a);
 	}
 }
 
@@ -1154,8 +1154,8 @@
 	font-size: 12px;
 
 	.is-done & {
-		background: var(--pwp-success, #1f8a4c);
-		border-color: var(--pwp-success, #1f8a4c);
+		background: var(--pwp-success, #17693a);
+		border-color: var(--pwp-success, #17693a);
 	}
 }
 
@@ -1742,7 +1742,7 @@ button.pp-chip {
 .pp-anchorstats__seg {
 	flex-basis: 0;
 
-	&.is-exact { background: #b26a00; }
+	&.is-exact { background: #8a5300; }
 	&.is-partial { background: #0f6e6e; }
 	&.is-branded { background: #3d6fb6; }
 	&.is-generic { background: #c0392b; }
@@ -1750,7 +1750,7 @@ button.pp-chip {
 }
 
 .pp-anchorstats__warn {
-	color: var(--pwp-warning, #b26a00);
+	color: var(--pwp-warning, #8a5300);
 	margin-block-start: 2px;
 }
 
@@ -1849,12 +1849,12 @@ button.pp-chip {
 	}
 
 	&.is-warn span {
-		background: var(--pwp-warning, #b26a00);
+		background: var(--pwp-warning, #8a5300);
 	}
 }
 
 .pp-auto-status {
-	border-inline-start: 3px solid var(--pwp-warning, #b26a00);
+	border-inline-start: 3px solid var(--pwp-warning, #8a5300);
 
 	&.is-ready {
 		border-inline-start-color: var(--pwp-success, #1e7e34);
@@ -1950,8 +1950,8 @@ button.pp-chip {
 	font-weight: 400;
 
 	&.is-changed {
-		border-color: var(--pwp-warning, #b26a00);
-		color: var(--pwp-warning, #b26a00);
+		border-color: var(--pwp-warning, #8a5300);
+		color: var(--pwp-warning, #8a5300);
 	}
 }
 
@@ -2114,7 +2114,7 @@ button.pp-chip {
 	gap: 8px;
 	padding: 8px;
 	margin-block-end: 8px;
-	border: 1px dashed var(--pwp-warning, #b26a00);
+	border: 1px dashed var(--pwp-warning, #8a5300);
 	border-radius: var(--pwp-radius-sm, 6px);
 
 	img {
@@ -2189,7 +2189,7 @@ button.pp-chip {
 .pp-stage {
 	border-inline-start: 3px solid var(--pwp-primary, #0f6e6e);
 
-	tr.is-diff td:last-child { color: var(--pwp-warning, #b26a00); font-weight: 600; }
+	tr.is-diff td:last-child { color: var(--pwp-warning, #8a5300); font-weight: 600; }
 	.pp-table { max-width: 520px; margin-block: 8px; }
 }
 
@@ -2619,3 +2619,30 @@ button.pp-chip {
 .pp-compete { padding: 8px 10px; margin: 8px 0; border: 1px solid #e0e0e0; border-radius: 4px; background: #fcfcfc; }
 .pp-compete p { margin: 0 0 4px; }
 .pp-compete__actions { display: inline-flex; gap: 4px; margin-inline-start: 6px; }
+
+/* Accessibility (0.31): WCAG AA contrast inside the PaydarPress screen. Buttons use the brand
+   colour (5.6:1 on every soft background), links a darker blue, help text the muted token. */
+.pp-layout {
+	--wp-admin-theme-color: var(--pwp-primary, #0f6e6e);
+	--wp-admin-theme-color--rgb: 15, 110, 110;
+	--wp-admin-theme-color-darker-10: var(--pwp-primary-hover, #0b5858);
+	--wp-admin-theme-color-darker-10--rgb: 11, 88, 88;
+	--wp-admin-theme-color-darker-20: #084444;
+	--wp-admin-theme-color-darker-20--rgb: 8, 68, 68;
+	--wp-components-color-accent: var(--pwp-primary, #0f6e6e);
+	--wp-components-color-accent-darker-10: var(--pwp-primary-hover, #0b5858);
+	--wp-components-color-accent-darker-20: #084444;
+
+	.pp-page__content a:not(.components-button):not(.pp-tab):not(.pp-icon-link):not(.pp-qchip) {
+		color: #135e96;
+	}
+
+	.components-base-control__help {
+		color: var(--pwp-text-muted, #5b6475);
+	}
+
+	:focus-visible {
+		outline: 2px solid var(--pwp-primary, #0f6e6e);
+		outline-offset: 2px;
+	}
+}

@@ -116,10 +116,10 @@ function Slugs( { s, reload } ) {
 						<tbody>
 							{ s.week.map( ( i ) => (
 								<tr key={ i.id } className={ i.busy ? 'is-busy' : '' }>
-									<td><CheckboxControl __nextHasNoMarginBottom checked={ picked.includes( i.id ) } disabled={ ! slugOf( i ) } onChange={ ( on ) => setPicked( on ? [ ...picked, i.id ] : picked.filter( ( x ) => x !== i.id ) ) } /></td>
+									<td><CheckboxControl __nextHasNoMarginBottom aria-label={ `انتخاب «${ i.title }»` } checked={ picked.includes( i.id ) } disabled={ ! slugOf( i ) } onChange={ ( on ) => setPicked( on ? [ ...picked, i.id ] : picked.filter( ( x ) => x !== i.id ) ) } /></td>
 									<td>{ i.title }{ i.busy && <span className="pp-badge pp-badge--warning">پربازدید</span> }</td>
 									<td><bdi dir="ltr" className="pp-url" title={ i.why }>{ i.slug }</bdi></td>
-									<td><TextControl __nextHasNoMarginBottom dir="ltr" value={ slugOf( i ) } placeholder="english-slug" onChange={ ( v ) => setEdit( { ...edit, [ i.id ]: v.toLowerCase().replace( /[^a-z0-9-]/g, '-' ).replace( /-+/g, '-' ) } ) } /></td>
+									<td><TextControl __nextHasNoMarginBottom aria-label={ `آدرس تازه «${ i.title }»` } dir="ltr" value={ slugOf( i ) } placeholder="english-slug" onChange={ ( v ) => setEdit( { ...edit, [ i.id ]: v.toLowerCase().replace( /[^a-z0-9-]/g, '-' ).replace( /-+/g, '-' ) } ) } /></td>
 									<td className="pp-muted">{ num( i.clicks ) } کلیک · { num( i.impressions ) } نمایش</td>
 								</tr>
 							) ) }

@@ -3,7 +3,7 @@
  * Plugin Name:       PaydarPress | پایدارپرس
  * Plugin URI:        https://paydarwp.ir/paydarpress
  * Description:       شناخت سایت، ممیزی سلامت محتوا و مدیریت هوشمند محتوا برای وردپرس.
- * Version:           0.30.0
+ * Version:           0.31.0
  * Requires at least: 6.5
  * Requires PHP:      8.0
  * Author:            PaydarWP
@@ -24,7 +24,7 @@ if ( defined( 'PAYDARPRESS_VERSION' ) ) {
 	return;
 }
 
-define( 'PAYDARPRESS_VERSION', '0.30.0' );
+define( 'PAYDARPRESS_VERSION', '0.31.0' );
 define( 'PAYDARPRESS_FILE', __FILE__ );
 define( 'PAYDARPRESS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PAYDARPRESS_URL', plugin_dir_url( __FILE__ ) );
