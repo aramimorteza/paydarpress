@@ -91,7 +91,7 @@ export function SupportPage() {
 		get( '/support' ).then( setData ).catch( ( e ) => setError( errorMessage( e ) ) );
 	}, [] );
 
-	const group = ( g ) => Object.entries( data.brand.links ).filter( ( [ , l ] ) => g === l.group );
+	const group = ( g ) => Object.entries( data.brand.links ).filter( ( [ , l ] ) => g === l.group && l.url );
 	const others = data ? data.products.filter( ( p ) => 'پایدارپرس' !== p.name ) : [];
 
 	return (
@@ -127,16 +127,20 @@ export function SupportPage() {
 							</ol>
 							<p className="pp-muted">در هر صفحه، دکمه «؟» کنار عنوان، توضیح همان صفحه را باز می‌کند.</p>
 						</section>
-						<section className="pp-card pp-card--section">
-							<h2 className="pp-card__title">آموزش</h2>
-							<LinkList links={ group( 'learn' ) } />
-						</section>
-						<section className="pp-card pp-card--section">
-							<h2 className="pp-card__title">ارتباط با پشتیبانی</h2>
-							<LinkList links={ group( 'support' ) } />
-							{ data.brand.hours && <p className="pp-muted">ساعات پاسخ‌گویی: { data.brand.hours }</p> }
-							<p className="pp-muted">پیش از تماس، «گزارش فنی» پایین صفحه را کپی کنید تا مشکل سریع‌تر بررسی شود.</p>
-						</section>
+						{ group( 'learn' ).length > 0 && (
+							<section className="pp-card pp-card--section">
+								<h2 className="pp-card__title">آموزش</h2>
+								<LinkList links={ group( 'learn' ) } />
+							</section>
+						) }
+						{ group( 'support' ).length > 0 && (
+							<section className="pp-card pp-card--section">
+								<h2 className="pp-card__title">ارتباط با پشتیبانی</h2>
+								<LinkList links={ group( 'support' ) } />
+								{ data.brand.hours && <p className="pp-muted">ساعات پاسخ‌گویی: { data.brand.hours }</p> }
+								<p className="pp-muted">پیش از تماس، «گزارش فنی» پایین صفحه را کپی کنید تا مشکل سریع‌تر بررسی شود.</p>
+							</section>
+						) }
 					</div>
 
 					<section className="pp-card pp-card--section">
