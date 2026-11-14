@@ -75,4 +75,18 @@ final class LinkSuggestionRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE status = 'pending'" );
 	}
+
+	/**
+	 * Retention: rejected suggestions after `retention.suggestions_days`, applied ones after a
+	 * year (they are kept that long for undo and the change report).
+	 */
+	public static function prune(): void {
+		global $wpdb;
+		$table = \PaydarWP\PaydarPress\Database\Schema::table( 'link_suggestions' );
+		$days  = max( 30, (int) \PaydarWP\PaydarPress\Core\Settings::get( 'retention.suggestions_days', 180 ) );
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE status = 'rejected' AND updated_at < %s", gmdate( 'Y-m-d H:i:s', time() - $days * DAY_IN_SECONDS ) ) );
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE status = 'applied' AND updated_at < %s", gmdate( 'Y-m-d H:i:s', time() - 365 * DAY_IN_SECONDS ) ) );
+		// phpcs:enable
+	}
 }

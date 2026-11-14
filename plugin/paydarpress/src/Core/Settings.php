@@ -73,7 +73,13 @@ final class Settings {
 				'max_output_tokens' => 16000,
 			),
 			'retention'   => array(
-				'activity_days' => 90,
+				'activity_days'    => 90,
+				'suggestions_days' => 180,
+			),
+			'links'       => array(
+				// Off by default: hosts in Iran often cannot reach foreign sites (false "broken").
+				'check_external'   => false,
+				'external_per_run' => 50,
 			),
 			'ui'          => array(
 				'font_everywhere'  => false,
@@ -149,6 +155,8 @@ final class Settings {
 		'audit.stale_months'               => array( 3, 60 ),
 		'audit.gsc_min_impressions'        => array( 10, 100000 ),
 		'retention.activity_days'          => array( 7, 365 ),
+		'retention.suggestions_days'       => array( 30, 730 ),
+		'links.external_per_run'           => array( 10, 200 ),
 		'policy.new_per_month'             => array( 0, 500 ),
 		'policy.publish_per_day'           => array( 1, 50 ),
 		'policy.refresh_share'             => array( 0, 100 ),

@@ -3,6 +3,7 @@ import { Button, Notice, Spinner } from '@wordpress/components';
 import Page from '../components/Page';
 import EmptyState from '../components/EmptyState';
 import AiButton from '../components/AiButton';
+import BrokenFixes from '../components/BrokenFixes';
 import { get, post, errorMessage } from '../lib/api';
 import { num } from '../lib/format';
 import { refreshCommand, metaCommand, supportCommand, topicArticleCommand, topicsCommand, termCommand, termTextCommand, altCommand } from '../lib/aiCommands';
@@ -19,6 +20,35 @@ export const TYPE_LABELS = {
 	support: [ 'محتوای یتیم', 'warning' ],
 	write: [ 'مقاله جدید', 'info' ],
 };
+
+/** One icon per kind of work, used on cards everywhere (WordPress dashicons). */
+export const TYPE_ICONS = {
+	setup: 'admin-generic',
+	fix: 'warning',
+	publish: 'upload',
+	links: 'admin-links',
+	refresh: 'update',
+	meta: 'search',
+	support: 'admin-links',
+	write: 'edit-page',
+};
+
+/**
+ * Small icon link with a tooltip.
+ *
+ * @param {Object} props
+ * @param {string} props.icon  Dashicon name.
+ * @param {string} props.label Tooltip / screen reader text.
+ * @param {string} props.href  Link.
+ * @param {boolean} props.blank New tab.
+ */
+export function IconLink( { icon, label, href, blank = false } ) {
+	return (
+		<a className="pp-icon-link" href={ href } title={ label } aria-label={ label } { ...( blank ? { target: '_blank', rel: 'noreferrer' } : {} ) }>
+			<span className={ `dashicons dashicons-${ icon }` } aria-hidden="true" />
+		</a>
+	);
+}
 
 /**
  * AI action of a task, built with the same command builders as the rest of the app.
@@ -76,25 +106,22 @@ export function TaskDetails( { details } ) {
 	return (
 		<div className="pp-task__details">
 			{ g && (
-				<div>
-					<strong>گوگل (۳ ماه): </strong>
-					رتبه میانگین { num( g.position ) } · { num( g.impressions ) } نمایش · { num( g.clicks ) } کلیک · نرخ کلیک { num( g.ctr ) }٪
-					{ null !== g.delta && 0 !== g.delta && <span className={ g.delta > 0 ? 'pp-ok' : 'pp-missing' }> { g.delta > 0 ? '↑' : '↓' } { num( Math.abs( g.delta ) ) } نسبت به بارگذاری قبلی</span> }
-				</div>
+				<span className="pp-stat" title="آمار ۳ ماه سرچ کنسول">
+					<span className="dashicons dashicons-chart-line" aria-hidden="true" />
+					رتبه <b>{ num( g.position ) }</b>
+					{ null !== g.delta && 0 !== g.delta && <span className={ g.delta > 0 ? 'pp-ok' : 'pp-missing' } title="نسبت به بارگذاری قبلی"> { g.delta > 0 ? '▲' : '▼' }{ num( Math.abs( g.delta ) ) }</span> }
+					{ ' · ' }{ num( g.impressions ) } نمایش · { num( g.clicks ) } کلیک · { num( g.ctr ) }٪
+				</span>
 			) }
+			{ details.facts && <span className="pp-stat pp-muted"><span className="dashicons dashicons-media-text" aria-hidden="true" />{ details.facts.join( ' · ' ) }</span> }
 			{ details.queries && details.queries.length > 0 && (
-				<div>
-					<strong>عبارت‌های احتمالی: </strong>
-					{ details.queries.map( ( q, i ) => (
-						<span key={ q.query } className="pp-task__query">
-							{ i > 0 && ' · ' }«{ q.query }» رتبه { num( q.position ) }، { num( q.impressions ) } نمایش
-							{ q.opportunity && <span className="pp-badge pp-badge--warning">فرصت</span> }
-						</span>
+				<span className="pp-stat" title="خروجی سرچ کنسول صفحه و عبارت را جدا می‌دهد؛ این عبارت‌ها بر اساس کلمه کلیدی و عنوان صفحه تخمین زده شده‌اند.">
+					<span className="dashicons dashicons-search" aria-hidden="true" />
+					{ details.queries.map( ( q ) => (
+						<span key={ q.query } className={ `pp-qchip${ q.opportunity ? ' is-opp' : '' }` }>{ q.query } <b>{ num( q.position ) }</b>{ q.opportunity && ' فرصت' }</span>
 					) ) }
-					<span className="pp-muted" title="خروجی سرچ کنسول صفحه و عبارت را جدا می‌دهد؛ این عبارت‌ها بر اساس کلمه کلیدی و عنوان صفحه تخمین زده شده‌اند."> (تخمینی)</span>
-				</div>
+				</span>
 			) }
-			{ details.facts && <div className="pp-muted">{ details.facts.join( ' · ' ) }</div> }
 		</div>
 	);
 }
@@ -111,8 +138,8 @@ export function TaskLinks( { details } ) {
 	}
 	return (
 		<>
-			<a className="pp-task__view" href={ details.view.url } target="_blank" rel="noreferrer" title={ details.view.title }>{ details.view.label } ↗</a>
-			{ details.gsc_link && <a className="pp-task__view" href={ details.gsc_link } target="_blank" rel="noreferrer" title="گزارش Performance سرچ کنسول با فیلتر همین صفحه">عبارت‌های دقیق در سرچ کنسول ↗</a> }
+			<IconLink icon="external" label={ `${ details.view.label } — ${ details.view.title }` } href={ details.view.url } blank />
+			{ details.gsc_link && <IconLink icon="chart-bar" label="عبارت‌های دقیق این صفحه در سرچ کنسول" href={ details.gsc_link } blank /> }
 		</>
 	);
 }
@@ -120,30 +147,35 @@ export function TaskLinks( { details } ) {
 /**
  * One task card.
  */
-function TaskCard( { task, index, onMark, canManage } ) {
+function TaskCard( { task, index, onMark, canManage, onReload } ) {
 	const [ label, cls ] = TYPE_LABELS[ task.type ] || [ task.type, 'info' ];
 	const ai = aiFor( task.ai );
+	const details = task.details || {};
+	const action = task.action || {};
+	const isEdit = 'ویرایش' === action.label;
 	return (
 		<li className={ `pp-task${ 0 === index ? ' is-next' : '' }` }>
-			<div className="pp-task__num">{ num( index + 1 ) }</div>
+			<div className="pp-task__num" title={ label }><span className={ `dashicons dashicons-${ TYPE_ICONS[ task.type ] || 'yes' }` } aria-hidden="true" /></div>
 			<div className="pp-task__body">
 				<div className="pp-task__head">
-					<strong>{ task.title }</strong>
+					<strong>{ num( index + 1 ) }. { task.title }</strong>
 					<span className={ `pp-badge pp-badge--${ cls }` }>{ label }</span>
-					<span className="pp-muted">حدود { num( task.minutes ) } دقیقه</span>
+					<span className="pp-muted pp-task__time"><span className="dashicons dashicons-clock" aria-hidden="true" />{ num( task.minutes ) } دقیقه</span>
+					{ canManage && (
+						<span className="pp-task__marks">
+							<button type="button" className="pp-icon-link" title="انجام شد" aria-label="انجام شد" onClick={ () => onMark( task.key, 'done' ) }><span className="dashicons dashicons-yes" aria-hidden="true" /></button>
+							<button type="button" className="pp-icon-link" title="هفته بعد" aria-label="هفته بعد" onClick={ () => onMark( task.key, 'later' ) }><span className="dashicons dashicons-calendar-alt" aria-hidden="true" /></button>
+						</span>
+					) }
 				</div>
 				<p className="pp-task__why">{ task.why }</p>
-				<TaskDetails details={ task.details } />
+				<TaskDetails details={ details } />
+				{ details.broken && <BrokenFixes postId={ Number( String( task.key ).split( ':' )[ 1 ] ) } problems={ details.broken } onDone={ onReload } /> }
 				<div className="pp-task__actions">
-					<TaskAction action={ task.action } variant={ 0 === index ? 'primary' : 'secondary' } />
-					{ ai && <AiButton command={ ai } /> }
-					<TaskLinks details={ task.details } />
-					{ canManage && (
-						<>
-							<Button variant="tertiary" size="small" onClick={ () => onMark( task.key, 'done' ) }>انجام شد</Button>
-							<Button variant="tertiary" size="small" onClick={ () => onMark( task.key, 'later' ) }>هفته بعد</Button>
-						</>
-					) }
+					{ ai ? <AiButton command={ ai } variant={ 0 === index ? 'primary' : 'secondary' } /> : ! isEdit && <TaskAction action={ action } variant={ 0 === index ? 'primary' : 'secondary' } /> }
+					{ ai && ! isEdit && <TaskAction action={ action } variant="tertiary" /> }
+					{ isEdit && <IconLink icon="edit" label="ویرایش" href={ action.url } /> }
+					<TaskLinks details={ details } />
 				</div>
 			</div>
 		</li>
@@ -190,7 +222,7 @@ export default function TasksPage() {
 						<div className="pp-card"><EmptyState title="کاری برای این هفته نمانده است" text="همه موارد مهم انجام شده یا به هفته بعد رفته‌اند. پایدارپرس پس از اسکن و ورود داده تازه، کارهای جدید را اینجا می‌آورد." /></div>
 					) : (
 						<ol className="pp-tasks">
-							{ data.week.map( ( t, i ) => <TaskCard key={ t.key } task={ t } index={ i } onMark={ mark } canManage={ canManage } /> ) }
+							{ data.week.map( ( t, i ) => <TaskCard key={ t.key } task={ t } index={ i } onMark={ mark } canManage={ canManage } onReload={ () => get( '/tasks' ).then( setData ) } /> ) }
 						</ol>
 					) }
 					{ data.later.length > 0 && (

@@ -35,8 +35,8 @@ export const SECTIONS = [
 		id: 'links',
 		label: 'لینک‌ها',
 		icon: 'admin-links',
-		hint: 'صف تأیید لینک داخلی',
-		pages: [ { path: '/links', label: 'صف لینک داخلی', badge: 'links', accent: true } ],
+		hint: 'صف تأیید لینک داخلی و لینک‌ها و تصاویر خراب',
+		pages: [ { path: '/links', label: 'صف لینک داخلی', badge: 'links', accent: true }, { path: '/broken', label: 'لینک و تصویر خراب', badge: 'broken' } ],
 	},
 	{
 		id: 'create',

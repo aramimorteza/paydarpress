@@ -210,6 +210,7 @@ final class AdminPage {
 			'tasks'   => \PaydarWP\PaydarPress\Tasks\TaskBoard::count(),
 			'notfound' => \PaydarWP\PaydarPress\Gsc\NotFound::counts()['valuable'],
 			'decisions' => count( \PaydarWP\PaydarPress\Strategy\TermDecisions::pending() ),
+			'broken'    => count( \PaydarWP\PaydarPress\Links\LinkFixer::posts( 500 ) ),
 		);
 	}
 

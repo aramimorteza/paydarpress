@@ -21,9 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Schema {
 
-	public const VERSION = '1.11.0';
+	public const VERSION = '1.12.0';
 
-	public const TABLES = array( 'inventory', 'links', 'audit_findings', 'scans', 'activity', 'imports', 'gsc', 'topics', 'link_suggestions', 'ai_usage', 'changes', 'redirects', 'ai_jobs', 'notfound', 'clusters', 'cluster_posts' );
+	public const TABLES = array( 'inventory', 'links', 'audit_findings', 'scans', 'activity', 'imports', 'gsc', 'topics', 'link_suggestions', 'ai_usage', 'changes', 'redirects', 'ai_jobs', 'notfound', 'clusters', 'cluster_posts', 'extlinks' );
 
 	/**
 	 * Full table name for a short name, e.g. `inventory` → `wp_paydarpress_inventory`.
@@ -59,6 +59,7 @@ final class Schema {
 		$ai_usage       = self::table( 'ai_usage' );
 		$changes        = self::table( 'changes' );
 		$ai_jobs        = self::table( 'ai_jobs' );
+		$extlinks       = self::table( 'extlinks' );
 		$notfound       = self::table( 'notfound' );
 		$clusters       = self::table( 'clusters' );
 		$cluster_posts  = self::table( 'cluster_posts' );
@@ -346,6 +347,19 @@ final class Schema {
   created_at datetime NOT NULL,
   updated_at datetime NOT NULL,
   PRIMARY KEY  (id)
+) {$charset};",
+			"CREATE TABLE {$extlinks} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  url_hash char(32) NOT NULL DEFAULT '',
+  url varchar(1000) NOT NULL DEFAULT '',
+  status varchar(20) NOT NULL DEFAULT 'pending',
+  code smallint(5) unsigned NOT NULL DEFAULT 0,
+  fails tinyint(3) unsigned NOT NULL DEFAULT 0,
+  checked_at datetime DEFAULT NULL,
+  first_seen datetime NOT NULL,
+  PRIMARY KEY  (id),
+  UNIQUE KEY url_hash (url_hash),
+  KEY status (status)
 ) {$charset};",
 			"CREATE TABLE {$cluster_posts} (
   id bigint(20) unsigned NOT NULL AUTO_INCREMENT,

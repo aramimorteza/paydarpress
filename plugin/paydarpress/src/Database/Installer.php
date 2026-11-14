@@ -159,6 +159,7 @@ final class Installer {
 			'paydarpress_webp_bulk',
 			'paydarpress_license',
 			'paydarpress_term_flags',
+			'paydarpress_extlinks_run',
 		);
 
 		foreach ( $options as $option ) {

@@ -23,7 +23,7 @@ defined( 'ABSPATH' ) || exit;
 final class TaskDetails {
 
 	/** Prefixes of task keys whose id is a post / product / page. */
-	private const POST_KEYS = array( 'refresh', 'meta', 'support', 'product', 'orphan' );
+	private const POST_KEYS = array( 'refresh', 'meta', 'support', 'product', 'orphan', 'broken' );
 
 	/** Prefixes of task keys whose id is a term. */
 	private const TERM_KEYS = array( 'category', 'term', 'shopcat', 'termtext' );
@@ -83,7 +83,11 @@ final class TaskDetails {
 		} elseif ( ! empty( $ai['url'] ) && in_array( $prefix, array( 'cluster' ), true ) ) {
 			$post_id = (int) url_to_postid( (string) $ai['url'] );
 		}
-		return $post_id > 0 ? self::for_post( $post_id ) : array();
+		$out = $post_id > 0 ? self::for_post( $post_id ) : array();
+		if ( 'broken' === $prefix && $post_id > 0 ) {
+			$out['broken'] = \PaydarWP\PaydarPress\Links\LinkFixer::problems( $post_id );
+		}
+		return $out;
 	}
 
 	/**

@@ -394,7 +394,7 @@ final class NotFound {
 	 *
 	 * @param UrlNormalizer $urls Normaliser.
 	 */
-	private static function context( UrlNormalizer $urls ): array {
+	public static function context( UrlNormalizer $urls ): array {
 		global $wpdb;
 
 		// Performance metrics of pages (from the last performance import).

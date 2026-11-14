@@ -179,6 +179,57 @@ final class StrategyController {
 				},
 			)
 		);
+		register_rest_route(
+			$ns,
+			'/broken',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'permission_callback' => $view,
+				'callback'            => static function ( $r ) {
+					$only  = (int) $r->get_param( 'post' );
+					$posts = $only > 0 ? array( $only => 0 ) : \PaydarWP\PaydarPress\Links\LinkFixer::posts( 200 );
+					$items = array();
+					$by    = array();
+					foreach ( array_keys( $posts ) as $pid ) {
+						$problems = \PaydarWP\PaydarPress\Links\LinkFixer::problems( (int) $pid );
+						if ( ! $problems ) {
+							continue;
+						}
+						$items[] = array(
+							'id'       => (int) $pid,
+							'title'    => html_entity_decode( get_the_title( (int) $pid ), ENT_QUOTES, 'UTF-8' ),
+							'url'      => (string) get_permalink( (int) $pid ),
+							'edit_url' => (string) get_edit_post_link( (int) $pid, 'raw' ),
+							'problems' => $problems,
+						);
+						foreach ( $problems as $p ) {
+							if ( in_array( $p['kind'], array( 'missing', 'unpublished' ), true ) ) {
+								$by[ $p['url'] ] = ( $by[ $p['url'] ] ?? array( 'url' => $p['url'], 'label' => $p['label'], 'pages' => 0, 'fix' => $p['fix'] ) );
+								++$by[ $p['url'] ]['pages'];
+							}
+						}
+					}
+					return new WP_REST_Response(
+						array(
+							'items'    => $items,
+							// Deleted addresses linked from 2+ pages: one redirect repairs them all.
+							'groups'   => array_values( array_filter( $by, static fn( $g ) => $g['pages'] >= 2 ) ),
+							'external' => \PaydarWP\PaydarPress\Links\ExternalLinks::status(),
+						)
+					);
+				},
+			)
+		);
+		register_rest_route(
+			$ns,
+			'/broken/fix',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'permission_callback' => $manage,
+				'callback'            => $wrap( static fn( $r ) => \PaydarWP\PaydarPress\Links\LinkFixer::fix( (int) $r->get_param( 'post' ), (string) $r->get_param( 'url' ), (string) $r->get_param( 'action' ), (int) $r->get_param( 'target' ) ) ),
+			)
+		);
+		register_rest_route( $ns, '/broken/external-run', array( 'methods' => WP_REST_Server::CREATABLE, 'permission_callback' => $manage, 'callback' => $wrap( static fn() => array( 'run' => \PaydarWP\PaydarPress\Links\ExternalLinks::maybe_run( true ), 'status' => \PaydarWP\PaydarPress\Links\ExternalLinks::status() ) ) ) );
 		$filters = static fn( $r ) => array(
 			'kind'    => (string) $r->get_param( 'kind' ),
 			'verdict' => (string) $r->get_param( 'verdict' ),

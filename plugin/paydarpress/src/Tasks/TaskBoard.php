@@ -222,6 +222,18 @@ final class TaskBoard {
 			$tasks[] = self::task( 'links:failed', 'links', sprintf( '%s لینک درج نشد؛ دلیلش را ببینید', PersianNormalizer::fa_number( $failed ) ), 'معمولاً متن لنگر در مقاله نیست یا سقف سیاست محتوا پر شده؛ متن را اصلاح یا لینک را رد کنید.', 45, 5, array( 'route' => '/links?status=failed', 'label' => 'لینک‌های ناموفق' ) );
 		}
 
+		// Broken links, images and files: one card per page, the fix is in the card.
+		$n = 0;
+		foreach ( \PaydarWP\PaydarPress\Links\LinkFixer::posts( 6 ) as $pid => $count ) {
+			if ( 'publish' !== get_post_status( $pid ) ) {
+				continue;
+			}
+			$tasks[] = self::task( 'broken:' . $pid, 'fix', sprintf( '«%s» %s لینک یا تصویر خراب دارد', html_entity_decode( get_the_title( $pid ), ENT_QUOTES, 'UTF-8' ), PersianNormalizer::fa_number( $count ) ), 'خواننده به صفحه خطا یا جای خالی می‌رسد و گوگل آن را نشانه صفحه رهاشده می‌بیند. اصلاح پیشنهادی هر مورد زیر آمده؛ با یک کلیک انجام می‌شود.', 72, max( 2, min( 10, $count * 2 ) ), array( 'url' => (string) get_edit_post_link( $pid, 'raw' ), 'label' => 'ویرایش' ) );
+			if ( ++$n >= 3 ) {
+				break;
+			}
+		}
+
 		// 5. Google opportunities (highest impressions first).
 		foreach ( self::findings( array( 'GSC_CLICK_DROP' ), 'content', 2 ) as $f ) {
 			$tasks[] = self::content_task( $f, 'refresh', 'افت کلیک: «%s» را بررسی و بازنویسی کنید', 'کلیک این صفحه نسبت به دوره قبل دست‌کم ۳۰٪ کم شده است.', 85, 40 );

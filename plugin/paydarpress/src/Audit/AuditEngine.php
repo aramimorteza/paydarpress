@@ -344,16 +344,18 @@ final class AuditEngine {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$rows = $wpdb->get_results(
-			"SELECT l.source_id, l.target_state, l.target_url, l.anchor FROM {$links} l
+			"SELECT l.source_id, l.target_state, l.target_url, l.anchor, l.link_type FROM {$links} l
 			INNER JOIN {$inventory} i ON i.object_id = l.source_id
-			WHERE l.source_type = 'content' AND l.link_type = 'internal' AND i.status = 'publish'
-				AND l.target_state IN ('missing', 'unpublished', 'redirect')
+			WHERE l.source_type = 'content' AND i.status = 'publish'
+				AND ( ( l.link_type = 'internal' AND l.target_state IN ('missing', 'unpublished', 'redirect') )
+					OR ( l.link_type IN ('image', 'asset') AND l.target_state = 'missing' ) )
 			ORDER BY l.source_id, l.id",
 			ARRAY_A
 		);
 
 		$broken     = array();
 		$redirected = array();
+		$files      = array();
 
 		foreach ( (array) $rows as $row ) {
 			$item = array(
@@ -361,7 +363,9 @@ final class AuditEngine {
 				'anchor' => $row['anchor'],
 				'state'  => $row['target_state'],
 			);
-			if ( 'redirect' === $row['target_state'] ) {
+			if ( 'internal' !== $row['link_type'] ) {
+				$files[ (int) $row['source_id'] ][] = $item;
+			} elseif ( 'redirect' === $row['target_state'] ) {
 				$redirected[ (int) $row['source_id'] ][] = $item;
 			} else {
 				$broken[ (int) $row['source_id'] ][] = $item;
@@ -373,6 +377,33 @@ final class AuditEngine {
 		}
 		foreach ( $redirected as $id => $items ) {
 			$this->add( 'REDIRECTED_INTERNAL_LINK', 'content', $id, array( 'links' => array_slice( $items, 0, 20 ), 'count' => count( $items ) ) );
+		}
+		foreach ( $files as $id => $items ) {
+			$this->add( 'BROKEN_IMAGE', 'content', $id, array( 'links' => array_slice( $items, 0, 20 ), 'count' => count( $items ) ) );
+		}
+
+		// External links confirmed broken (only when the optional check is on).
+		if ( \PaydarWP\PaydarPress\Core\Settings::get( 'links.check_external', false ) ) {
+			$ext = Schema::table( 'extlinks' );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$dead = $wpdb->get_results( "SELECT url_hash, code FROM {$ext} WHERE status = 'broken'", OBJECT_K );
+			$rows = array();
+			if ( $dead ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				foreach ( (array) $wpdb->get_results( "SELECT l.source_id, l.target_url, l.anchor FROM {$links} l INNER JOIN {$inventory} i ON i.object_id = l.source_id AND i.status = 'publish' WHERE l.source_type = 'content' AND l.link_type = 'external'", ARRAY_A ) as $row ) {
+					$h = md5( (string) $row['target_url'] );
+					if ( isset( $dead[ $h ] ) ) {
+						$rows[] = $row + array( 'code' => (int) $dead[ $h ]->code );
+					}
+				}
+			}
+			$by = array();
+			foreach ( (array) $rows as $row ) {
+				$by[ (int) $row['source_id'] ][] = array( 'url' => $row['target_url'], 'anchor' => $row['anchor'], 'state' => 'external', 'code' => (int) $row['code'] );
+			}
+			foreach ( $by as $id => $items ) {
+				$this->add( 'BROKEN_EXTERNAL_LINK', 'content', $id, array( 'links' => array_slice( $items, 0, 20 ), 'count' => count( $items ) ) );
+			}
 		}
 	}
 

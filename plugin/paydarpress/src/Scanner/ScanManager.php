@@ -325,6 +325,9 @@ final class ScanManager {
 		$this->recover_stalled();
 		Activity::prune();
 		\PaydarWP\PaydarPress\Export\InventoryExporter::cleanup();
+		\PaydarWP\PaydarPress\Strategy\Redirects::flatten();
+		\PaydarWP\PaydarPress\Import\LinkSuggestionRepository::prune();
+		\PaydarWP\PaydarPress\Links\ExternalLinks::maybe_run();
 	}
 
 	/**

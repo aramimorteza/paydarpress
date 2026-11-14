@@ -106,7 +106,47 @@ final class Redirects {
 			return $id;
 		}
 		$wpdb->insert( $table, $data ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		return (int) $wpdb->insert_id;
+		$new = (int) $wpdb->insert_id;
+		self::flatten();
+		return $new;
+	}
+
+	/**
+	 * Shortens chains: when a redirect's target is itself redirected (A → B, then B → C),
+	 * A points straight to C. Only PaydarPress's own redirects; content does not change,
+	 * so this runs automatically (daily and after each new redirect).
+	 *
+	 * @return int Redirects shortened.
+	 */
+	public static function flatten(): int {
+		global $wpdb;
+		$table = Schema::table( 'redirects' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows = $wpdb->get_results( "SELECT id, source_path, target_url, target_id FROM {$table}", ARRAY_A );
+		$by   = array();
+		foreach ( (array) $rows as $r ) {
+			$by[ (string) $r['source_path'] ] = $r;
+		}
+		$n = 0;
+		foreach ( (array) $rows as $r ) {
+			$url  = (string) $r['target_url'];
+			$id   = $r['target_id'] ? (int) $r['target_id'] : null;
+			$hops = 0;
+			while ( $hops < 5 && isset( $by[ self::path( $url ) ] ) && self::path( $url ) !== (string) $r['source_path'] ) {
+				$next = $by[ self::path( $url ) ];
+				$url  = (string) $next['target_url'];
+				$id   = $next['target_id'] ? (int) $next['target_id'] : null;
+				++$hops;
+			}
+			if ( $hops > 0 && self::path( $url ) !== (string) $r['source_path'] ) {
+				$wpdb->update( $table, array( 'target_url' => esc_url_raw( $url ), 'target_id' => $id ), array( 'id' => (int) $r['id'] ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+				++$n;
+			}
+		}
+		if ( $n > 0 ) {
+			\PaydarWP\PaydarPress\Core\Activity::log( 'redirects.flattened', sprintf( '%d ریدایرکت زنجیره‌ای کوتاه شد و مستقیم به مقصد نهایی می‌رود.', $n ) );
+		}
+		return $n;
 	}
 
 	/**

@@ -36,7 +36,7 @@ final class ContentScanner {
 	 * Bump whenever extraction or detection logic changes (year rules, alt rules, word count…),
 	 * so the next scan reprocesses items whose content itself has not changed.
 	 */
-	public const LOGIC_VERSION = 3;
+	public const LOGIC_VERSION = 4;
 
 	/** @var HtmlExtractor */
 	private $html;
@@ -114,6 +114,7 @@ final class ContentScanner {
 		}
 
 		$link_stats = $this->store_links( $post_id, $extracted->links, $permalink );
+		$this->store_images( $post_id, $extracted->images, $permalink );
 		$images     = $this->image_stats( $extracted );
 
 		if ( $thumbnail_id > 0 && '' !== $thumb_alt && AltQuality::is_generic( $thumb_alt, (string) wp_get_attachment_url( $thumbnail_id ) ) ) {
@@ -238,7 +239,7 @@ final class ContentScanner {
 				++$stats['external'];
 			} elseif ( $this->urls->is_asset( $url ) ) {
 				$type  = 'asset';
-				$state = 'unknown';
+				$state = self::local_file_state( $url );
 			} else {
 				$type  = 'internal';
 				$state = 'pending';
@@ -261,6 +262,58 @@ final class ContentScanner {
 		}
 
 		return $stats;
+	}
+
+	/**
+	 * Images in the text as link rows (link_type image), with whether the file still exists.
+	 *
+	 * @param int    $post_id   Post.
+	 * @param array  $images    Extracted images.
+	 * @param string $permalink Base URL.
+	 */
+	private function store_images( int $post_id, array $images, string $permalink ): void {
+		global $wpdb;
+		$table = Schema::table( 'links' );
+		$seen  = array();
+		foreach ( $images as $image ) {
+			$url = $this->urls->absolute( (string) $image['src'], $permalink );
+			if ( null === $url || ! $this->urls->is_internal( $url ) || isset( $seen[ $url ] ) ) {
+				continue;
+			}
+			$seen[ $url ] = true;
+			$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+				$table,
+				array(
+					'source_id'    => $post_id,
+					'source_type'  => 'content',
+					'target_url'   => mb_substr( $url, 0, 500 ),
+					'anchor'       => mb_substr( (string) ( $image['alt'] ?? '' ), 0, 255 ),
+					'link_type'    => 'image',
+					'target_state' => self::local_file_state( $url ),
+				),
+				array( '%d', '%s', '%s', '%s', '%s', '%s' )
+			);
+		}
+	}
+
+	/**
+	 * Whether a file under the uploads folder exists ('ok' / 'missing'; 'unknown' elsewhere).
+	 *
+	 * @param string $url Absolute URL.
+	 */
+	public static function local_file_state( string $url ): string {
+		$uploads = wp_get_upload_dir();
+		$base    = (string) wp_parse_url( (string) $uploads['baseurl'], PHP_URL_PATH );
+		$path    = rawurldecode( (string) wp_parse_url( $url, PHP_URL_PATH ) );
+		if ( '' === $base || ! str_starts_with( $path, $base . '/' ) ) {
+			return 'unknown';
+		}
+		$rel  = substr( $path, strlen( $base ) );
+		$file = wp_normalize_path( $uploads['basedir'] . $rel );
+		if ( str_contains( $rel, '..' ) ) {
+			return 'unknown';
+		}
+		return file_exists( $file ) ? 'ok' : 'missing';
 	}
 
 	/**
