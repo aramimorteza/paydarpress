@@ -6,7 +6,7 @@ import AiButton from '../components/AiButton';
 import BrokenFixes from '../components/BrokenFixes';
 import { get, post, errorMessage } from '../lib/api';
 import { num } from '../lib/format';
-import { refreshCommand, metaCommand, supportCommand, topicArticleCommand, topicsCommand, termCommand, termTextCommand, altCommand } from '../lib/aiCommands';
+import { refreshCommand, metaCommand, supportCommand, topicArticleCommand, topicsCommand, termCommand, termTextCommand, altCommand, slugsCommand } from '../lib/aiCommands';
 
 const config = window.paydarpress || {};
 
@@ -76,6 +76,8 @@ export function aiFor( ai ) {
 			return termTextCommand( ai.title, ai.id );
 		case 'alt':
 			return altCommand( ai.title || '', ai.id || 0 );
+		case 'slugs':
+			return slugsCommand();
 	}
 	return null;
 }
@@ -215,6 +217,7 @@ export default function TasksPage() {
 						<span>{ num( data.week.length ) } کار برای این هفته</span>
 						{ data.done_week > 0 && <span className="pp-ok">✓ { num( data.done_week ) } کار در ۷ روز اخیر انجام شد</span> }
 						<span className="pp-muted">مقاله جدید این ماه: { num( data.policy.published ) } از { num( data.policy.budget ) }</span>
+						{ data.budget && <a className="pp-muted" href="#/settings?tab=improve" title="زمان کار هفتگی در تنظیمات ← برنامه بهبود">زمان این هفته: { num( data.minutes ) } از { num( data.budget ) } دقیقه</a> }
 						{ data.stage && <a className="pp-muted" href="#/settings?tab=policy">مرحله سایت: { data.stage.label }</a> }
 					</div>
 					{ data.stage && 'new' === data.stage.stage && <Notice status="info" isDismissible={ false }>{ data.stage.advice }</Notice> }

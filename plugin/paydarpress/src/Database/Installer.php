@@ -160,6 +160,10 @@ final class Installer {
 			'paydarpress_license',
 			'paydarpress_term_flags',
 			'paydarpress_extlinks_run',
+			'paydarpress_tag_dups',
+			'paydarpress_slug_plan',
+			'paydarpress_slug_state',
+			'paydarpress_progress',
 		);
 
 		foreach ( $options as $option ) {

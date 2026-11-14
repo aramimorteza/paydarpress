@@ -104,6 +104,7 @@ final class ContentMasterController {
 					'new_terms'        => $ids,
 					'classifications'  => $ids,
 					'cluster_plans'    => $ids,
+					'slugs'            => $ids,
 				),
 			)
 		);
@@ -220,6 +221,7 @@ final class ContentMasterController {
 					'new_terms'        => (array) $request->get_param( 'new_terms' ),
 					'classifications'  => (array) $request->get_param( 'classifications' ),
 					'cluster_plans'    => (array) $request->get_param( 'cluster_plans' ),
+					'slugs'            => (array) $request->get_param( 'slugs' ),
 					// Per rewrite: which tag / category / address changes the owner ticked.
 					'plans'            => is_array( $request->get_param( 'plans' ) ) ? $request->get_param( 'plans' ) : array(),
 				)

@@ -63,6 +63,7 @@ final class ImportParser {
 		$classes  = self::items( $data['classifications'] ?? array(), 2000, 'classifications', $notices );
 		$seo      = self::items( $data['seo_updates'] ?? array(), 100, 'seo_updates', $notices );
 		$struct   = self::items( $data['structure_suggestions'] ?? array(), 30, 'structure_suggestions', $notices );
+		$slugs    = self::items( $data['slugs'] ?? array(), 200, 'slugs', $notices );
 
 		$out = array(
 			'meta'             => array(
@@ -78,6 +79,14 @@ final class ImportParser {
 			'cluster_plans'    => array_values( array_filter( array( self::cluster_plan( $data['cluster_plan'] ?? null ) ) ) ),
 			'seo_updates'      => array_values( array_filter( array_map( array( self::class, 'seo_update' ), $seo ) ) ),
 			'structure_suggestions' => array_values( array_filter( array_map( array( self::class, 'structure_suggestion' ), $struct ) ) ),
+			'slugs'            => array_values(
+				array_filter(
+					array_map(
+						static fn( $r ) => is_array( $r ) && null !== self::int( $r['id'] ?? null ) && '' !== self::str( $r['slug'] ?? '', 120 ) ? array( 'id' => (int) self::int( $r['id'] ), 'slug' => sanitize_title( self::str( $r['slug'], 120 ) ) ) : null,
+						$slugs
+					)
+				)
+			),
 			'notes'            => self::str( $data['notes'] ?? '', 3000 ),
 			'notices'          => $notices,
 		);
@@ -94,7 +103,7 @@ final class ImportParser {
 			$out['articles'][] = $article;
 		}
 
-		if ( array() === $out['topics'] && array() === $out['articles'] && array() === $out['link_suggestions'] && array() === $out['term_descriptions'] && array() === $out['seo_updates'] && array() === $out['structure_suggestions'] && array() === $out['image_alts'] && array() === $out['classifications'] && array() === $out['cluster_plans'] ) {
+		if ( array() === $out['topics'] && array() === $out['articles'] && array() === $out['link_suggestions'] && array() === $out['term_descriptions'] && array() === $out['seo_updates'] && array() === $out['structure_suggestions'] && array() === $out['image_alts'] && array() === $out['classifications'] && array() === $out['cluster_plans'] && array() === $out['slugs'] ) {
 			if ( '' !== $out['notes'] ) {
 				throw new RuntimeException( 'هوش مصنوعی چیزی برای ورود نساخت و این توضیح را داد: ' . $out['notes'] );
 			}
@@ -419,13 +428,25 @@ final class ImportParser {
 				);
 			}
 		}
+		// Tag clean-up: current tags to remove, each with a reason.
+		$remove = array();
+		foreach ( array_slice( is_array( $raw['remove_tags'] ?? null ) ? $raw['remove_tags'] : array(), 0, 20 ) as $m ) {
+			$name = is_array( $m ) ? self::str( (string) ( $m['tag'] ?? $m['name'] ?? '' ), 100 ) : ( is_scalar( $m ) ? self::str( (string) $m, 100 ) : '' );
+			if ( '' !== $name ) {
+				$remove[] = array(
+					'term'   => $name,
+					'reason' => is_array( $m ) ? self::str( (string) ( $m['reason'] ?? '' ), 200 ) : '',
+				);
+			}
+		}
 		return array(
 			'id'               => $id,
 			'add_categories'   => $list( $raw['add_categories'] ?? array(), 3 ),
 			'primary_category' => self::str( $raw['primary_category'] ?? '', 100 ),
-			'add_tags'         => $list( $raw['add_tags'] ?? array(), 5 ),
+			'add_tags'         => $list( $raw['add_tags'] ?? array(), 10 ),
 			'new_tags'         => $list( $raw['new_tags'] ?? array(), 2 ),
 			'misfit'           => $misfit,
+			'remove_tags'      => $remove,
 		);
 	}
 

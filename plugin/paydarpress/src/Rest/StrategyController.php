@@ -152,7 +152,7 @@ final class StrategyController {
 					$kinds = \PaydarWP\PaydarPress\Strategy\Classifier::kinds();
 					$kind  = (string) $request->get_param( 'kind' );
 					$kind  = isset( $kinds[ $kind ] ) ? $kind : (string) array_key_first( $kinds );
-					$scope = 'all' === $request->get_param( 'scope' ) ? 'all' : 'weak';
+					$scope = in_array( $request->get_param( 'scope' ), array( 'all', 'cleanup' ), true ) ? (string) $request->get_param( 'scope' ) : 'weak';
 					return new WP_REST_Response(
 						\PaydarWP\PaydarPress\Strategy\Classifier::plan( $kind, $scope ) + array(
 							'kinds'  => array_map( static fn( $k ) => $k['label'], $kinds ),
@@ -230,6 +230,83 @@ final class StrategyController {
 			)
 		);
 		register_rest_route( $ns, '/broken/external-run', array( 'methods' => WP_REST_Server::CREATABLE, 'permission_callback' => $manage, 'callback' => $wrap( static fn() => array( 'run' => \PaydarWP\PaydarPress\Links\ExternalLinks::maybe_run( true ), 'status' => \PaydarWP\PaydarPress\Links\ExternalLinks::status() ) ) ) );
+		// Improvement program.
+		register_rest_route(
+			$ns,
+			'/progress',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'permission_callback' => $view,
+				'callback'            => static function () {
+					$now = \PaydarWP\PaydarPress\Improve\Progress::now();
+					return new WP_REST_Response(
+						array(
+							'now'      => $now,
+							'history'  => \PaydarWP\PaydarPress\Improve\Progress::history(),
+							'tags'     => \PaydarWP\PaydarPress\Improve\TagProgram::state() + array(
+								'suggested' => \PaydarWP\PaydarPress\Improve\TagProgram::suggested(),
+								'groups'    => array_slice( \PaydarWP\PaydarPress\Improve\TagProgram::groups(), 0, 10 ),
+							),
+							'slugs'    => \PaydarWP\PaydarPress\Improve\SlugProgram::state(),
+							'settings' => array(
+								'weekly_minutes' => (int) \PaydarWP\PaydarPress\Core\Settings::get( 'improve.weekly_minutes', 120 ),
+								'slugs_per_week' => (int) \PaydarWP\PaydarPress\Core\Settings::get( 'improve.slugs_per_week', 10 ),
+								'brake_drop'     => (int) \PaydarWP\PaydarPress\Core\Settings::get( 'improve.brake_drop', 20 ),
+							),
+						)
+					);
+				},
+			)
+		);
+		register_rest_route( $ns, '/progress/slugs/apply', array( 'methods' => WP_REST_Server::CREATABLE, 'permission_callback' => $manage, 'callback' => $wrap( static fn( $r ) => \PaydarWP\PaydarPress\Improve\SlugProgram::apply( (array) $r->get_param( 'items' ), (bool) $r->get_param( 'busy_ok' ) ) ) ) );
+		register_rest_route( $ns, '/progress/slugs/plan', array( 'methods' => WP_REST_Server::CREATABLE, 'permission_callback' => $manage, 'callback' => $wrap( static fn( $r ) => array( 'stored' => \PaydarWP\PaydarPress\Improve\SlugProgram::store( array( (int) $r->get_param( 'id' ) => (string) $r->get_param( 'slug' ) ) ) ) ) ) );
+		register_rest_route(
+			$ns,
+			'/progress/slugs/resume',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'permission_callback' => $manage,
+				'callback'            => $wrap(
+					static function () {
+						\PaydarWP\PaydarPress\Improve\SlugProgram::resume();
+						return array( 'ok' => true );
+					}
+				),
+			)
+		);
+		register_rest_route(
+			$ns,
+			'/progress/tags/create',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'permission_callback' => $manage,
+				'callback'            => $wrap(
+					static function ( $r ) {
+						$tax  = 'product_tag' === $r->get_param( 'taxonomy' ) && taxonomy_exists( 'product_tag' ) ? 'product_tag' : 'post_tag';
+						$name = sanitize_text_field( (string) $r->get_param( 'name' ) );
+						if ( '' === $name || mb_strlen( $name ) > 60 ) {
+							throw new \RuntimeException( 'نام برچسب معتبر نیست.' );
+						}
+						$t = term_exists( $name, $tax );
+						$t = $t ? $t : wp_insert_term( $name, $tax );
+						if ( is_wp_error( $t ) ) {
+							throw new \RuntimeException( $t->get_error_message() );
+						}
+						\PaydarWP\PaydarPress\Core\Activity::log( 'improve.tag_created', 'برچسب «' . $name . '» از جست‌وجوهای گوگل ساخته شد.', 'term', (int) $t['term_id'] );
+						return array( 'ok' => true, 'message' => 'برچسب «' . $name . '» ساخته شد. با «طبقه‌بندی محتوای موجود» به مطالب مناسب داده می‌شود.' );
+					}
+				),
+			)
+		);
+		register_rest_route(
+			$ns,
+			'/progress/tags/sweep',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'permission_callback' => $manage,
+				'callback'            => $wrap( static fn() => array( 'groups' => count( \PaydarWP\PaydarPress\Improve\TagProgram::sweep() ) ) ),
+			)
+		);
 		$filters = static fn( $r ) => array(
 			'kind'    => (string) $r->get_param( 'kind' ),
 			'verdict' => (string) $r->get_param( 'verdict' ),

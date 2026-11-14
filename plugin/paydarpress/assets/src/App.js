@@ -13,6 +13,7 @@ import { ChangesPage, RedirectsPage } from './pages/ChangesPages';
 import NotFoundPage from './pages/NotFoundPage';
 import DecisionsPage from './pages/DecisionsPage';
 import BrokenPage from './pages/BrokenPage';
+import ProgressPage from './pages/ProgressPage';
 import { SupportPage, LicensePage } from './pages/SupportPages';
 import ClustersPage from './pages/ClustersPage';
 import Inventory from './pages/Inventory';
@@ -87,6 +88,8 @@ export default function App() {
 		page = <SupportPage />;
 	} else if ( '/license' === path ) {
 		page = <LicensePage />;
+	} else if ( '/progress' === path ) {
+		page = <ProgressPage />;
 	} else if ( '/broken' === path ) {
 		page = <BrokenPage />;
 	} else if ( '/decisions' === path ) {

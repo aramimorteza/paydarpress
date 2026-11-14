@@ -145,6 +145,33 @@ final class ImportService {
 		}
 		$alt_items = $this->check_alts( (array) ( $parsed['image_alts'] ?? array() ) );
 		$classes   = $this->check_classifications( (array) ( $parsed['classifications'] ?? array() ) );
+		// English slugs for the address program (stored as suggestions; nothing changes yet).
+		$slug_items = array();
+		$used       = array();
+		foreach ( (array) ( $parsed['slugs'] ?? array() ) as $i => $sl ) {
+			$post   = get_post( (int) $sl['id'] );
+			$checks = array();
+			if ( ! $post instanceof \WP_Post || 'publish' !== $post->post_status ) {
+				$checks[] = array( 'error', 'صفحه پیدا نشد.' );
+			} elseif ( '' === self::poor_slug( rawurldecode( $post->post_name ), $post ) ) {
+				$checks[] = array( 'error', 'آدرس فعلی مناسب است و تغییر نمی‌کند.' );
+			} elseif ( ! \PaydarWP\PaydarPress\Improve\SlugProgram::valid( $sl['slug'] ) ) {
+				$checks[] = array( 'error', 'نامک معتبر نیست (حروف کوچک لاتین، عدد و خط تیره، حداکثر ۸ کلمه).' );
+			} elseif ( isset( $used[ $sl['slug'] ] ) || get_page_by_path( $sl['slug'], OBJECT, array( 'post', 'page', 'product' ) ) ) {
+				$checks[] = array( 'warning', 'این نامک تکراری است؛ وردپرس عددی به انتهایش اضافه می‌کند. بهتر است ویرایشش کنید.' );
+			}
+			$used[ $sl['slug'] ] = true;
+			$slug_items[]        = $this->with_checks(
+				array(
+					'index' => $i,
+					'id'    => (int) $sl['id'],
+					'title' => $post instanceof \WP_Post ? html_entity_decode( $post->post_title, ENT_QUOTES, 'UTF-8' ) : '#' . (int) $sl['id'],
+					'from'  => $post instanceof \WP_Post ? rawurldecode( $post->post_name ) : '',
+					'slug'  => $sl['slug'],
+				),
+				$checks
+			);
+		}
 		$struct_items = array();
 		foreach ( $parsed['structure_suggestions'] as $i => $st ) {
 			$struct_items[] = $this->check_structure( $i, $st );
@@ -169,6 +196,7 @@ final class ImportService {
 			'new_terms'        => $classes['new_terms'],
 			'classifications'  => $classes['items'],
 			'cluster_plans'    => $cluster_plans,
+			'slugs'            => $slug_items,
 		);
 
 		set_transient( $this->transient_key( $token ), $payload, self::TTL );
@@ -204,7 +232,7 @@ final class ImportService {
 
 		$pick = static function ( string $section ) use ( $selection, $preview ): array {
 			$wanted = array_map( 'intval', (array) ( $selection[ $section ] ?? array() ) );
-			return array_values( array_filter( $preview[ $section ], static fn( $item ) => in_array( (int) $item['index'], $wanted, true ) && ! $item['blocked'] ) );
+			return array_values( array_filter( (array) ( $preview[ $section ] ?? array() ), static fn( $item ) => in_array( (int) $item['index'], $wanted, true ) && ! $item['blocked'] ) );
 		};
 
 		$now = current_time( 'mysql', true );
@@ -227,6 +255,7 @@ final class ImportService {
 			'terms'            => 0,
 			'seo'              => 0,
 			'alts'             => 0,
+			'slugs'            => 0,
 			'classified'       => 0,
 			'new_terms'        => 0,
 			'notes'            => array(),
@@ -240,6 +269,7 @@ final class ImportService {
 			'new_terms'         => array(),
 			'classifications'   => array(),
 			'cluster_plans'     => array(),
+			'slugs'             => array(),
 		);
 
 		foreach ( $pick( 'topics' ) as $topic ) {
@@ -356,6 +386,14 @@ final class ImportService {
 			} else {
 				$result['errors'][] = $done;
 			}
+		}
+
+		$slug_map = array();
+		foreach ( $pick( 'slugs' ) as $sl ) {
+			$slug_map[ (int) $sl['id'] ] = $sl['slug'];
+		}
+		if ( $slug_map ) {
+			$result['slugs'] = \PaydarWP\PaydarPress\Improve\SlugProgram::store( $slug_map );
 		}
 
 		$alt_posts = array();
@@ -1306,6 +1344,15 @@ final class ImportService {
 				}
 			}
 
+			// Clean-up: remove current tags the assistant found unrelated (owner ticks the item).
+			$remove_tag = array();
+			foreach ( (array) ( $c['remove_tags'] ?? array() ) as $m ) {
+				$t = $known[ $kind ][ $k['tag'] ][ $norm( $m['term'] ) ] ?? null;
+				if ( $t && in_array( (int) $t->term_id, $cur_tag, true ) ) {
+					$remove_tag[ (int) $t->term_id ] = html_entity_decode( $t->name, ENT_QUOTES, 'UTF-8' ) . ( '' !== $m['reason'] ? ' — ' . $m['reason'] : '' );
+				}
+			}
+
 			foreach ( $new_tag as $name ) {
 				$key = $k['tag'] . '|' . $norm( $name );
 				if ( ! isset( $new[ $key ] ) ) {
@@ -1318,7 +1365,7 @@ final class ImportService {
 				$new[ $key ]['posts'][] = html_entity_decode( get_the_title( $post ), ENT_QUOTES, 'UTF-8' );
 			}
 
-			$noop = ! $add_cat && ! $add_tag && ! $new_tag && ! $primary_id;
+			$noop = ! $add_cat && ! $add_tag && ! $new_tag && ! $primary_id && ! $remove_tag;
 			if ( $noop ) {
 				$checks[] = array( 'info', 'تغییری لازم نیست' . ( $misfit ? '؛ موارد نامرتبط برای تصمیم شما ثبت می‌شوند.' : '.' ) );
 			}
@@ -1351,6 +1398,8 @@ final class ImportService {
 					'primary_name'   => $primary_name,
 					'primary_from'   => $primary_from,
 					'misfit'         => $misfit,
+					'remove_tag_ids'   => array_keys( $remove_tag ),
+					'remove_tag_names' => array_values( $remove_tag ),
 					'noop'           => $noop,
 					// Products and new tags are never pre-selected.
 					'manual'         => 'product' === $kind,

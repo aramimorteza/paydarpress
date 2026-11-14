@@ -475,6 +475,7 @@ final class SettingsController {
 			'audit'       => 'ممیزی',
 			'retention'   => 'نگهداری داده',
 			'links'       => 'لینک‌ها',
+			'improve'     => 'برنامه بهبود',
 			'ui'          => 'ظاهر',
 			'uninstall'   => 'حذف افزونه',
 		);

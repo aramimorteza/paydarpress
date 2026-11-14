@@ -15,6 +15,7 @@ const SECTIONS = [
 	[ 'image_alts', 'متن جایگزین' ],
 	[ 'new_terms', 'برچسب تازه' ],
 	[ 'classifications', 'طبقه‌بندی' ],
+	[ 'slugs', 'نامک انگلیسی' ],
 ];
 
 const LEVEL = { duplicate: 'pp-check--duplicate', error: 'pp-check--error', warning: 'pp-check--warning', info: 'pp-check--info' };
@@ -53,6 +54,9 @@ function itemTitle( section, item ) {
 		if ( tags.length ) {
 			parts.push( `+ برچسب: ${ tags.join( '، ' ) }` );
 		}
+		if ( item.remove_tag_names && item.remove_tag_names.length ) {
+			parts.push( `− برچسب: ${ item.remove_tag_names.join( '، ' ) }` );
+		}
 		return `«${ item.title }» — ${ parts.length ? parts.join( ' · ' ) : 'بدون تغییر' }`;
 	}
 	if ( 'cluster_plans' === section ) {
@@ -63,6 +67,9 @@ function itemTitle( section, item ) {
 	}
 	if ( 'new_terms' === section ) {
 		return `«${ item.name }» برای ${ item.count } مطلب`;
+	}
+	if ( 'slugs' === section ) {
+		return `«${ item.title }»: ${ item.from } ← ${ item.slug }`;
 	}
 	if ( 'image_alts' === section ) {
 		return `«${ item.alt }» — ${ 'featured' === item.kind ? 'تصویر شاخص' : 'تصویر' } «${ item.post_title }»${ item.heading ? ` (بخش «${ item.heading }»)` : '' }`;
@@ -160,6 +167,7 @@ export default function InlineImport( { job = 0, batch = 0, onClosed } ) {
 						result.classified ? `طبقه‌بندی ${ num( result.classified ) } مطلب` : '',
 						result.clusters ? `${ num( result.clusters ) } خوشه` : '',
 						result.new_terms ? `${ num( result.new_terms ) } برچسب تازه` : '',
+						result.slugs ? `${ num( result.slugs ) } نامک انگلیسی برای برنامه آدرس‌ها (آدرس‌ها هنوز عوض نشده‌اند)` : '',
 					].filter( Boolean ).join( '، ' ) || 'موردی' }.
 				</Notice>
 				{ result.articles.length > 0 && (

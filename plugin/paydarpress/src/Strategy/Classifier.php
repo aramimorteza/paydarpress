@@ -66,6 +66,14 @@ final class Classifier {
 		$skip  = array_flip( $skip );
 
 		$default = (int) get_option( 'default_category' );
+		$flagged = array();
+		if ( 'cleanup' === $scope ) {
+			foreach ( (array) get_option( self::FLAGS, array() ) as $f ) {
+				if ( is_array( $f ) && isset( $f['post'] ) ) {
+					$flagged[ (int) $f['post'] ] = true;
+				}
+			}
+		}
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
@@ -91,6 +99,10 @@ final class Classifier {
 				continue;
 			}
 			if ( 'weak' === $scope && (int) $r['cats'] > 0 && ( (int) $r['tags'] >= 2 || ! taxonomy_exists( $k['tag'] ) ) ) {
+				continue;
+			}
+			// Clean-up: items over the tag cap or with tags reported as unrelated.
+			if ( 'cleanup' === $scope && (int) $r['tags'] <= TaxonomyMap::max_tags( $k['tag'] ) && ! isset( $flagged[ $id ] ) ) {
 				continue;
 			}
 			$out[] = $id;
@@ -235,6 +247,13 @@ final class Classifier {
 			}
 		}
 
+		// Tag clean-up: removals the owner approved (restored by undo).
+		$remove = array_map( 'intval', (array) ( $c['remove_tag_ids'] ?? array() ) );
+		if ( $remove && taxonomy_exists( $k['tag'] ) ) {
+			wp_remove_object_terms( $post->ID, $remove, $k['tag'] );
+			$undo['removed'] = array( 'taxonomy' => $k['tag'], 'ids' => $remove );
+		}
+
 		// Primary category (posts only; stored by the SEO plugin).
 		$primary = (int) ( $c['primary_id'] ?? 0 );
 		if ( $primary > 0 && 'post' === $post->post_type ) {
@@ -331,6 +350,9 @@ final class Classifier {
 				if ( $term instanceof WP_Term ) {
 					wp_remove_object_terms( $post->ID, (int) $term_id, $term->taxonomy );
 				}
+			}
+			if ( ! empty( $u['removed']['ids'] ) ) {
+				wp_set_object_terms( $post->ID, array_map( 'intval', (array) $u['removed']['ids'] ), (string) $u['removed']['taxonomy'], true );
 			}
 			if ( ! empty( $u['removed_default'] ) && ! wp_get_post_categories( $post->ID ) ) {
 				wp_set_object_terms( $post->ID, array( (int) $u['removed_default'] ), 'category', true );

@@ -31,6 +31,7 @@ final class ChangeLog {
 		'redirect' => 'ریدایرکت ۴۰۴',
 		'cluster'  => 'خوشه محتوایی',
 		'alt'      => 'متن جایگزین تصویر',
+		'slug'     => 'تغییر آدرس',
 	);
 
 	/** Kinds Search Console cannot judge (no page traffic tied to them). */

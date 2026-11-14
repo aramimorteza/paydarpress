@@ -1,6 +1,6 @@
 {
 	"name": "paydarpress",
-	"version": "0.29.1",
+	"version": "0.29.2",
 	"private": true,
 	"description": "PaydarPress admin UI",
 	"scripts": {

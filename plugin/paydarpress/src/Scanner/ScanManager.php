@@ -328,6 +328,8 @@ final class ScanManager {
 		\PaydarWP\PaydarPress\Strategy\Redirects::flatten();
 		\PaydarWP\PaydarPress\Import\LinkSuggestionRepository::prune();
 		\PaydarWP\PaydarPress\Links\ExternalLinks::maybe_run();
+		\PaydarWP\PaydarPress\Improve\TagProgram::groups();
+		\PaydarWP\PaydarPress\Improve\Progress::snapshot();
 	}
 
 	/**

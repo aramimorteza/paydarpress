@@ -13,6 +13,7 @@ export const SECTIONS = [
 		pages: [
 			{ path: '/tasks', label: 'کارهای این هفته', badge: 'tasks', accent: true },
 			{ path: '/', label: 'نمای کلی' },
+			{ path: '/progress', label: 'برنامه بهبود' },
 		],
 	},
 	{

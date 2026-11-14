@@ -250,11 +250,11 @@ final class AiController {
 	public function batch_start( WP_REST_Request $request ) {
 		try {
 			$kind   = sanitize_key( (string) $request->get_param( 'kind' ) );
-			$scope  = 'all' === $request->get_param( 'scope' ) ? 'all' : 'weak';
+			$scope  = in_array( $request->get_param( 'scope' ), array( 'all', 'cleanup' ), true ) ? (string) $request->get_param( 'scope' ) : 'weak';
 			$ids    = \PaydarWP\PaydarPress\Strategy\Classifier::candidates( $kind, $scope );
-			$chunks = array_map( static fn( $c ) => array( 'ids' => implode( ',', $c ) ), array_chunk( $ids, \PaydarWP\PaydarPress\Strategy\Classifier::CHUNK ) );
+			$chunks = array_map( static fn( $c ) => array( 'ids' => implode( ',', $c ), 'scope' => $scope ), array_chunk( $ids, \PaydarWP\PaydarPress\Strategy\Classifier::CHUNK ) );
 			$label  = \PaydarWP\PaydarPress\Strategy\Classifier::kind( $kind )['label'];
-			$batch  = AiJobs::start_batch( 'classify', $chunks, 'طبقه‌بندی ' . $label . ( 'all' === $scope ? ' (همه)' : ' (کم‌طبقه‌بندی‌شده)' ) );
+			$batch  = AiJobs::start_batch( 'classify', $chunks, 'طبقه‌بندی ' . $label . ( array( 'all' => ' (همه)', 'cleanup' => ' (پاک‌سازی برچسب‌ها)' )[ $scope ] ?? ' (کم‌طبقه‌بندی‌شده)' ) );
 		} catch ( RuntimeException $e ) {
 			return new WP_Error( 'paydarpress_ai_batch', $e->getMessage(), array( 'status' => 400 ) );
 		}

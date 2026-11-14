@@ -147,13 +147,14 @@ export default function ClassifyPanel() {
 					__nextHasNoMarginBottom
 					label={ <>دامنه <span className="pp-default">پیش‌فرض: کم‌طبقه‌بندی‌شده</span></> }
 					value={ scope }
-					options={ [ { value: 'weak', label: 'کم‌طبقه‌بندی‌شده (بدون دسته واقعی یا کمتر از ۲ برچسب)' }, { value: 'all', label: 'همه مطالب منتشرشده' } ] }
+					options={ [ { value: 'weak', label: 'کم‌طبقه‌بندی‌شده (بدون دسته واقعی یا کمتر از ۲ برچسب)' }, { value: 'all', label: 'همه مطالب منتشرشده' }, { value: 'cleanup', label: 'پاک‌سازی برچسب‌ها (بیش از سقف یا نامرتبط گزارش‌شده)' } ] }
 					onChange={ setScope }
 				/>
 			</div>
 			<p>
 				{ num( plan.items ) } { plan.unit } نیاز به بررسی دارد؛ { num( plan.requests ) } درخواست هوش مصنوعی ({ num( plan.chunk ) } مطلب در هر درخواست).
 				{ 'product' === plan.kind && ' محصولات پیش از ورود باید یکی‌یکی تأیید شوند (اثر روی منو و فیلتر فروشگاه).' }
+				{ 'cleanup' === scope && ' در پاک‌سازی، هوش مصنوعی برچسب‌های نامرتبط را با دلیل پیشنهاد می‌دهد؛ حذف فقط برای مواردی که تیک بزنید انجام می‌شود و با «بازگرداندن» برمی‌گردد.' }
 			</p>
 			{ canManage && plan.items > 0 && (
 				<div className="pp-ai-modal__row">

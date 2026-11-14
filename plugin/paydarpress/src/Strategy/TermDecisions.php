@@ -39,7 +39,8 @@ final class TermDecisions {
 	public const REASONS = array(
 		'empty'  => 'بدون مطلب',
 		'thin'   => 'کم‌مطلب',
-		'misfit' => 'به برخی مطالبش نمی‌خورد',
+		'misfit'    => 'به برخی مطالبش نمی‌خورد',
+		'duplicate' => 'تکراری',
 	);
 
 	/**
@@ -58,7 +59,9 @@ final class TermDecisions {
 			'product_cat' => 1,
 			'product_tag' => 2,
 		);
-		$out = array();
+		$dups    = \PaydarWP\PaydarPress\Improve\TagProgram::merge_map();
+		$targets = array_flip( array_map( static fn( $d ) => (int) $d['into']['id'], $dups ) );
+		$out     = array();
 		foreach ( array_keys( TaxonomyMap::taxonomies() ) as $tax ) {
 			if ( '' !== $taxonomy && $tax !== $taxonomy ) {
 				continue;
@@ -71,8 +74,9 @@ final class TermDecisions {
 				$decision = (string) ( $n['decision'] ?? '' );
 				$until    = (int) ( $n['until'] ?? 0 );
 				$misfit   = isset( $flags[ (int) $t->term_id ] );
-				$reason   = $misfit ? 'misfit' : ( 0 === (int) $t->count ? 'empty' : ( (int) $t->count < $thin[ $tax ] ? 'thin' : '' ) );
-				if ( '' === $reason ) {
+				$reason   = $misfit ? 'misfit' : ( isset( $dups[ (int) $t->term_id ] ) ? 'duplicate' : ( 0 === (int) $t->count ? 'empty' : ( (int) $t->count < $thin[ $tax ] ? 'thin' : '' ) ) );
+				// A merge target gets its posts from the duplicate card; no separate "thin" card.
+				if ( '' === $reason || ( isset( $targets[ (int) $t->term_id ] ) && in_array( $reason, array( 'thin', 'empty' ), true ) ) ) {
 					continue;
 				}
 				// A kept term is not asked again (only new misfit reports reopen it).
@@ -91,7 +95,7 @@ final class TermDecisions {
 			}
 		}
 		// Misfit reports first, then empty, then thin.
-		$order = array( 'misfit' => 0, 'empty' => 1, 'thin' => 2 );
+		$order = array( 'misfit' => 0, 'duplicate' => 1, 'empty' => 2, 'thin' => 3 );
 		usort( $out, static fn( $a, $b ) => array( $order[ $a['reason'] ], $a['count'] ) <=> array( $order[ $b['reason'] ], $b['count'] ) );
 		return $out;
 	}
@@ -143,8 +147,16 @@ final class TermDecisions {
 		$link    = get_term_link( $t );
 		$product = 'product_cat' === $t->taxonomy || 'product_tag' === $t->taxonomy;
 
+		// Duplicate found by the weekly sweep: the higher-value twin goes first.
+		$dup = 'duplicate' === $reason ? ( \PaydarWP\PaydarPress\Improve\TagProgram::merge_map()[ $term_id ] ?? null ) : null;
+		if ( $dup ) {
+			$overlap = array_merge( array( array( 'id' => (int) $dup['into']['id'], 'name' => $dup['into']['name'], 'count' => (int) $dup['into']['count'] ) ), array_values( array_filter( $overlap, static fn( $o ) => (int) $o['id'] !== (int) $dup['into']['id'] ) ) );
+		}
+
 		// Rule-based recommendation (the decision is the owner's).
-		if ( 'misfit' === $reason ) {
+		if ( $dup ) {
+			$rec = array( 'merge', 'تکراری «' . $dup['into']['name'] . '» است (' . $dup['why'] . ')؛ ادغام در نسخه باارزش‌تر، مطالب را یکجا جمع می‌کند و آرشیو تکراری ریدایرکت می‌شود.' );
+		} elseif ( 'misfit' === $reason ) {
 			$rec = array( 'remove_posts', 'به نظر هوش مصنوعی این مطالب به این مورد نمی‌خورند؛ اگر موافقید، فقط از همین مطالب برداشته شود.' );
 		} elseif ( $overlap ) {
 			$rec = array( 'merge', 'با «' . $overlap[0]['name'] . '» هم‌معناست؛ ادغام، آرشیوهای تکراری را یکی می‌کند.' );

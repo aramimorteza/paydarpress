@@ -35,6 +35,7 @@ final class AiClient {
 		'merge'      => 'ادغام دو مقاله',
 		'classify'   => 'طبقه‌بندی مطالب',
 		'cluster'    => 'نقشه خوشه محتوایی',
+		'slugs'      => 'نامک انگلیسی',
 	);
 
 	private const TIMEOUT = 180;

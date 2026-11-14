@@ -59,13 +59,18 @@ final class TaskBoard {
 
 		// Variety: at most 3 tasks of one kind in the week, so one long kind of work does not
 		// push quick wins out of sight; the rest stay in "later".
-		$week  = array();
-		$later = array();
-		$per   = array();
+		$week    = array();
+		$later   = array();
+		$per     = array();
+		$budget  = (int) \PaydarWP\PaydarPress\Core\Settings::get( 'improve.weekly_minutes', 120 );
+		$minutes = 0;
 		foreach ( $open as $task ) {
 			$per[ $task['type'] ] = ( $per[ $task['type'] ] ?? 0 ) + 1;
-			if ( count( $week ) < self::WEEK_SIZE && $per[ $task['type'] ] <= 3 ) {
-				$week[] = $task;
+			// Weekly time budget (at least 3 tasks so there is always something to do).
+			$fits = count( $week ) < 3 || $minutes + (int) $task['minutes'] <= $budget;
+			if ( count( $week ) < self::WEEK_SIZE && $per[ $task['type'] ] <= 3 && $fits ) {
+				$week[]   = $task;
+				$minutes += (int) $task['minutes'];
 			} else {
 				$later[] = $task;
 			}
@@ -76,6 +81,8 @@ final class TaskBoard {
 			'week'      => $week,
 			'later'     => array_slice( $later, 0, 30 ),
 			'done_week' => $done_week,
+			'minutes'   => $minutes,
+			'budget'    => $budget,
 			'policy'    => PromptBuilder::policy(),
 			'stage'     => \PaydarWP\PaydarPress\Policy\SiteStage::info(),
 		);
@@ -232,6 +239,21 @@ final class TaskBoard {
 			if ( ++$n >= 3 ) {
 				break;
 			}
+		}
+
+		// Improvement program: addresses and tag clean-up.
+		$slugs = \PaydarWP\PaydarPress\Improve\SlugProgram::state();
+		if ( ! $slugs['paused'] && $slugs['quota'] > 0 ) {
+			$ready = count( array_filter( $slugs['week'], static fn( $i ) => '' !== $i['new'] ) );
+			if ( $ready > 0 ) {
+				$tasks[] = self::task( 'improve:slugs', 'fix', sprintf( 'این هفته %s آدرس فارسی را انگلیسی کنید', PersianNormalizer::fa_number( $ready ) ), sprintf( '%s آدرس فارسی یا بی‌معنا مانده است. هر هفته چند صفحه کم‌بازدید با ریدایرکت ۳۰۱ و به‌روزرسانی لینک‌های داخلی؛ نامک‌ها را ببینید و تأیید کنید.', PersianNormalizer::fa_number( $slugs['poor'] ) ), 48, 5, array( 'route' => '/progress', 'label' => 'برنامه آدرس‌ها' ) );
+			} elseif ( $slugs['needs_slug'] ) {
+				$tasks[] = self::task( 'improve:slugnames', 'fix', 'نامک انگلیسی برای آدرس‌های فارسی بگیرید', sprintf( '%s آدرس فارسی یا بی‌معنا مانده است. هوش مصنوعی برای ۴۰ آدرس بعدی نامک کوتاه انگلیسی پیشنهاد می‌دهد؛ تا تأیید نکنید آدرسی عوض نمی‌شود.', PersianNormalizer::fa_number( $slugs['poor'] ) ), 40, 5, array( 'route' => '/progress', 'label' => 'برنامه آدرس‌ها' ), array( 'kind' => 'slugs', 'id' => 0, 'title' => '' ) );
+			}
+		}
+		$over = \PaydarWP\PaydarPress\Improve\TagProgram::over_cap();
+		if ( $over > 0 ) {
+			$tasks[] = self::task( 'improve:tagclean', 'fix', sprintf( '%s مطلب یا محصول برچسب بیش از اندازه دارد', PersianNormalizer::fa_number( $over ) ), 'برچسب‌های زیاد و نامرتبط آرشیوهای کم‌ارزش می‌سازند. «پاک‌سازی برچسب‌ها» در طبقه‌بندی، برچسب‌های نامرتبط را با دلیل پیشنهاد می‌دهد؛ حذف فقط با تیک شما.', 42, 10, array( 'route' => '/taxonomies', 'label' => 'پاک‌سازی برچسب‌ها' ) );
 		}
 
 		// 5. Google opportunities (highest impressions first).

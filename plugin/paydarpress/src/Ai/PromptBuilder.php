@@ -26,7 +26,7 @@ defined( 'ABSPATH' ) || exit;
  */
 final class PromptBuilder {
 
-	public const TASKS = array( 'topics', 'article', 'rewrite', 'term', 'meta', 'structure', 'merge', 'alt', 'classify', 'cluster' );
+	public const TASKS = array( 'topics', 'article', 'rewrite', 'term', 'meta', 'structure', 'merge', 'alt', 'classify', 'cluster', 'slugs' );
 
 	/** Existing items listed for duplicate checks and internal links. */
 	private const RELATED_LIMIT = 60;
@@ -535,6 +535,47 @@ final class PromptBuilder {
 	}
 
 	/**
+	 * English slugs for pages whose address is Persian, numeric or a "-2" duplicate.
+	 *
+	 * @param array $args ids (optional; default: the next 40 that need one).
+	 * @throws RuntimeException When nothing needs a slug.
+	 */
+	private static function task_slugs( array $args ): array {
+		$ids = array_values( array_filter( array_map( 'intval', explode( ',', (string) ( $args['ids'] ?? '' ) ) ) ) );
+		if ( ! $ids ) {
+			$ids = \PaydarWP\PaydarPress\Improve\SlugProgram::state()['needs_slug'];
+		}
+		$ids = array_slice( $ids, 0, 40 );
+		if ( ! $ids ) {
+			throw new RuntimeException( 'آدرسی منتظر نامک انگلیسی نیست.' );
+		}
+		$lines = array();
+		foreach ( $ids as $id ) {
+			$post = get_post( $id );
+			if ( ! $post instanceof WP_Post ) {
+				continue;
+			}
+			$seo     = self::seo_of( $id );
+			$lines[] = '- id ' . $id . ' | ' . self::title( $id ) . ( '' !== $seo['focus_keyword'] ? ' | keyword: ' . $seo['focus_keyword'] : '' ) . ' | ' . $post->post_type;
+		}
+		$task = "Give a short English URL slug for each page below.\n"
+			. "- 2 to 5 words, lowercase latin letters, digits and hyphens only; no stop words (the, of, and, a), no years, no brand or site name.\n"
+			. "- Describe what people search for (the main topic or product type), not a word-by-word translation of the title. Keep product model codes (e.g. r21, k13).\n"
+			. "- Every slug must be different.\n\n## PAGES\n" . implode( "\n", $lines );
+		return array(
+			'title'      => 'نامک انگلیسی برای ' . PersianNormalizer::fa_number( count( $lines ) ) . ' آدرس',
+			'command'    => '',
+			'task'       => $task,
+			'subject'    => '',
+			'rules'      => self::rules_short(),
+			'output'     => self::output( 'slugs' ),
+			'no_related' => true,
+			'minimal'    => true,
+			'object_id'  => null,
+		);
+	}
+
+	/**
 	 * Categories and tags for existing posts or products (add only).
 	 *
 	 * @param array $args ids (comma-separated) or kind + scope (next chunk of candidates).
@@ -551,6 +592,7 @@ final class PromptBuilder {
 		}
 		$kind  = 'product' === get_post_type( $ids[0] ) ? 'product' : 'post';
 		$label = 'product' === $kind ? 'محصول' : 'مقاله';
+		$cleanup = 'cleanup' === ( $args['scope'] ?? '' );
 		$max   = \PaydarWP\PaydarPress\Profile\TaxonomyMap::max_tags( $kind );
 
 		$task = 'Choose better categories and tags for each existing ' . ( 'product' === $kind ? 'product' : 'article' ) . " listed below. Read its title, headings and beginning, then:\n"
@@ -559,6 +601,7 @@ final class PromptBuilder {
 			. "- add_tags: tags from EXISTING TAGS (exact names) that describe real topics of the item and are missing. The item may have at most {$max} tags in total including its current ones.\n"
 			. "- new_tags: at most ONE new tag per item, and only if no existing tag fits: a general, reusable term people actually search for (not a sentence, not the title, not a plural, synonym or near-duplicate of an existing tag or a category). Prefer none.\n"
 			. "- misfit: current categories or tags of the item that clearly do not fit it (they will be reported to the owner; nothing is removed).\n"
+			. ( 'cleanup' === ( $args['scope'] ?? '' ) ? "- remove_tags: THIS IS A TAG CLEAN-UP. List current tags of the item that do not describe it (wrong product type, colour or material it does not have, temporary sale words, duplicates of another tag, the brand or site name), each with a short reason in the site language. Keep every tag that is a real topic of the item. The item should end with at most {$max} tags.\n" : '' )
 			. 'Be conservative: when unsure, add nothing. Never invent category names.'
 			. "\n\n" . \PaydarWP\PaydarPress\Strategy\Classifier::terms_text( $kind )
 			. "\n\n## ITEMS\n" . \PaydarWP\PaydarPress\Strategy\Classifier::items_text( $ids );
@@ -569,7 +612,7 @@ final class PromptBuilder {
 			'task'       => $task,
 			'subject'    => '',
 			'rules'      => self::rules_short(),
-			'output'     => self::output( 'classify' ),
+			'output'     => self::output( 'classify', array( 'cleanup' => $cleanup ) ),
 			'no_related' => true,
 			'minimal'    => true,
 			'object_id'  => null,
@@ -822,7 +865,9 @@ final class PromptBuilder {
 			case 'structure':
 				return $head . 'with "structure_suggestions": [{"action": "merge|split|create|rename|noindex|keep", "taxonomy": "category|product_cat", "term_id": 0, "name": "<current name>", "new_name": "<new display name, for create/rename/split>", "into_term_id": 0, "into_name": "<target category, for merge>", "reason": "<one or two sentences in the site language>", "priority": "high|medium|low"}] and "notes": "<short overall assessment in the site language>".';
 			case 'classify':
-				return $head . 'with "classifications": [{"id": <ITEM id>, "add_categories": ["<exact category name>"], "primary_category": "<exact name, only when the current main category is clearly wrong, else empty>", "add_tags": ["<exact existing tag>"], "new_tags": ["<new tag, rarely>"], "misfit": [{"term": "<a CURRENT category or tag of the item that clearly does not fit>", "reason": "<short, site language>"}]}] — one entry for EVERY item listed, even when nothing changes (then empty lists).';
+				return $head . 'with "classifications": [{"id": <ITEM id>, "add_categories": ["<exact category name>"], "primary_category": "<exact name, only when the current main category is clearly wrong, else empty>", "add_tags": ["<exact existing tag>"], "new_tags": ["<new tag, rarely>"], ' . ( empty( $ctx['cleanup'] ) ? '' : '"remove_tags": [{"tag": "<a CURRENT tag that does not fit>", "reason": "<short, site language>"}], ' ) . '"misfit": [{"term": "<a CURRENT category or tag of the item that clearly does not fit>", "reason": "<short, site language>"}]}] — one entry for EVERY item listed, even when nothing changes (then empty lists).';
+			case 'slugs':
+				return $head . 'with "slugs": [{"id": <page id>, "slug": "<english-slug>"}] — one entry for EVERY page listed.';
 			case 'alt':
 				return $head . 'with "image_alts": [{"ref": "<ref exactly as listed>", "alt": "<alt text>"}] — one item for EVERY image listed, in the same order.';
 			case 'meta':
