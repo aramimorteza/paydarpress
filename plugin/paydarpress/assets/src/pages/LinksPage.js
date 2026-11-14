@@ -15,7 +15,7 @@ const TABS = [
 	{ key: 'rejected', label: 'ردشده' },
 ];
 
-const ORIGIN = { contentmaster: 'هوش مصنوعی', paydarpress: 'پایدارپرس', cluster: 'خوشه محتوایی' };
+const ORIGIN = { contentmaster: 'هوش مصنوعی', paydarpress: 'پایدارپرس', cluster: 'خوشه محتوایی', manual: 'دستی', broken: 'اصلاح لینک خراب' };
 
 function initialStatus() {
 	const m = window.location.hash.match( /[?&]status=([a-z]+)/ );
@@ -144,6 +144,27 @@ export default function LinksPage() {
 	);
 }
 
+const TYPE_LABELS = { post: 'مقاله', page: 'برگه', product: 'محصول' };
+
+/**
+ * One end of a link (source or target): type, title, view and edit links.
+ *
+ * @param {Object} props
+ * @param {string} props.role «از» or «به».
+ * @param {Object} props.post Post reference.
+ */
+function PostEnd( { role, post: p } ) {
+	return (
+		<span className="pp-link-end">
+			<span className="pp-muted">{ role }</span>
+			{ p.type && <span className={ `pp-badge${ 'product' === p.type ? ' pp-badge--warning' : '' }` }>{ TYPE_LABELS[ p.type ] || p.type }</span> }
+			<strong>{ p.title }</strong>
+			{ p.url && <a className="pp-icon-link" href={ p.url } target="_blank" rel="noreferrer" title="مشاهده در سایت"><span className="dashicons dashicons-external" aria-hidden="true" />مشاهده</a> }
+			{ p.edit_url && <a className="pp-icon-link" href={ p.edit_url } target="_blank" rel="noreferrer" title="ویرایش در وردپرس"><span className="dashicons dashicons-edit" aria-hidden="true" />ویرایش</a> }
+		</span>
+	);
+}
+
 /**
  * One suggestion.
  *
@@ -185,18 +206,21 @@ function LinkCard( { item, canManage, checked, onCheck, onChange } ) {
 					<CheckboxControl __nextHasNoMarginBottom label="انتخاب" hideLabelFromVision checked={ checked } onChange={ onCheck } />
 				) }
 				<div className="pp-link-card__route">
-					<a href={ item.source.edit_url }>{ item.source.title }</a>
+					<PostEnd role="از" post={ item.source } />
 					<span className="pp-link-card__arrow" aria-hidden="true">←</span>
-					<a href={ item.target.url } target="_blank" rel="noreferrer">{ item.target.title }</a>
+					<PostEnd role="به" post={ item.target } />
 					{ 'publish' !== item.target.status && <span className="pp-badge pp-badge--warning">مقصد منتشر نشده</span> }
 				</div>
 				<span className="pp-muted pp-link-card__origin">{ ORIGIN[ item.origin ] || item.origin } · { ago( item.updated_at ) }</span>
 			</div>
 
 			{ open && item.context && (
-				<p className="pp-link-card__context">
-					{ item.context.before } <mark>{ item.context.match }</mark> { item.context.after }
-				</p>
+				<>
+					<p className="pp-link-card__context">
+						{ item.context.before } <mark>{ item.context.match }</mark> { item.context.after }
+					</p>
+					<p className="pp-muted pp-link-card__hint">متن مشخص‌شده همین حالا در «{ item.source.title }» هست؛ با درج، فقط همان متن لینک‌دار می‌شود و چیزی به نوشته اضافه نمی‌شود.</p>
+				</>
 			) }
 			{ open && ! item.found && (
 				<p className="pp-missing">
@@ -222,7 +246,7 @@ function LinkCard( { item, canManage, checked, onCheck, onChange } ) {
 					{ 'failed' === item.status && <Button variant="tertiary" size="small" onClick={ () => act( 'done' ) } disabled={ busy }>دستی انجام شد</Button> }
 					{ [ 'pending', 'failed', 'approved' ].includes( item.status ) && <Button variant="tertiary" size="small" onClick={ () => act( 'reject' ) } disabled={ busy }>رد</Button> }
 					{ 'rejected' === item.status && <Button variant="tertiary" size="small" onClick={ () => act( 'restore' ) } disabled={ busy }>بازگرداندن به صف</Button> }
-					{ item.can_undo && <Button variant="link" isDestructive size="small" onClick={ () => act( 'undo' ) } disabled={ busy }>برداشتن لینک</Button> }
+					{ item.can_undo && <Button variant="link" isDestructive size="small" onClick={ () => act( 'undo' ) } disabled={ busy } title="لینک برداشته می‌شود و متن، همان‌طور که پیش از درج بود، سر جایش می‌ماند">برداشتن لینک (متن می‌ماند)</Button> }
 					{ 'applied' === item.status && <a href={ item.source.url } target="_blank" rel="noreferrer">مشاهده نوشته</a> }
 				</div>
 			) }

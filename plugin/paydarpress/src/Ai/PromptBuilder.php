@@ -757,7 +757,7 @@ final class PromptBuilder {
 				'- TAGS: 1–' . $max_tags . ' tags (never more than ' . $max_tags . '), each one a real topic of this article, chosen from the TAGS list (exact names). Only if no listed tag fits, you may add at most ONE new tag: a general, reusable term people actually search for (not a sentence, not the article title, not a synonym or plural of a listed tag or category). Never use a category name as a tag.',
 				'- ' . \PaydarWP\PaydarPress\Images\InlinePlan::prompt_rule() . ' Each with `after_heading` (the exact H2/H3 text it follows), an English `prompt` in the VISUAL STYLE, `alt` in the site language and `why` (one line).',
 				'- ' . self::alt_rules(),
-				'- reverse_links: 2–3 EXISTING CONTENT items that should link to this new article, with an anchor and the sentence where it fits.',
+				'- reverse_links: 2–3 EXISTING ARTICLES (blog posts, never products or shop pages) that should link to this new article, with an anchor that already appears in that article and the sentence where it fits.',
 				'- featured_image: a UNIQUE image brief for THIS article. `prompt` in English: one concrete scene taken from the article\'s own situation (who, where, what is happening, one telling detail), in the VISUAL STYLE below; vary subject, setting, angle and composition; never a generic stock concept (handshake, gavel on desk, laptop on table, person thinking) and never one of the RECENT IMAGES listed; no text, logos or watermarks. `alt` follows the ALT TEXT rule above, using the article\'s main topic as its context.',
 			)
 		);
@@ -859,7 +859,7 @@ final class PromptBuilder {
 			case 'rewrite':
 				$rw = preg_replace( '/^\{"title"/', '{"rewrite_of": "' . $ctx['url'] . '", "title"', str_replace( '"tags": [],', '"tags": [], "tags_remove": [{"name": "", "reason": ""}],', $article ), 1 );
 				return $head . 'with "articles": [ ' . $rw . ' ] and optionally "notes": "<what changed, in the site language>".'
-					. ( empty( $ctx['product'] ) ? '' : ' For a product, `html` is the full product description and `excerpt` is the new short description; leave `category` empty (product categories do not change).' );
+					. ( empty( $ctx['product'] ) ? '' : ' For a product, `html` is the full product description and `excerpt` is REQUIRED: the new short description shown next to the price (2–4 short bullet points or 2 sentences; simple HTML allowed: <p>, <ul>, <li>, <strong>); leave `category` empty (product categories do not change).' );
 			case 'term':
 				return $head . 'with "term_descriptions": [{"taxonomy": "' . $ctx['taxonomy'] . '", "term_id": ' . (int) $ctx['term_id'] . ', "name": ' . wp_json_encode( $ctx['name'], JSON_UNESCAPED_UNICODE ) . ', "description": "<HTML>"}]';
 			case 'structure':

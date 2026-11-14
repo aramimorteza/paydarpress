@@ -58,8 +58,8 @@ export default function BrokenPage() {
 							<section key={ it.id } className="pp-card pp-card--section">
 								<div className="pp-broken__head">
 									<strong>{ it.title }</strong>
-									<a className="pp-icon-link" href={ it.edit_url } title="ویرایش"><span className="dashicons dashicons-edit" aria-hidden="true" /></a>
-									<a className="pp-icon-link" href={ it.url } target="_blank" rel="noreferrer" title="مشاهده"><span className="dashicons dashicons-external" aria-hidden="true" /></a>
+									<a className="pp-icon-link" href={ it.edit_url } title="ویرایش"><span className="dashicons dashicons-edit" aria-hidden="true" /><span className="pp-icon-link__text">ویرایش</span></a>
+									<a className="pp-icon-link" href={ it.url } target="_blank" rel="noreferrer" title="مشاهده"><span className="dashicons dashicons-external" aria-hidden="true" /><span className="pp-icon-link__text">مشاهده</span></a>
 									<span className="pp-badge pp-badge--warning">{ num( it.problems.length ) } مورد</span>
 								</div>
 								<BrokenFixes postId={ it.id } problems={ it.problems } />

@@ -634,12 +634,30 @@ final class ImportService {
 		}
 
 		$reverse = array();
+		$skipped = array();
+		$is_shop = $rewrite && 'product' === $rewrite->post_type;
 		foreach ( $article['reverse_links'] as $link ) {
-			$source    = $this->resolve_url( $link['source_url'] );
+			$source = $this->resolve_url( $link['source_url'] );
+			// A product page sends buyers to an article only if the owner adds it by hand:
+			// links that pull a buyer away from the purchase are not suggested automatically.
+			if ( 'ok' === $source['state'] && ! $is_shop && 'product' === get_post_type( (int) $source['id'] ) ) {
+				$skipped[] = $source['title'];
+				continue;
+			}
 			$reverse[] = $link + array(
 				'source_id'    => 'ok' === $source['state'] ? $source['id'] : null,
 				'source_title' => $source['title'],
 			);
+		}
+
+		if ( $skipped ) {
+			$checks[] = array( 'info', 'لینک از این محصولات به مقاله پیشنهاد نمی‌شود (خریدار از صفحه خرید دور نشود): ' . implode( '، ', $skipped ) );
+		}
+		// Product rewrite: the short description is replaced only when the reply has one.
+		if ( $rewrite && 'product' === $rewrite->post_type ) {
+			$checks[] = '' === trim( wp_strip_all_tags( $article['excerpt'] ) )
+				? array( 'warning', 'پاسخ «شرح کوتاه» (excerpt) ندارد؛ شرح کوتاه فعلی محصول عوض نمی‌شود. برای شرح کوتاه تازه دوباره بخواهید یا آن را دستی بنویسید.' )
+				: array( 'info', 'شرح کوتاه محصول هم با جایگزینی عوض می‌شود.' );
 		}
 
 		return $this->with_checks(
@@ -896,6 +914,19 @@ final class ImportService {
 	}
 
 	/**
+	 * Short description HTML: paragraphs, lists, bold and line breaks only.
+	 *
+	 * @param string $html Excerpt from the reply.
+	 */
+	public static function short_html( string $html ): string {
+		$allowed = array( 'p' => array(), 'ul' => array(), 'ol' => array(), 'li' => array(), 'strong' => array(), 'b' => array(), 'em' => array(), 'br' => array() );
+		$html    = (string) preg_replace( '#<(script|style|iframe|noscript|object|embed|form)\b[^>]*>.*?</\1\s*>#isu', '', $html );
+		$html    = trim( wp_kses( $html, $allowed ) );
+		// Plain text with line breaks becomes paragraphs.
+		return ( '' !== $html && false === strpos( $html, '<' ) ) ? wpautop( $html ) : $html;
+	}
+
+	/**
 	 * Creates one draft.
 	 *
 	 * @param array $article   Checked article.
@@ -921,7 +952,8 @@ final class ImportService {
 				// A rewrite keeps the original's address; the draft gets none of its own.
 				'post_name'     => empty( $article['rewrite_id'] ) ? sanitize_title( $article['slug'] ) : '',
 				'post_content'  => $content,
-				'post_excerpt'  => sanitize_textarea_field( $article['excerpt'] ),
+				// A product's short description is shown as HTML (lists, bold); an article excerpt is plain text.
+				'post_excerpt'  => 'product' === $type ? self::short_html( $article['excerpt'] ) : sanitize_textarea_field( wp_strip_all_tags( $article['excerpt'] ) ),
 				'post_author'   => $article['author_id'] ?? get_current_user_id(),
 				'post_category' => null === $article['category_id'] || 'post' !== $type ? array() : array( (int) $article['category_id'] ),
 				'tags_input'    => 'post' === $type ? $article['tags'] : array(),

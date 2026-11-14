@@ -377,7 +377,8 @@ final class ImportParser {
 				'meta_description' => self::str( $seo['meta_description'] ?? $seo['description'] ?? '', 500 ),
 				'focus_keyword'    => self::str( $seo['focus_keyword'] ?? $seo['keyword'] ?? '', 255 ),
 			),
-			'excerpt'       => self::str( $raw['excerpt'] ?? '', 1000 ),
+			// Short description of a product may come as HTML (kept for products, stripped for articles at save time).
+			'excerpt'       => mb_substr( trim( (string) ( is_scalar( $raw['excerpt'] ?? null ) ? $raw['excerpt'] : ( is_scalar( $raw['short_description'] ?? null ) ? $raw['short_description'] : '' ) ) ), 0, 3000 ),
 			'author'        => self::str( $raw['author'] ?? '', 100 ),
 			'image_prompt'  => self::str( $image['prompt'] ?? '', 3000 ),
 			'image_alt'     => self::str( $image['alt'] ?? '', 255 ),

@@ -38,6 +38,9 @@ final class LinkSuggestionRepository {
 		if ( $source_id <= 0 || $target_id <= 0 || $source_id === $target_id ) {
 			return 0;
 		}
+		if ( 'manual' !== $origin && self::product_to_content( $source_id, $target_id ) ) {
+			return 0;
+		}
 
 		$table = Schema::table( 'link_suggestions' );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -66,6 +69,18 @@ final class LinkSuggestionRepository {
 	}
 
 	/**
+	 * A product page linking to an article or page: it pulls a buyer away from the purchase,
+	 * so it is never suggested automatically (the owner can still add one by hand). Product →
+	 * product (related / accessories) stays allowed.
+	 *
+	 * @param int $source_id Source.
+	 * @param int $target_id Target.
+	 */
+	public static function product_to_content( int $source_id, int $target_id ): bool {
+		return 'product' === get_post_type( $source_id ) && 'product' !== get_post_type( $target_id );
+	}
+
+	/**
 	 * Number of pending suggestions.
 	 */
 	public static function pending_count(): int {
@@ -88,5 +103,16 @@ final class LinkSuggestionRepository {
 		$wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE status = 'rejected' AND updated_at < %s", gmdate( 'Y-m-d H:i:s', time() - $days * DAY_IN_SECONDS ) ) );
 		$wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE status = 'applied' AND updated_at < %s", gmdate( 'Y-m-d H:i:s', time() - 365 * DAY_IN_SECONDS ) ) );
 		// phpcs:enable
+		self::drop_product_links();
+	}
+
+	/**
+	 * Older automatic suggestions from a product to an article (rule since 0.33) leave the queue.
+	 */
+	public static function drop_product_links(): void {
+		global $wpdb;
+		$table = \PaydarWP\PaydarPress\Database\Schema::table( 'link_suggestions' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( "DELETE FROM {$table} WHERE status IN ('pending','approved') AND origin <> 'manual' AND source_id IN (SELECT ID FROM {$wpdb->posts} WHERE post_type = 'product') AND target_id IN (SELECT ID FROM {$wpdb->posts} WHERE post_type <> 'product')" );
 	}
 }

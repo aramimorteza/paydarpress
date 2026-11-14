@@ -373,6 +373,7 @@ final class LinkQueue {
 	public function list( string $status, int $page, int $per_page ): array {
 		global $wpdb;
 
+		\PaydarWP\PaydarPress\Import\LinkSuggestionRepository::drop_product_links();
 		$table = Schema::table( 'link_suggestions' );
 		$where = in_array( $status, self::STATUSES, true ) ? $wpdb->prepare( 'WHERE status = %s', $status ) : '';
 
@@ -510,6 +511,7 @@ final class LinkQueue {
 			'id'       => $id,
 			'title'    => $post ? $this->title( $id ) : 'حذف‌شده',
 			'status'   => $post ? (string) $post->post_status : 'trash',
+			'type'     => $post ? (string) $post->post_type : '',
 			'url'      => $post ? (string) get_permalink( $id ) : '',
 			'edit_url' => $post ? (string) get_edit_post_link( $id, 'raw' ) : '',
 			'builder'  => $post && 'builder' === get_post_meta( $id, '_elementor_edit_mode', true ),

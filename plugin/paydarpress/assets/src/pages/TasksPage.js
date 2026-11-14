@@ -42,10 +42,11 @@ export const TYPE_ICONS = {
  * @param {string} props.href  Link.
  * @param {boolean} props.blank New tab.
  */
-export function IconLink( { icon, label, href, blank = false } ) {
+export function IconLink( { icon, label, text = '', href, blank = false } ) {
 	return (
 		<a className="pp-icon-link" href={ href } title={ label } aria-label={ label } { ...( blank ? { target: '_blank', rel: 'noreferrer' } : {} ) }>
 			<span className={ `dashicons dashicons-${ icon }` } aria-hidden="true" />
+			{ text && <span className="pp-icon-link__text">{ text }</span> }
 		</a>
 	);
 }
@@ -140,8 +141,8 @@ export function TaskLinks( { details } ) {
 	}
 	return (
 		<>
-			<IconLink icon="external" label={ `${ details.view.label } — ${ details.view.title }` } href={ details.view.url } blank />
-			{ details.gsc_link && <IconLink icon="chart-bar" label="عبارت‌های دقیق این صفحه در سرچ کنسول" href={ details.gsc_link } blank /> }
+			<IconLink icon="external" label={ `${ details.view.label } — ${ details.view.title }` } text={ details.view.label } href={ details.view.url } blank />
+			{ details.gsc_link && <IconLink icon="chart-bar" label="عبارت‌های دقیق این صفحه در سرچ کنسول" text="سرچ کنسول" href={ details.gsc_link } blank /> }
 		</>
 	);
 }
@@ -165,8 +166,8 @@ function TaskCard( { task, index, onMark, canManage, onReload } ) {
 					<span className="pp-muted pp-task__time"><span className="dashicons dashicons-clock" aria-hidden="true" />{ num( task.minutes ) } دقیقه</span>
 					{ canManage && (
 						<span className="pp-task__marks">
-							<button type="button" className="pp-icon-link" title="انجام شد" aria-label="انجام شد" onClick={ () => onMark( task.key, 'done' ) }><span className="dashicons dashicons-yes" aria-hidden="true" /></button>
-							<button type="button" className="pp-icon-link" title="هفته بعد" aria-label="هفته بعد" onClick={ () => onMark( task.key, 'later' ) }><span className="dashicons dashicons-calendar-alt" aria-hidden="true" /></button>
+							<button type="button" className="pp-icon-link" title="انجام شد" aria-label="انجام شد" onClick={ () => onMark( task.key, 'done' ) }><span className="dashicons dashicons-yes" aria-hidden="true" /><span className="pp-icon-link__text">انجام شد</span></button>
+							<button type="button" className="pp-icon-link" title="هفته بعد" aria-label="هفته بعد" onClick={ () => onMark( task.key, 'later' ) }><span className="dashicons dashicons-calendar-alt" aria-hidden="true" /><span className="pp-icon-link__text">هفته بعد</span></button>
 						</span>
 					) }
 				</div>
@@ -176,7 +177,7 @@ function TaskCard( { task, index, onMark, canManage, onReload } ) {
 				<div className="pp-task__actions">
 					{ ai ? <AiButton command={ ai } variant={ 0 === index ? 'primary' : 'secondary' } /> : ! isEdit && <TaskAction action={ action } variant={ 0 === index ? 'primary' : 'secondary' } /> }
 					{ ai && ! isEdit && <TaskAction action={ action } variant="tertiary" /> }
-					{ isEdit && <IconLink icon="edit" label="ویرایش" href={ action.url } /> }
+					{ isEdit && <IconLink icon="edit" label="ویرایش در وردپرس" text="ویرایش" href={ action.url } /> }
 					<TaskLinks details={ details } />
 				</div>
 			</div>

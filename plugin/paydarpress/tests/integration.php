@@ -181,6 +181,15 @@ $sug = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . Schema::t
 it( $sug > 0, 'links: suggestion created from an existing phrase', wp_json_encode( $res ) . ' src=' . $ls . ' cands=' . wp_json_encode( array_column( ( new \PaydarWP\PaydarPress\Links\LinkSuggester() )->for_target( $lt, 8 ), 'id' ) ) . ' block=' . wp_json_encode( ( new \PaydarWP\PaydarPress\Links\LinkQueue() )->budget_block( get_post( $ls ), false ) ) );
 it( LinkProgram::target_for( LinkProgram::target(), true ) === 2 * LinkProgram::target(), 'links: key pages need twice the target' );
 
+// 7b. Products: never an automatic link from a product to an article; product rewrite keeps HTML short description.
+if ( post_type_exists( 'product' ) ) {
+	$prod = $make( array( 'post_type' => 'product', 'post_title' => 'محصول ' . $mark, 'post_excerpt' => 'کوتاه قدیمی' ) );
+	$art  = $make( array( 'post_title' => 'راهنمای خرید ' . $mark ) );
+	it( 0 === \PaydarWP\PaydarPress\Import\LinkSuggestionRepository::insert( $prod, $art, 'راهنما', '', 'contentmaster', 0 ), 'links: no automatic product → article suggestion' );
+	it( \PaydarWP\PaydarPress\Import\LinkSuggestionRepository::insert( $prod, $art, 'راهنما', '', 'manual', 0 ) > 0, 'links: the owner can still add one by hand' );
+	it( '<ul><li>یک</li><li><strong>دو</strong></li></ul>' === \PaydarWP\PaydarPress\Import\ImportService::short_html( '<ul><li>یک</li><li><strong>دو</strong></li></ul><script>x</script>' ), 'rewrite: product short description keeps simple HTML only' );
+}
+
 // 8. CSV export: a title that starts with "=" opens as text.
 $f = $make( array( 'post_title' => '=HYPERLINK("http://example.invalid","' . $mark . '")' ) );
 ChangeLog::record( 'meta', $f, 'آزمون ' . $mark );

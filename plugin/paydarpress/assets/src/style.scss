@@ -2039,8 +2039,12 @@ button.pp-chip {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 28px;
+	gap: 3px;
+	min-width: 28px;
 	height: 28px;
+	padding: 0 6px;
+	font-size: 12px;
+	white-space: nowrap;
 	border-radius: 6px;
 	border: 0;
 	background: transparent;
@@ -2633,7 +2637,7 @@ button.pp-chip {
 	--wp-components-color-accent-darker-10: var(--pwp-primary-hover, #0b5858);
 	--wp-components-color-accent-darker-20: #084444;
 
-	.pp-page__content a:not(.components-button):not(.pp-tab):not(.pp-icon-link):not(.pp-qchip) {
+	.pp-page__content a:not(.components-button):not(.button):not(.pp-tab):not(.pp-icon-link):not(.pp-qchip) {
 		color: #135e96;
 	}
 
@@ -2646,3 +2650,7 @@ button.pp-chip {
 		outline-offset: 2px;
 	}
 }
+
+.pp-icon-link__text { line-height: 1; }
+.pp-link-end { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.pp-link-card__hint { margin: 2px 0 6px; font-size: 12px; }

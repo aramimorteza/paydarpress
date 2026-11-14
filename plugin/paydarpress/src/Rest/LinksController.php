@@ -185,7 +185,7 @@ final class LinksController {
 			}
 		}
 
-		$id = LinkSuggestionRepository::insert( $source->ID, $target->ID, $anchor, '', 'paydarpress', 0 );
+		$id = LinkSuggestionRepository::insert( $source->ID, $target->ID, $anchor, '', 'manual', 0 );
 
 		return new WP_REST_Response(
 			array(
